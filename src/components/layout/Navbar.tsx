@@ -24,7 +24,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
       <Container>
         <div className="flex h-16 items-center justify-between">
-          {/* Logo 区 */}
+          {/* Logo Area */}
           <Link
             href="/"
             className="flex items-center gap-2 font-bold text-xl tracking-tight"
@@ -35,7 +35,7 @@ export function Navbar() {
             <span>0xShoyu</span>
           </Link>
 
-          {/* 桌面端导航 */}
+          {/* Desktop Navbar */}
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
               const isActive = pathname.startsWith(item.href);
@@ -52,7 +52,7 @@ export function Navbar() {
                   onMouseEnter={() => setHoveredPath(item.href)}
                   onMouseLeave={() => setHoveredPath(null)}
                 >
-                  {/* Apple 风格的悬停光效 */}
+                  {/* Apple Style Hover Effect */}
                   {hoveredPath === item.href && (
                     <motion.div
                       layoutId="navbar-hover"
@@ -70,7 +70,7 @@ export function Navbar() {
             })}
           </nav>
 
-          {/* 手机端菜单按钮 */}
+          {/* Mobile Navbar */}
           <button
             className="md:hidden p-2 text-muted hover:text-foreground"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -80,7 +80,7 @@ export function Navbar() {
         </div>
       </Container>
 
-      {/* 手机端下拉菜单 (简单版) */}
+      {/* Mobile Dropdown */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-border/40 bg-background px-4 py-4 space-y-2">
           {navItems.map((item) => (
