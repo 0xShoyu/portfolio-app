@@ -12,7 +12,6 @@ const navItems = [
   { name: "Portfolio", href: "/portfolio" },
   { name: "Docs", href: "/docs" },
   { name: "Blog", href: "/blog" },
-  // { name: "Playground", href: "/playground" },
 ];
 
 export function Navbar() {

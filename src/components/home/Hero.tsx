@@ -1,0 +1,88 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { ArrowRight, FileText, Terminal } from "lucide-react";
+import Link from "next/link";
+
+export function Hero() {
+  return (
+    <section className="relative flex flex-col items-start justify-center pt-8 pb-10 md:pt-12 md:pb-16 overflow-visible">
+      <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 -right-24 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative z-10 max-w-5xl flex flex-col gap-y-6 md:gap-y-8"
+      >
+        {/* 1. Badge */}
+        <div>
+          <div className="inline-flex items-center overflow-hidden rounded-full border border-amber-500/30 bg-amber-500/10 py-1.5 px-4 backdrop-blur-sm">
+            <span className="relative flex h-2 w-2 mr-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+            </span>
+            <span className="text-[10px] sm:text-xs font-bold text-amber-300 tracking-[0.15em] uppercase">
+              Available for New Projects
+            </span>
+          </div>
+        </div>
+
+        {/* 2. H1 */}
+        <h1 className="flex flex-col gap-y-2 md:gap-y-3">
+          <span className="text-5xl sm:text-7xl font-extrabold tracking-tight text-white leading-tight">
+            Product Engineer.
+          </span>
+          <span className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent leading-[1.2]">
+            Focused on System Design & Delivery.
+          </span>
+        </h1>
+
+        {/* 3. Intro Paragraph */}
+        <div className="max-w-3xl mt-6">
+          <p className="max-w-2xl text-xl md:text-2xl text-muted-foreground leading-relaxed font-normal">
+            I am{" "}
+            <strong className="text-foreground font-semibold">0xShoyu</strong>.
+            <br className="hidden md:block" />I translate{" "}
+            <span className="text-amber-300/50 font-medium">
+              abstract concepts
+            </span>{" "}
+            into{" "}
+            <span className="text-amber-300/50 font-medium">
+              Figma prototypes
+            </span>
+            , and finally into{" "}
+            <span className="text-primary font-semibold">
+              production-ready code
+            </span>
+            .
+          </p>
+        </div>
+
+        {/* 4. Buttons */}
+        <div className="flex flex-wrap gap-6 pt-4">
+          <Link
+            href="/portfolio"
+            className="group relative inline-flex items-center gap-3 rounded-xl bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-xl shadow-primary/20 transition-all hover:bg-primary/90 hover:-translate-y-1 active:translate-y-0 active:scale-95"
+          >
+            <Terminal size={22} />
+            View Portfolio
+            <ArrowRight
+              size={20}
+              className="transition-transform group-hover:translate-x-1"
+            />
+          </Link>
+
+          <Link
+            href="/docs"
+            className="group inline-flex items-center gap-3 rounded-xl border border-border bg-background/50 px-8 py-4 text-lg font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-primary hover:border-primary/50 active:scale-95"
+          >
+            <FileText size={22} />
+            Read Docs
+          </Link>
+        </div>
+      </motion.div>
+    </section>
+  );
+}

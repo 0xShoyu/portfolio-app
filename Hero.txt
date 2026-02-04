@@ -1,0 +1,140 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { ArrowRight, FileText, Terminal } from "lucide-react";
+import Link from "next/link";
+
+export function Hero() {
+  return (
+    <section className="relative flex flex-col items-start justify-center py-24 md:py-32">
+      <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 max-w-2xl"
+      >
+        <div className="mb-4 inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm text-primary">
+          <span className="flex h-2 w-2 rounded-full bg-primary mr-2 animate-pulse"></span>
+          Available for new projects
+        </div>
+
+        <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl text-foreground leading-tight md:leading-snug">
+          Former COO turned <br />
+          <span className="text-primary">Product Engineer.</span>
+        </h1>
+
+        <p className="mt-6 text-lg text-muted leading-relaxed">
+          我是 0xShoyu。我不仅仅写代码，我构建解决商业问题的产品。
+          <br />
+          结合商业逻辑 (Business Logic) 与可交付代码 (Shippable Code)，
+          填补从“想法”到“产品”之间的鸿沟。
+        </p>
+
+        <div className="mt-8 flex flex-wrap gap-4">
+          <Link
+            href="/portfolio"
+            className="group flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-all hover:bg-primary/90"
+          >
+            <Terminal size={18} />
+            查看作品
+            <ArrowRight
+              size={16}
+              className="transition-transform group-hover:translate-x-1"
+            />
+          </Link>
+
+          <Link
+            href="/docs"
+            className="flex items-center gap-2 rounded-lg border border-border px-6 py-3 font-medium text-foreground transition-all hover:bg-card hover:text-primary"
+          >
+            <FileText size={18} />
+            阅读文档
+          </Link>
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+"use client";
+
+import { motion } from "framer-motion";
+import { ArrowRight, FileText, Terminal } from "lucide-react";
+import Link from "next/link";
+
+export function Hero() {
+  return (
+    <section className="relative flex flex-col items-start justify-center pt-12 pb-24 md:pt-20 md:pb-40 overflow-visible">
+      <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 -right-24 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative z-10 max-w-4xl"
+      >
+        <div className="mb-10 inline-flex items-center overflow-hidden rounded-full border border-amber-500/30 bg-amber-500/10 py-2 px-4 backdrop-blur-sm">
+          <span className="relative flex h-2.5 w-2.5 mr-3">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+          </span>
+          <span className="text-sm font-semibold text-amber-300 tracking-wide uppercase">
+            Available for New Projects
+          </span>
+        </div>
+
+        <h1 className="flex flex-col gap-y-4 text-5xl font-extrabold tracking-tight sm:text-7xl text-foreground">
+          <span className="block leading-tight">Product Engineer.</span>
+          <span className="block leading-tight bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent pb-2">
+            System Design & Cross-Functional Orchestration.
+          </span>
+        </h1>
+
+        <p className="mt-12 max-w-2xl text-xl text-muted leading-9 font-light">
+          I am{" "}
+          <strong className="text-foreground font-semibold">
+            Shuyong Yang (0xShoyu)
+          </strong>
+          .
+          <br className="hidden md:block" />I translate ideas from{" "}
+          <strong className="text-foreground font-semibold">
+            initial conversations
+          </strong>{" "}
+          to{" "}
+          <strong className="text-foreground font-semibold">
+            Figma prototypes
+          </strong>
+          , and finally into{" "}
+          <strong className="text-foreground font-semibold">
+            deployed products
+          </strong>{" "}
+          .
+        </p>
+
+        <div className="mt-16 flex flex-wrap gap-6">
+          <Link
+            href="/portfolio"
+            className="group relative inline-flex items-center gap-3 rounded-xl bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-xl shadow-primary/20 transition-all hover:bg-primary/90 hover:-translate-y-1 active:translate-y-0 active:scale-95"
+          >
+            <Terminal size={22} />
+            View Portfolio
+            <ArrowRight
+              size={20}
+              className="transition-transform group-hover:translate-x-1"
+            />
+          </Link>
+
+          <Link
+            href="/docs"
+            className="group inline-flex items-center gap-3 rounded-xl border border-border bg-background/50 px-8 py-4 text-lg font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-primary hover:border-primary/50 active:scale-95"
+          >
+            <FileText size={22} />
+            Read Docs
+          </Link>
+        </div>
+      </motion.div>
+    </section>
+  );
+}

@@ -1,14 +1,22 @@
+import { Container } from "@/components/ui/Container";
+import { Hero } from "@/components/home/Hero";
+import { FeatureGrid } from "@/components/home/FeatureGrid";
+
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-24">
-      <h1 className="text-5xl font-bold text-primary">Hello, 0xShoyu</h1>
-      <p className="text-xl text-foreground/80">
-        Turning Business Logic into Shipable Code.
-      </p>
+    <Container>
+      {/* 1. Hero */}
+      <Hero />
 
-      <div className="mt-8 rounded-xl border border-border bg-card p-6 text-card-foreground shadow-xl">
-        <p>如果看到深蓝色背景和这张卡片，说明配置成功了。</p>
+      {/* 2. Bento Grid */}
+      <FeatureGrid />
+
+      {/* 3. 预留给最新的博客/项目展示区 (Phase 3 再做) */}
+      <div className="py-24 border-t border-border/40">
+        <h3 className="text-center text-muted">
+          Latest Projects / Writings coming soon...
+        </h3>
       </div>
-    </div>
+    </Container>
   );
 }
