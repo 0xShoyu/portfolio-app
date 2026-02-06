@@ -3,40 +3,35 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 
-// Define article's metadata type
 export type PostMetadata = {
   title: string;
-  publishedAt: string;
-  summary: string;
+  date: string;
+  description: string;
   slug: string;
+  tags?: string[];
 };
 
-// Define full article type
 export type Post = {
   metadata: PostMetadata;
   content: string;
 };
 
-// Fetch the path of "content" directory
+const contentDirectory = path.join(process.cwd(), "content");
+
 function getMDXFiles(dir: string) {
-  return fs.readdirSync(dir).filter((file) => path.extname(file) === ".mdx");
+  const fullPath = path.join(contentDirectory, dir);
+  if (!fs.existsSync(fullPath)) return [];
+  return fs.readdirSync(fullPath).filter((file) => path.extname(file) === ".mdx");
 }
 
-// Fetch the content of a signle article
 function readMDXFile(filePath: string) {
   const rawContent = fs.readFileSync(filePath, "utf-8");
   return matter(rawContent);
 }
 
-// Fetch all article data under certain derectory
 export function getMDXData(dir: string): Post[] {
-  const fullPath = path.join(process.cwd(), "content", dir);
-
-  if (!fs.existsSync(fullPath)) {
-    return [];
-  }
-
-  const mdxFiles = getMDXFiles(fullPath);
+  const mdxFiles = getMDXFiles(dir);
+  const fullPath = path.join(contentDirectory, dir);
 
   return mdxFiles.map((file) => {
     const { data, content } = readMDXFile(path.join(fullPath, file));
@@ -44,19 +39,45 @@ export function getMDXData(dir: string): Post[] {
     return {
       metadata: {
         title: data.title,
-        publishedAt: data.publishedAt,
-        summary: data.summary,
-        slug: data.slug || file.replace(".mdx", ""),
-      },
+        date: data.date,
+        description: data.description || data.summary,
+        tags: data.tags || [],
+        slug: file.replace(".mdx", ""),
+      } as PostMetadata,
       content,
     };
   });
 }
 
-// Sort based on publish date
+export function getPostBySlug(dir: string, slug: string): Post | null {
+  const filePath = path.join(contentDirectory, dir, `${slug}.mdx`);
+
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
+  const { data, content } = readMDXFile(filePath);
+
+  return {
+    metadata: {
+      title: data.title,
+      date: data.date,
+      description: data.description || data.summary,
+      tags: data.tags || [],
+      slug: slug,
+    } as PostMetadata,
+    content,
+  };
+}
+
+export function getAllSlugs(dir: string) {
+  const mdxFiles = getMDXFiles(dir);
+  return mdxFiles.map((file) => file.replace(".mdx", ""));
+}
+
 export function getSortedPosts(posts: Post[]) {
   return posts.sort((a, b) => {
-    if (new Date(a.metadata.publishedAt) > new Date(b.metadata.publishedAt)) {
+    if (new Date(a.metadata.date) > new Date(b.metadata.date)) {
       return -1;
     }
     return 1;
