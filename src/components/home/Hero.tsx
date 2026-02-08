@@ -66,7 +66,7 @@ export function Hero() {
           {/* Buttons */}
           <div className="flex flex-wrap gap-4 pt-2">
             <Link
-              href="/portfolio"
+              href="/#portfolio"
               className="group relative inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0"
             >
               <Terminal size={20} />
