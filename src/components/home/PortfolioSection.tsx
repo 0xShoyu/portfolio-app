@@ -2,16 +2,11 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import {
-  ArrowRight,
-  Github,
-  Cpu,
-  Layout,
-  FileText,
-  ExternalLink,
-} from "lucide-react";
+import { ArrowRight, Github, Cpu, Layout, FileText } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
+import { TechBadge } from "@/components/ui/TechBadge";
+import { CardIcon } from "@/components/ui/CardIcon";
 
 const projects = [
   {
@@ -25,7 +20,6 @@ const projects = [
     github: "https://github.com/0xShoyu/twitter-scanner-public",
     icon: Cpu,
     color: "text-emerald-400",
-    haloColor: "bg-emerald-400",
     size: "large",
   },
   {
@@ -39,7 +33,6 @@ const projects = [
     github: "https://github.com/0xShoyu/portfolio-app",
     icon: Layout,
     color: "text-blue-400",
-    haloColor: "bg-blue-400",
     size: "small",
   },
   {
@@ -53,7 +46,6 @@ const projects = [
     github: null,
     icon: FileText,
     color: "text-amber-400",
-    haloColor: "bg-amber-400",
     size: "small",
   },
 ];
@@ -63,11 +55,11 @@ export function PortfolioSection() {
     <section id="portfolio" className="pb-32 scroll-mt-24 relative">
       <div className="flex flex-col gap-4 mb-12">
         <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-          My Portfolio
+          Selected Work.
         </h2>
         <p className="text-muted text-lg max-w-2xl font-light">
-          Here are a few projects that demonstrate my ability to ship complex
-          systems.
+          I don&apos;t just write code; I solve business problems. Here are a
+          few projects that demonstrate my ability to ship complex systems.
         </p>
       </div>
 
@@ -86,17 +78,7 @@ export function PortfolioSection() {
             <Card className="h-full flex flex-col justify-between group hover:border-white/10 transition-all duration-500">
               {/* Header: Icon + Links */}
               <div className="flex justify-between items-start mb-6">
-                <div className="relative inline-block">
-                  <div
-                    className={cn(
-                      "absolute inset-0 rounded-xl blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-500",
-                      project.haloColor,
-                    )}
-                  />
-                  <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-foreground group-hover:scale-110 group-hover:bg-white/10 transition-all duration-300">
-                    <project.icon size={24} className={project.color} />
-                  </div>
-                </div>
+                <CardIcon icon={project.icon} color={project.color} />
 
                 {project.github && (
                   <a
@@ -136,19 +118,14 @@ export function PortfolioSection() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-auto">
                 <div className="flex flex-wrap gap-2">
                   {project.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-medium border bg-white/5 border-white/10 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-white/10"
-                    >
-                      {tag}
-                    </span>
+                    <TechBadge key={tag} name={tag} />
                   ))}
                 </div>
 
                 {/* Case Study Button */}
                 <Link
                   href={project.link}
-                  className="group/link inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                  className="group/link inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors mt-4 sm:mt-0"
                 >
                   Read Case Study
                   <ArrowRight
