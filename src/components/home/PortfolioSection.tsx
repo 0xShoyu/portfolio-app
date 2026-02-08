@@ -55,11 +55,11 @@ export function PortfolioSection() {
     <section id="portfolio" className="pb-32 scroll-mt-24 relative">
       <div className="flex flex-col gap-4 mb-12">
         <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-          Selected Work.
+          My Portfolio.
         </h2>
         <p className="text-muted text-lg max-w-2xl font-light">
-          I don&apos;t just write code; I solve business problems. Here are a
-          few projects that demonstrate my ability to ship complex systems.
+          Here are a few projects that demonstrate my ability to ship complex
+          systems.
         </p>
       </div>
 
