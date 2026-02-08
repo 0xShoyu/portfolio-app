@@ -9,7 +9,7 @@ import { Menu, X, Terminal } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
-  { name: "Portfolio", href: "/portfolio" },
+  { name: "Portfolio", href: "/#portfolio" },
   { name: "Docs", href: "/docs" },
   { name: "Blog", href: "/blog" },
 ];
@@ -37,7 +37,11 @@ export function Navbar() {
           {/* Desktop Navbar */}
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
-              const isActive = pathname.startsWith(item.href);
+              const isActive =
+                item.href === "/#portfolio"
+                  ? false
+                  : pathname.startsWith(item.href);
+
               return (
                 <Link
                   key={item.href}

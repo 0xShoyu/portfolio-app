@@ -136,3 +136,48 @@ body {
   color: var(--color-primary); 
   font-weight: 600;
 }
+
+/* =========================================
+   6. CODE BLOCK STYLING (Rehype Pretty Code)
+   让代码块看起来像精致的编辑器窗口
+   ========================================= */
+
+.prose pre {
+  @apply bg-black/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden;
+  padding: 1.25rem; /* p-5 */
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  line-height: 1.7;
+}
+
+.prose code {
+  @apply font-mono text-sm;
+  &::before {
+    content: "" !important;
+  }
+  &::after {
+    content: "" !important;
+  }
+}
+
+.prose :not(pre) > code {
+  @apply bg-primary/10 text-primary px-1.5 py-0.5 rounded-md border border-primary/20 text-[0.85em] font-medium;
+}
+
+.prose pre > code {
+  background-color: transparent !important;
+  display: grid; 
+}
+
+.prose pre::-webkit-scrollbar {
+  height: 8px;
+}
+.prose pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+.prose pre::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full;
+}
+.prose pre::-webkit-scrollbar-thumb:hover {
+  @apply bg-white/20;
+}

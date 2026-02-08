@@ -5,6 +5,45 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 import { ArrowLeft, Calendar, User } from "lucide-react";
 import Link from "next/link";
 import remarkGfm from "remark-gfm";
+import rehypePrettyCode from "rehype-pretty-code";
+
+const CustomLink = (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
+  const href = props.href;
+  const isInternal = href && (href.startsWith("/") || href.startsWith("#"));
+
+  if (isInternal) {
+    return (
+      <Link
+        href={href}
+        className="text-primary hover:underline underline-offset-4"
+        {...props}
+      >
+        {props.children}
+      </Link>
+    );
+  }
+
+  return (
+    <a
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-primary hover:underline underline-offset-4 cursor-pointer"
+      {...props}
+    >
+      {props.children}
+    </a>
+  );
+};
+
+const components = {
+  a: CustomLink,
+};
+
+const prettyCodeOptions = {
+  theme: "github-dark",
+  keepBackground: false,
+  defaultLang: "plaintext",
+};
 
 export async function generateStaticParams() {
   const slugs = getAllSlugs("portfolio");
@@ -67,14 +106,16 @@ export default async function ProjectPage({
           </header>
 
           <div className="prose prose-sky dark:prose-invert max-w-none">
-            <MDXRemote 
-            source={post.content} 
-            options={{
-              mdxOptions: {
-                remarkPlugins: [remarkGfm],
-              },
-            }}
-          />
+            <MDXRemote
+              source={post.content}
+              components={components}
+              options={{
+                mdxOptions: {
+                  remarkPlugins: [remarkGfm],
+                  rehypePlugins: [[rehypePrettyCode, prettyCodeOptions]],
+                },
+              }}
+            />
           </div>
 
           <div className="mt-20 pt-12 border-t border-border/40 text-center">
