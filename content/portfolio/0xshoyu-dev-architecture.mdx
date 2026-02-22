@@ -1,0 +1,90 @@
+---
+title: "High-Fidelity Execution: The Architecture of 0xShoyu.dev"
+date: "2026-02-22"
+description: "How I engineered a zero-cost, hyper-fast digital garden using Next.js 15, Tailwind v4, and a custom MDX parsing engine."
+tags: ["Next.js 15", "React 19", "Tailwind v4", "System Design"]
+---
+
+## The Strategic Crisis
+
+A modern Product Engineer needs more than a static PDF resume; they need a tangible, production-grade artifact that proves their capability. However, most developers default to heavy CMS platforms (Contentful, Sanity) or bloated templates that introduce unnecessary monthly operational costs (SaaS bloat) and technical debt.
+
+### The Solution:
+**A fully sovereign, Git-backed MDX engine deployed on the edge.**
+
+### The Result:
+A 100/100 Lighthouse score, **$0 monthly operating cost**, and an authoring experience that allows me to write technical documentation in native Markdown while rendering interactive React components.
+
+---
+
+## 🏗 Architecture: The Git-Backed CMS
+
+Instead of fetching data from a third-party API, I leveraged the Node.js file system (`fs`) to parse local `.mdx` files at build time using `gray-matter`.
+
+<div className="my-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div className="p-6 rounded-xl bg-card border border-border/50">
+    <h3 className="font-bold text-lg mb-2 text-foreground">1. Build-Time Parsing</h3>
+    <div className="text-sm text-muted-foreground leading-relaxed">
+      Next.js App Router fetches and compiles the MDX files during the build process, resulting in statically generated (SSG) pages that serve instantly via CDN.
+    </div>
+  </div>
+  <div className="p-6 rounded-xl bg-card border border-border/50">
+    <h3 className="font-bold text-lg mb-2 text-foreground">2. Component Injection</h3>
+    <div className="text-sm text-muted-foreground leading-relaxed">
+      Using <code>next-mdx-remote/rsc</code>, I map standard Markdown elements to custom Tailwind-styled React Server Components, securing external links automatically.
+    </div>
+  </div>
+</div>
+
+---
+
+## 🛠 Technical Deep Dive
+
+### 1. Bleeding-Edge Styling: Tailwind v4 Native Cascades
+Migrating to Tailwind v4 allowed me to discard the bloated `tailwind.config.ts`. I utilized the new `@theme` directive directly within native CSS to map design system variables. This Apple-inspired "Sky-Dark" theme relies heavily on glassmorphism and SVG noise filters to create a tactile UI.
+
+```css
+/* src/app/globals.css */
+@theme {
+  --color-background: #082f49; /* Sky 950 */
+  --color-foreground: #f0f9ff;
+  --color-primary: #38bdf8;    /* Sky 400 */
+  --color-card: rgba(12, 74, 110, 0.5);
+}
+```
+
+### 2. Interaction Design: The Radial Spotlight
+To achieve a premium, physical feel without layout thrashing, I utilized Framer Motion's `useMotionTemplate` and `useMotionValue`. 
+
+Instead of re-rendering the React tree on every mouse movement, the component tracks the cursor coordinates and updates a CSS radial gradient on a hardware-accelerated overlay.
+
+```tsx
+// GPU-Accelerated Hover State
+<motion.div
+  className="absolute -inset-px rounded-xl opacity-0 group-hover:opacity-100 z-10"
+  style={{
+    background: useMotionTemplate`
+      radial-gradient(
+        650px circle at ${mouseX}px ${mouseY}px,
+        rgba(56, 189, 248, 0.1),
+        transparent 80%
+      )
+    `,
+  }}
+/>
+```
+
+---
+
+## Impact Analysis
+
+By treating my portfolio as a **Product** rather than a weekend project, I demonstrated the exact transition from Figma aesthetic to performant code that I bring to enterprise teams.
+
+| Metric | Traditional Headless CMS | 0xShoyu Architecture |
+| :--- | :--- | :--- |
+| **Monthly Cost** | $15 - $50+ | **$0 (Vercel Hobby)** |
+| **Data Fetch Latency** | 100ms - 300ms | **0ms (Static Edge)** |
+| **Authoring** | Web GUI | **Native VSCode (MDX)** |
+| **Styling Engine** | Tailwind v3 | **Tailwind v4 (Native CSS)** |
+
+[View Source Code on GitHub](https://github.com/0xShoyu/portfolio-app)

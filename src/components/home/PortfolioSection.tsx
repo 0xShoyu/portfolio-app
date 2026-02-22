@@ -29,7 +29,7 @@ const projects = [
     description:
       "My digital garden built with App Router, MDX, and Tailwind v4. Designed for performance and developer experience.",
     tags: ["Next.js 15", "React", "Tailwind v4"],
-    link: "https://github.com/0xShoyu/portfolio-app",
+    link: "/portfolio/0xshoyu-dev-architecture",
     github: "https://github.com/0xShoyu/portfolio-app",
     icon: Layout,
     color: "text-blue-400",
