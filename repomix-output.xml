@@ -1,0 +1,1838 @@
+This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching these patterns are excluded: package-lock.json, dist, **/*.svg, **/*.png, **/*.jpg
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+content/
+  docs/
+    first-doc.mdx
+    second-doc.mdx
+  portfolio/
+    0xshoyu-dev-architecture.mdx
+    twitter-scraper-engine.mdx
+src/
+  app/
+    portfolio/
+      [slug]/
+        page.tsx
+    favicon.ico
+    globals.css
+    layout.tsx
+    page.tsx
+  components/
+    home/
+      CodeWindow.tsx
+      FeatureGrid.tsx
+      Hero.tsx
+      Hero.tsx_copy
+      PortfolioSection.tsx
+    layout/
+      Navbar.tsx
+    ui/
+      Card.tsx
+      CardIcon.tsx
+      Container.tsx
+      TechBadge.tsx
+  lib/
+    mdx.ts
+    utils.ts
+.gitignore
+eslint.config.mjs
+next.config.ts
+package.json
+postcss.config.mjs
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="content/docs/first-doc.mdx">
+---
+title: "第一篇技术文档"
+publishedAt: "2026-02-02"
+summary: "这是用来测试 MDX 读取功能的文档，记录了从运营转向开发的经验。"
+slug: "first-doc"
+---
+
+# Hello World
+
+这是我的第一篇技术文档。如果能读取到这些文字，说明 **数据层** 配置成功了！
+
+## 为什么选择 MDX？
+
+因为它可以像 React 组件一样渲染。
+</file>
+
+<file path="content/docs/second-doc.mdx">
+---
+title: "第二篇技术文档"
+publishedAt: "2026-02-02"
+summary: "这是用来测试 MDX 读取功能的文档，记录了从运营转向开发的经验。"
+slug: "second-doc"
+---
+
+# Hello World Again
+
+这是我的第一篇技术文档。如果能读取到这些文字，说明 **数据层** 配置成功了！
+
+## 为什么选择 MDX？
+
+因为它可以像 React 组件一样渲染。
+</file>
+
+<file path="content/portfolio/0xshoyu-dev-architecture.mdx">
+---
+title: "High-Fidelity Execution: The Architecture of 0xShoyu.dev"
+date: "2026-02-22"
+description: "How I engineered a zero-cost, hyper-fast digital garden using Next.js 15, Tailwind v4, and a custom MDX parsing engine."
+tags: ["Next.js 15", "React 19", "Tailwind v4", "System Design"]
+---
+
+## The Strategic Crisis
+
+A modern Product Engineer needs more than a static PDF resume; they need a tangible, production-grade artifact that proves their capability. However, most developers default to heavy CMS platforms (Contentful, Sanity) or bloated templates that introduce unnecessary monthly operational costs (SaaS bloat) and technical debt.
+
+### The Solution:
+**A fully sovereign, Git-backed MDX engine deployed on the edge.**
+
+### The Result:
+A 100/100 Lighthouse score, **$0 monthly operating cost**, and an authoring experience that allows me to write technical documentation in native Markdown while rendering interactive React components.
+
+---
+
+## 🏗 Architecture: The Git-Backed CMS
+
+Instead of fetching data from a third-party API, I leveraged the Node.js file system (`fs`) to parse local `.mdx` files at build time using `gray-matter`.
+
+<div className="my-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div className="p-6 rounded-xl bg-card border border-border/50">
+    <h3 className="font-bold text-lg mb-2 text-foreground">1. Build-Time Parsing</h3>
+    <div className="text-sm text-muted-foreground leading-relaxed">
+      Next.js App Router fetches and compiles the MDX files during the build process, resulting in statically generated (SSG) pages that serve instantly via CDN.
+    </div>
+  </div>
+  <div className="p-6 rounded-xl bg-card border border-border/50">
+    <h3 className="font-bold text-lg mb-2 text-foreground">2. Component Injection</h3>
+    <div className="text-sm text-muted-foreground leading-relaxed">
+      Using <code>next-mdx-remote/rsc</code>, I map standard Markdown elements to custom Tailwind-styled React Server Components, securing external links automatically.
+    </div>
+  </div>
+</div>
+
+---
+
+## 🛠 Technical Deep Dive
+
+### 1. Bleeding-Edge Styling: Tailwind v4 Native Cascades
+Migrating to Tailwind v4 allowed me to discard the bloated `tailwind.config.ts`. I utilized the new `@theme` directive directly within native CSS to map design system variables. This Apple-inspired "Sky-Dark" theme relies heavily on glassmorphism and SVG noise filters to create a tactile UI.
+
+```css
+/* src/app/globals.css */
+@theme {
+  --color-background: #082f49; /* Sky 950 */
+  --color-foreground: #f0f9ff;
+  --color-primary: #38bdf8;    /* Sky 400 */
+  --color-card: rgba(12, 74, 110, 0.5);
+}
+```
+
+### 2. Interaction Design: The Radial Spotlight
+To achieve a premium, physical feel without layout thrashing, I utilized Framer Motion's `useMotionTemplate` and `useMotionValue`. 
+
+Instead of re-rendering the React tree on every mouse movement, the component tracks the cursor coordinates and updates a CSS radial gradient on a hardware-accelerated overlay.
+
+```tsx
+// GPU-Accelerated Hover State
+<motion.div
+  className="absolute -inset-px rounded-xl opacity-0 group-hover:opacity-100 z-10"
+  style={{
+    background: useMotionTemplate`
+      radial-gradient(
+        650px circle at ${mouseX}px ${mouseY}px,
+        rgba(56, 189, 248, 0.1),
+        transparent 80%
+      )
+    `,
+  }}
+/>
+```
+
+---
+
+## Impact Analysis
+
+By treating my portfolio as a **Product** rather than a weekend project, I demonstrated the exact transition from Figma aesthetic to performant code that I bring to enterprise teams.
+
+| Metric | Traditional Headless CMS | 0xShoyu Architecture |
+| :--- | :--- | :--- |
+| **Monthly Cost** | $15 - $50+ | **$0 (Vercel Hobby)** |
+| **Data Fetch Latency** | 100ms - 300ms | **0ms (Static Edge)** |
+| **Authoring** | Web GUI | **Native VSCode (MDX)** |
+| **Styling Engine** | Tailwind v3 | **Tailwind v4 (Native CSS)** |
+
+[View Source Code on GitHub](https://github.com/0xShoyu/portfolio-app)
+</file>
+
+<file path="content/portfolio/twitter-scraper-engine.mdx">
+---
+title: "Engineering Sovereignty: The $60k Twitter Scraper"
+date: "2025-02-05"
+description: "A deep dive into architecting a high-performance Puppeteer microservice with browser pooling, priority queuing, and algorithmic cookie rotation."
+tags: ["Node.js", "Puppeteer", "System Design", "MongoDB", "DevOps"]
+---
+
+## The Strategic Crisis
+
+In mid-2024, the Web3 data landscape shifted abruptly. Twitter (X) transitioned from a utility model to a high-premium data silo. For our SocialFi project, the minimum viable cost for read-access jumped from negligible to **$5,000/month**.
+
+This wasn't just a budget issue; it was a systemic risk. Relying on a centralized gateway that could change pricing overnight was unacceptable.
+
+### The Solution:
+**A sovereign, distributed scanning engine.**
+
+### The Result:
+Reduced annualized data costs from **$60,000 to around $1,800**, a 99.7% reduction in operational expenditure.
+
+---
+
+## 🏗 Architecture: The Asynchronous Core
+
+Most scrapers fail because they bind the request lifecycle to the HTTP connection. If a page takes 30s to load, the API times out.
+
+I decoupled these concerns using **MongoDB as a persistent Task State Machine**.
+
+<div className="my-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div className="p-6 rounded-xl bg-card border border-border/50">
+    <h3 className="font-bold text-lg mb-2 text-foreground">1. Ingress & Queuing</h3>
+    <div className="text-sm text-muted-foreground leading-relaxed">
+      Requests to <code>/search</code> don't spawn browsers. They generate a UUID, persist a "queued" state to MongoDB, and use <code>setImmediate</code> to unblock the Event Loop.
+    </div>
+  </div>
+  <div className="p-6 rounded-xl bg-card border border-border/50">
+    <h3 className="font-bold text-lg mb-2 text-foreground">2. Worker Orchestration</h3>
+    <div className="text-sm text-muted-foreground leading-relaxed">
+      Workers fetch jobs asynchronously. This ensures immediate crash recovery: if the server restarts, pending jobs remain in the database, ready to resume.
+    </div>
+  </div>
+</div>
+
+---
+
+## 🛠 Technical Deep Dive
+
+### 1. Browser Pool: The "Lease/Release" Pattern
+Browser automation is memory-expensive. Spawning a new Chromium process for every request causes CPU spikes. I implemented a **Singleton Pool Manager** (`puppeteerPoolManager.js`) that maintains "warm" browser instances.
+
+*   **Load Balancing:** Random index strategy to prevent a single instance from accumulating specific site cache.
+*   **Warm-up Sequence:** Browsers pre-authenticate with proxies and inject cookies *before* accepting jobs.
+
+```typescript
+// src/utils/puppeteerPoolManager.js
+export async function getPageWithQueue(jobId) {
+  // If pool is full, push resolve() to a pendingRequests array
+  // This creates a back-pressure mechanism preventing memory bloat
+  if (browserPool.every(b => b.pagesInUse >= MAX_PAGES)) {
+     return new Promise((resolve) => pendingRequests.push(resolve));
+  }
+  // ... lease logic
+}
+```
+
+### 2. Algorithmic Trust: Weighted Random Selection
+Not all cookies are equal. I engineered a `cookieManager.js` that treats accounts as assets with a "Health Score".
+
+Instead of Round-Robin, we use a **Weighted Random Algorithm**. The selection probability drops drastically if an account encounters a CAPTCHA or login wall.
+
+```javascript
+// Algorithmic Weight Calculation
+const weight = Math.max(1, maxUsage + 1 - currentUsage - (failCount * 5));
+```
+
+*   **Fresh Account:** High probability.
+*   **Failed Once:** Probability drops by factor of 5 (Quarantine).
+*   **Self-Healing:** This allows the system to automatically rotate out flagged accounts without human intervention.
+
+### 3. Evasion Engineering: The "Headless Wall"
+Bypassing Arkose Labs and fingerprinting required a multi-layer defense strategy.
+
+*   **Geometric Jitter:** I implemented a `gentleScroll` routine that uses randomized scroll distances and "thinking pauses" (3000ms + random jitter) to simulate human reading rhythm.
+*   **Network Interception:** By hooking into the request layer, we block `image`, `font`, and `media` types. This reduced bandwidth consumption by **~85%**, critical for keeping residential proxy costs low.
+
+```javascript
+// Optimized Resource Interceptor
+await page.setRequestInterception(true);
+page.on('request', (req) => {
+  // Block heavy assets to save bandwidth ROI
+  if (['image', 'media', 'font'].includes(req.resourceType())) {
+    req.abort();
+  } else {
+    req.continue();
+  }
+});
+```
+
+---
+
+## 🛡 Fault Tolerance: The Watchdog
+
+Continuous automation is prone to "zombie processes" (stuck Chromium instances). I built a **Watchdog Timer** that runs on a 60-second interval.
+
+*   **Detection:** Monitors browsers that have been "in use" > 10 minutes.
+*   **Correction:** Automatically kills the PID, spawns a fresh instance, and marks the job as `watchdog_restarted`.
+
+This self-healing architecture allowed the system to run 24/7 with **99.5% uptime**.
+
+---
+
+## Impact Analysis
+
+The transition from a dependency model to a sovereign infrastructure transformed our unit economics.
+
+| Feature | Official API (Pro) | Our Engine |
+| :--- | :--- | :--- |
+| **Annual Cost** | $60,000+ | **~$1,800** |
+| **Data Scope** | Limited Fields | **Full DOM Access** |
+| **Retention** | 30-Day Delete | **Permanent (MongoDB)** |
+| **Concurrency** | Rate Limited | **Scalable via Pool** |
+
+This project defines my approach to Engineering: **It is not just about writing code; it's about engineering sovereignty and solving business-critical constraints.**
+
+[View Source Code on GitHub](https://github.com/0xShoyu/twitter-scanner-public)
+</file>
+
+<file path="src/components/home/CodeWindow.tsx">
+"use client";
+
+import { motion } from "framer-motion";
+
+export function CodeWindow() {
+  const codeLines = [
+    {
+      text: "async function executeSearch(jobId, query) {",
+      indent: 0,
+      color: "text-yellow-300",
+    },
+    {
+      text: "  // 1. Auto-rotate Proxy & Cookies",
+      indent: 0,
+      color: "text-slate-500",
+    },
+    {
+      text: "  const cookies = await pickCookieFile();",
+      indent: 2,
+      color: "text-sky-300",
+    },
+    { text: "", indent: 0, color: "" },
+    {
+      text: "  // 2. Browser Pool Management",
+      indent: 0,
+      color: "text-slate-500",
+    },
+    {
+      text: "  await usePageWithQueue(jobId, async (page) => {",
+      indent: 2,
+      color: "text-purple-400",
+    },
+    {
+      text: "    await page.setCookie(...cookies);",
+      indent: 4,
+      color: "text-white",
+    },
+    {
+      text: "    await gotoSafe(page, `x.com/search?q=${query}`);",
+      indent: 4,
+      color: "text-green-400",
+    },
+    { text: "", indent: 0, color: "" },
+    {
+      text: "    // 3. Extraction & Persistence",
+      indent: 0,
+      color: "text-slate-500",
+    },
+    {
+      text: "    const tweets = await scrapeTweets(page);",
+      indent: 4,
+      color: "text-blue-400",
+    },
+    {
+      text: "    await db.tweets.insertMany(tweets);",
+      indent: 4,
+      color: "text-emerald-400",
+    },
+    { text: "", indent: 0, color: "" },
+    {
+      text: "    await gentleScroll(page); // 🤖 Humanize",
+      indent: 4,
+      color: "text-yellow-300",
+    },
+    { text: "  });", indent: 2, color: "text-purple-400" },
+    { text: "}", indent: 0, color: "text-yellow-300" },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, delay: 0.2 }}
+      className="relative w-full max-w-lg rounded-xl border border-white/10 bg-black/50 backdrop-blur-md shadow-2xl shadow-black/50 overflow-hidden font-mono text-[10px] sm:text-xs leading-loose"
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2 border-b border-white/5 bg-white/5 px-4 py-2.5">
+        {" "}
+        <div className="h-2.5 w-2.5 rounded-full bg-red-500/80" />{" "}
+        <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/80" />
+        <div className="h-2.5 w-2.5 rounded-full bg-green-500/80" />
+        <div className="ml-4 text-[10px] font-medium text-slate-500 opacity-70">
+          src/scanner/core.ts
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-4 sm:p-5 overflow-x-auto">
+        <div className="flex flex-col">
+          {codeLines.map((line, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.3, delay: 0.5 + i * 0.1 }}
+              className="flex"
+            >
+              <span className="w-6 shrink-0 text-slate-700 select-none text-right mr-3 opacity-50">
+                {i + 1}
+              </span>
+              <pre
+                className={`${line.color} whitespace-pre font-medium`}
+                style={{ paddingLeft: `${line.indent * 0.5}rem` }}
+              >
+                {line.text}
+              </pre>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      <div className="absolute bottom-0 right-0 h-32 w-32 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+    </motion.div>
+  );
+}
+</file>
+
+<file path="src/components/home/Hero.tsx_copy">
+"use client";
+
+import { motion } from "framer-motion";
+import { ArrowRight, FileText, Terminal } from "lucide-react";
+import Link from "next/link";
+
+export function Hero() {
+  return (
+    <section className="relative flex flex-col items-start justify-center pt-8 pb-10 md:pt-12 md:pb-16 overflow-visible">
+      <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 -right-24 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative z-10 max-w-5xl flex flex-col gap-y-6 md:gap-y-8"
+      >
+        {/* 1. Badge */}
+        <div>
+          <div className="inline-flex items-center overflow-hidden rounded-full border border-amber-500/30 bg-amber-500/10 py-1.5 px-4 backdrop-blur-sm">
+            <span className="relative flex h-2 w-2 mr-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+            </span>
+            <span className="text-[10px] sm:text-xs font-bold text-amber-300 tracking-[0.15em] uppercase">
+              Available for New Projects
+            </span>
+          </div>
+        </div>
+
+        {/* 2. H1 */}
+        <h1 className="flex flex-col gap-y-2 md:gap-y-3">
+          <span className="text-5xl sm:text-7xl font-extrabold tracking-tight text-white leading-tight">
+            Product Engineer.
+          </span>
+          <span className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent leading-[1.2]">
+            Focused on System Design & Delivery.
+          </span>
+        </h1>
+
+        {/* 3. Intro Paragraph */}
+        <div className="max-w-3xl mt-6">
+          <p className="max-w-2xl text-xl md:text-2xl text-muted-foreground leading-relaxed font-normal">
+            I am{" "}
+            <strong className="text-foreground font-semibold">0xShoyu</strong>.
+            <br className="hidden md:block" />I translate{" "}
+            <span className="text-rose-300 font-medium">abstract concepts</span>{" "}
+            into{" "}
+            <strong className="text-amber-300 font-medium">
+              high-fidelity interfaces
+            </strong>
+            , and finally into{" "}
+            <strong className="text-primary font-semibold">
+              production-ready code
+            </strong>
+            .
+          </p>
+        </div>
+
+        {/* 4. Buttons */}
+        <div className="flex flex-wrap gap-6 pt-4">
+          <Link
+            href="/portfolio"
+            className="group relative inline-flex items-center gap-3 rounded-xl bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-xl shadow-primary/20 transition-all hover:bg-primary/90 hover:-translate-y-1 active:translate-y-0 active:scale-95"
+          >
+            <Terminal size={22} />
+            View Portfolio
+            <ArrowRight
+              size={20}
+              className="transition-transform group-hover:translate-x-1"
+            />
+          </Link>
+
+          <Link
+            href="/docs"
+            className="group inline-flex items-center gap-3 rounded-xl border border-border bg-background/50 px-8 py-4 text-lg font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-primary hover:border-primary/50 active:scale-95"
+          >
+            <FileText size={22} />
+            Read Docs
+          </Link>
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+</file>
+
+<file path="src/components/ui/CardIcon.tsx">
+"use client";
+
+import { cn } from "@/lib/utils";
+import { LucideIcon } from "lucide-react";
+
+interface CardIconProps {
+  icon: LucideIcon | any;
+  color: string; // e.g., "text-blue-400"
+  className?: string;
+}
+
+export function CardIcon({ icon: Icon, color, className }: CardIconProps) {
+  const haloColor = color.replace("text-", "bg-");
+
+  return (
+    <div className={cn("relative inline-block mb-6", className)}>
+      {/* Halo Effect */}
+      <div
+        className={cn(
+          "absolute inset-0 rounded-xl blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-500",
+          haloColor,
+        )}
+      />
+      {/* Icon Container */}
+      <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-foreground group-hover:scale-110 group-hover:bg-white/10 transition-all duration-300">
+        <Icon size={24} className={color} />
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/ui/Container.tsx">
+import { cn } from "@/lib/utils";
+
+interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+}
+
+export function Container({ className, children, ...props }: ContainerProps) {
+  return (
+    <div
+      className={cn("mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8", className)}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/ui/TechBadge.tsx">
+"use client";
+
+import { cn } from "@/lib/utils";
+import {
+  Code2,
+  Database,
+  Bot,
+  Terminal,
+  TrendingUp,
+  Briefcase,
+  Layers,
+  Globe,
+  Zap,
+  Box,
+  Cpu,
+  Layout,
+  FileText,
+} from "lucide-react";
+
+const FigmaIcon = ({ size, className }: any) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="312 340 400 600"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path d="M312 840C312 784.772 356.772 740 412 740H512V840C512 895.228 467.228 940 412 940C356.772 940 312 895.228 312 840Z" fill="currentColor" />
+    <path d="M512 340V540H612C667.228 540 712 495.228 712 440C712 384.772 667.228 340 612 340H512Z" fill="currentColor" />
+    <path d="M611.167 740C666.395 740 711.167 695.228 711.167 640C711.167 584.772 666.395 540 611.167 540C555.939 540 511.167 584.772 511.167 640C511.167 695.228 555.939 740 611.167 740Z" fill="currentColor" />
+    <path d="M312 440C312 495.228 356.772 540 412 540H512V340H412C356.772 340 312 384.772 312 440Z" fill="currentColor" />
+    <path d="M312 640C312 695.228 356.772 740 412 740H512V540H412C356.772 540 312 584.772 312 640Z" fill="currentColor" />
+  </svg>
+);
+
+const ServerIcon = Database;
+
+// 样式映射表
+const getTechStyle = (techName: string) => {
+  const styles: Record<string, { icon: any; color: string; border: string }> = {
+    // Languages & Frameworks
+    "Next.js": { icon: Box, color: "text-white", border: "border-white/20" },
+    "Next.js 15": { icon: Box, color: "text-white", border: "border-white/20" },
+    "React": { icon: Code2, color: "text-blue-400", border: "border-blue-500/20" },
+    "Tailwind v4": { icon: Code2, color: "text-sky-400", border: "border-sky-500/20" },
+    "TypeScript": { icon: Code2, color: "text-blue-400", border: "border-blue-500/20" },
+    "Node.js": { icon: ServerIcon, color: "text-green-400", border: "border-green-500/20" },
+    
+    // Database & Backend
+    "PostgreSQL": { icon: Database, color: "text-blue-300", border: "border-blue-400/20" },
+    "MongoDB": { icon: Database, color: "text-green-500", border: "border-green-500/20" },
+    "Docker": { icon: Box, color: "text-blue-500", border: "border-blue-500/20" },
+    
+    // Tools & Automation
+    "Puppeteer": { icon: Bot, color: "text-emerald-400", border: "border-emerald-500/20" },
+    "Ops Automation": { icon: Terminal, color: "text-orange-400", border: "border-orange-500/20" },
+    "Cursor": { icon: Zap, color: "text-white", border: "border-white/20" },
+    "Figma to Code": { icon: FigmaIcon, color: "text-rose-400", border: "border-rose-500/20" },
+    "Vibe Coding": { icon: Zap, color: "text-yellow-400", border: "border-yellow-500/20" },
+    "Rapid Prototyping": { icon: Layout, color: "text-indigo-400", border: "border-indigo-500/20" },
+
+    // Business & Web3
+    "GTM Strategy": { icon: TrendingUp, color: "text-purple-400", border: "border-purple-500/20" },
+    "ROI-First": { icon: Briefcase, color: "text-yellow-400", border: "border-yellow-500/20" },
+    "System Design": { icon: Layout, color: "text-pink-400", border: "border-pink-500/20" },
+    "Tokenomics": { icon: Globe, color: "text-amber-400", border: "border-amber-500/20" },
+    "Fintech": { icon: TrendingUp, color: "text-green-400", border: "border-green-500/20" },
+    "Avalanche": { icon: Layers, color: "text-red-400", border: "border-red-500/20" },
+    "Polygon": { icon: Layers, color: "text-purple-400", border: "border-purple-500/20" },
+    "SocialFi": { icon: Globe, color: "text-sky-400", border: "border-sky-500/20" },
+  };
+
+  return styles[techName] || { icon: Cpu, color: "text-slate-400", border: "border-slate-500/20" };
+};
+
+export function TechBadge({ name }: { name: string }) {
+  const style = getTechStyle(name);
+  const Icon = style.icon;
+
+  return (
+    <div
+      className={cn(
+        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border bg-white/5 backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:bg-white/10 hover:border-white/20 cursor-default",
+        style.color,
+        style.border
+      )}
+    >
+      <Icon size={12} className="opacity-70" />
+      <span className="opacity-90">{name}</span>
+    </div>
+  );
+}
+</file>
+
+<file path="src/lib/utils.ts">
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+</file>
+
+<file path="eslint.config.mjs">
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+]);
+
+export default eslintConfig;
+</file>
+
+<file path="next.config.ts">
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+</file>
+
+<file path="postcss.config.mjs">
+const config = {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};
+
+export default config;
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
+</file>
+
+<file path="src/app/portfolio/[slug]/page.tsx">
+import { getPostBySlug, getAllSlugs } from "@/lib/mdx";
+import { Container } from "@/components/ui/Container";
+import { notFound } from "next/navigation";
+import { MDXRemote } from "next-mdx-remote/rsc";
+import { ArrowLeft, Calendar, User } from "lucide-react";
+import Link from "next/link";
+import remarkGfm from "remark-gfm";
+import rehypePrettyCode from "rehype-pretty-code";
+
+const CustomLink = (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
+  const href = props.href;
+  const isInternal = href && (href.startsWith("/") || href.startsWith("#"));
+
+  if (isInternal) {
+    return (
+      <Link
+        href={href}
+        className="text-primary hover:underline underline-offset-4"
+        {...props}
+      >
+        {props.children}
+      </Link>
+    );
+  }
+
+  return (
+    <a
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-primary hover:underline underline-offset-4 cursor-pointer"
+      {...props}
+    >
+      {props.children}
+    </a>
+  );
+};
+
+const components = {
+  a: CustomLink,
+};
+
+const prettyCodeOptions = {
+  theme: "github-dark",
+  keepBackground: false,
+  defaultLang: "plaintext",
+};
+
+export async function generateStaticParams() {
+  const slugs = getAllSlugs("portfolio");
+  return slugs.map((slug) => ({ slug }));
+}
+
+export default async function ProjectPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const post = getPostBySlug("portfolio", slug);
+
+  if (!post) {
+    notFound();
+  }
+
+  return (
+    <Container className="py-16 md:py-24">
+      <div className="max-w-3xl mx-auto">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-muted hover:text-primary transition-colors mb-12 group"
+        >
+          <ArrowLeft
+            size={16}
+            className="transition-transform group-hover:-translate-x-1"
+          />
+          Back to Home
+        </Link>
+
+        <article>
+          <header className="mb-12">
+            <div className="flex flex-wrap gap-2 mb-6">
+              {post.metadata.tags?.map((tag: string) => (
+                <span
+                  key={tag}
+                  className="px-2.5 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-medium border border-primary/20"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            <h1 className="text-4xl md:text-5xl font-extrabold text-foreground mb-8 tracking-tight leading-[1.2]">
+              {post.metadata.title}
+            </h1>
+
+            <div className="flex items-center gap-6 text-muted text-sm border-y border-border/40 py-4">
+              <div className="flex items-center gap-2">
+                <Calendar size={14} className="opacity-70" />
+                {post.metadata.date}
+              </div>
+              <div className="flex items-center gap-2">
+                <User size={14} className="opacity-70" />
+                0xShoyu
+              </div>
+            </div>
+          </header>
+
+          <div className="prose prose-sky dark:prose-invert max-w-none">
+            <MDXRemote
+              source={post.content}
+              components={components}
+              options={{
+                mdxOptions: {
+                  remarkPlugins: [remarkGfm],
+                  rehypePlugins: [[rehypePrettyCode, prettyCodeOptions]],
+                },
+              }}
+            />
+          </div>
+
+          <div className="mt-20 pt-12 border-t border-border/40 text-center">
+            <p className="text-muted text-sm italic">
+              Thanks for reading. Feel free to reach out if you have any
+              questions about this project.
+            </p>
+          </div>
+        </article>
+      </div>
+    </Container>
+  );
+}
+</file>
+
+<file path="src/app/layout.tsx">
+import type { Metadata } from "next";
+import "./globals.css";
+import { Navbar } from "@/components/layout/Navbar";
+
+export const metadata: Metadata = {
+  title: "0xShoyu | Product Engineer",
+  description: "Former COO turned Full-Stack Product Engineer.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className="dark">
+      <body className="bg-background text-foreground antialiased">
+        <Navbar />
+        <main>{children}</main>
+      </body>
+    </html>
+  );
+}
+</file>
+
+<file path="src/components/ui/Card.tsx">
+"use client";
+
+import { cn } from "@/lib/utils";
+import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
+import { MouseEvent } from "react";
+
+export function Card({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
+  let mouseX = useMotionValue(0);
+  let mouseY = useMotionValue(0);
+
+  function handleMouseMove({ currentTarget, clientX, clientY }: MouseEvent) {
+    let { left, top } = currentTarget.getBoundingClientRect();
+    mouseX.set(clientX - left);
+    mouseY.set(clientY - top);
+  }
+
+  return (
+    <div
+      onMouseMove={handleMouseMove}
+      className={cn(
+        "group relative flex flex-col rounded-xl border border-border/50 bg-card/40 p-8 overflow-hidden", // 🔴 增加 overflow-hidden
+        className,
+      )}
+    >
+      <div
+        className="absolute inset-0 opacity-[0.03] pointer-events-none z-0"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+        }}
+      />
+
+      <motion.div
+        className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-100 z-10"
+        style={{
+          background: useMotionTemplate`
+            radial-gradient(
+              650px circle at ${mouseX}px ${mouseY}px,
+              rgba(56, 189, 248, 0.1),
+              transparent 80%
+            )
+          `,
+        }}
+      />
+
+      <div className="relative z-20 flex flex-col justify-between h-full">
+        {children}
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/lib/mdx.ts">
+// src/lib/mdx.ts
+import fs from "fs";
+import path from "path";
+import matter from "gray-matter";
+
+export type PostMetadata = {
+  title: string;
+  date: string;
+  description: string;
+  slug: string;
+  tags?: string[];
+};
+
+export type Post = {
+  metadata: PostMetadata;
+  content: string;
+};
+
+const contentDirectory = path.join(process.cwd(), "content");
+
+function getMDXFiles(dir: string) {
+  const fullPath = path.join(contentDirectory, dir);
+  if (!fs.existsSync(fullPath)) return [];
+  return fs.readdirSync(fullPath).filter((file) => path.extname(file) === ".mdx");
+}
+
+function readMDXFile(filePath: string) {
+  const rawContent = fs.readFileSync(filePath, "utf-8");
+  return matter(rawContent);
+}
+
+export function getMDXData(dir: string): Post[] {
+  const mdxFiles = getMDXFiles(dir);
+  const fullPath = path.join(contentDirectory, dir);
+
+  return mdxFiles.map((file) => {
+    const { data, content } = readMDXFile(path.join(fullPath, file));
+
+    return {
+      metadata: {
+        title: data.title,
+        date: data.date,
+        description: data.description || data.summary,
+        tags: data.tags || [],
+        slug: file.replace(".mdx", ""),
+      } as PostMetadata,
+      content,
+    };
+  });
+}
+
+export function getPostBySlug(dir: string, slug: string): Post | null {
+  const filePath = path.join(contentDirectory, dir, `${slug}.mdx`);
+
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
+  const { data, content } = readMDXFile(filePath);
+
+  return {
+    metadata: {
+      title: data.title,
+      date: data.date,
+      description: data.description || data.summary,
+      tags: data.tags || [],
+      slug: slug,
+    } as PostMetadata,
+    content,
+  };
+}
+
+export function getAllSlugs(dir: string) {
+  const mdxFiles = getMDXFiles(dir);
+  return mdxFiles.map((file) => file.replace(".mdx", ""));
+}
+
+export function getSortedPosts(posts: Post[]) {
+  return posts.sort((a, b) => {
+    if (new Date(a.metadata.date) > new Date(b.metadata.date)) {
+      return -1;
+    }
+    return 1;
+  });
+}
+</file>
+
+<file path=".gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env
+.env*.local
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+</file>
+
+<file path="src/components/home/FeatureGrid.tsx">
+"use client";
+
+import { Card } from "@/components/ui/Card";
+import { motion } from "framer-motion";
+import { Code2, Briefcase, Zap, Globe } from "lucide-react";
+import { TechBadge } from "@/components/ui/TechBadge";
+import { CardIcon } from "@/components/ui/CardIcon";
+
+const features = [
+  {
+    title: "Full-Stack Product Engineering",
+    description:
+      "Architecting production-grade applications with Next.js, Node.js, and Puppeteer.",
+    tech: ["Next.js", "TypeScript", "Node.js", "MongoDB", "Puppeteer"],
+    icon: Code2,
+    color: "text-blue-400",
+    className: "md:col-span-2",
+  },
+  {
+    title: "Strategic Mindset",
+    description:
+      "8+ years of leadership as a Ops Executive. I write code with ROI, GTM strategy, and scalability in mind",
+    tech: ["Ops Automation", "GTM Strategy", "ROI-First"],
+    icon: Briefcase,
+    color: "text-yellow-400",
+    className: "md:col-span-1",
+  },
+  {
+    title: "Web3 Veteran",
+    description:
+      "Deep roots since 2017. A SocialFi domain expert who managed technical deployments for L1 giants.",
+    tech: ["Avalanche", "Polygon", "SocialFi", "Tokenomics"],
+    icon: Globe,
+    color: "text-sky-400",
+    className: "md:col-span-1",
+  },
+  {
+    title: "AI-Augmented Delivery",
+    description:
+      "Leveraging AI workflows to transition from Figma prototypes to shipable code at 10x startup speed.",
+    tech: ["Figma to Code", "Vibe Coding", "Rapid Prototyping"],
+    icon: Zap,
+    color: "text-purple-400",
+    className: "md:col-span-2",
+  },
+];
+
+export function FeatureGrid() {
+  return (
+    <section className="pb-32 relative">
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {features.map((feature, index) => (
+          <motion.div
+            key={feature.title}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: index * 0.1 }}
+            className={feature.className}
+          >
+            <Card className="h-full flex flex-col justify-between group hover:border-white/10 transition-colors duration-500">
+              <div>
+                <CardIcon icon={feature.icon} color={feature.color} />
+
+                <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">
+                  {feature.title}
+                </h3>
+                <p className="text-muted leading-relaxed font-light text-sm mb-6">
+                  {feature.description}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2.5 mt-auto">
+                {feature.tech.map((t) => (
+                  <TechBadge key={t} name={t} />
+                ))}
+              </div>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+</file>
+
+<file path="src/components/home/Hero.tsx">
+"use client";
+
+import { motion } from "framer-motion";
+import { ArrowRight, FileText, Terminal } from "lucide-react";
+import Link from "next/link";
+import { CodeWindow } from "./CodeWindow";
+
+export function Hero() {
+  return (
+    <section className="relative flex flex-col items-center justify-center pt-12 pb-20 md:pt-20 md:pb-32 overflow-visible">
+      <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl pointer-events-none opacity-50" />
+      <div className="absolute top-1/2 right-0 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl pointer-events-none opacity-50" />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center w-full">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="relative z-10 flex flex-col gap-y-6 md:gap-y-8"
+        >
+          {/* Badge */}
+          <div>
+            <div className="inline-flex items-center overflow-hidden rounded-full border border-amber-500/30 bg-amber-500/10 py-1.5 px-4 backdrop-blur-sm">
+              <span className="relative flex h-2 w-2 mr-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+              </span>
+              <span className="text-[10px] sm:text-xs font-bold text-amber-300 tracking-[0.15em] uppercase">
+                Available for New Projects
+              </span>
+            </div>
+          </div>
+
+          {/* H1 */}
+          <h1 className="flex flex-col gap-y-2 text-left">
+            <span className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
+              Product Engineer.
+            </span>
+            <span className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent leading-[1.2]">
+              Focused on System Design & Delivery.
+            </span>
+          </h1>
+
+          {/* Intro Paragraph */}
+          <div className="max-w-xl">
+            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-normal">
+              I am{" "}
+              <strong className="text-foreground font-semibold">0xShoyu</strong>
+              .
+              <br className="hidden md:block" />I translate{" "}
+              <span className="text-rose-300 font-medium">
+                abstract concepts
+              </span>{" "}
+              into{" "}
+              <strong className="text-amber-300 font-medium">
+                high-fidelity interfaces
+              </strong>
+              , and finally into{" "}
+              <strong className="text-primary font-semibold">
+                production-ready code
+              </strong>
+              .
+            </p>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex flex-wrap gap-4 pt-2">
+            <Link
+              href="/#portfolio"
+              className="group relative inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <Terminal size={20} />
+              View Portfolio
+              <ArrowRight
+                size={18}
+                className="transition-transform group-hover:translate-x-1"
+              />
+            </Link>
+
+            <Link
+              href="/docs"
+              className="group inline-flex items-center gap-2 rounded-xl border border-border bg-background/50 px-6 py-3.5 text-base font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-primary hover:border-primary/50"
+            >
+              <FileText size={20} />
+              Read Docs
+            </Link>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+          className="relative flex justify-center lg:justify-end w-full pl-0 lg:pl-10"
+        >
+          <CodeWindow />
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+</file>
+
+<file path="src/app/page.tsx">
+import { Container } from "@/components/ui/Container";
+import { Hero } from "@/components/home/Hero";
+import { FeatureGrid } from "@/components/home/FeatureGrid";
+import { PortfolioSection } from "@/components/home/PortfolioSection";
+
+export default function Home() {
+  return (
+    <Container>
+      {/* 1. Hero */}
+      <Hero />
+
+      {/* 2. Bento Grid */}
+      <FeatureGrid />
+
+      {/* 3. Portfolio */}
+      <PortfolioSection />
+
+      {/* 4. Footer Placeholder */}
+      <div className="py-24 border-t border-border/40 mt-12 text-center">
+        <p className="text-muted text-sm">
+          © 2026 0xShoyu. Built with Next.js & Coffee.
+        </p>
+      </div>
+    </Container>
+  );
+}
+</file>
+
+<file path="src/components/layout/Navbar.tsx">
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { Container } from "@/components/ui/Container";
+import { Menu, X, Terminal } from "lucide-react";
+import { useState } from "react";
+
+const navItems = [
+  { name: "Portfolio", href: "/#portfolio" },
+  { name: "Docs", href: "/docs" },
+  { name: "Blog", href: "/blog" },
+];
+
+export function Navbar() {
+  const pathname = usePathname();
+  const [hoveredPath, setHoveredPath] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
+      <Container>
+        <div className="flex h-16 items-center justify-between">
+          {/* Logo Area */}
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-bold text-xl tracking-tight"
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Terminal size={18} />
+            </div>
+            <span>0xShoyu</span>
+          </Link>
+
+          {/* Desktop Navbar */}
+          <nav className="hidden md:flex items-center gap-1">
+            {navItems.map((item) => {
+              const isActive =
+                item.href === "/#portfolio"
+                  ? false
+                  : pathname.startsWith(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "relative px-4 py-2 text-sm font-medium transition-colors",
+                    isActive
+                      ? "text-primary"
+                      : "text-muted hover:text-foreground",
+                  )}
+                  onMouseEnter={() => setHoveredPath(item.href)}
+                  onMouseLeave={() => setHoveredPath(null)}
+                >
+                  {/* Apple Style Hover Effect */}
+                  {hoveredPath === item.href && (
+                    <motion.div
+                      layoutId="navbar-hover"
+                      className="absolute inset-0 -z-10 rounded-md bg-white/5"
+                      transition={{
+                        type: "spring",
+                        stiffness: 350,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Mobile Navbar */}
+          <button
+            className="md:hidden p-2 text-muted hover:text-foreground"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+      </Container>
+
+      {/* Mobile Dropdown */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-border/40 bg-background px-4 py-4 space-y-2">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="block rounded-md px-3 py-2 text-base font-medium text-muted hover:bg-white/5 hover:text-primary"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {item.name}
+            </Link>
+          ))}
+        </div>
+      )}
+    </header>
+  );
+}
+</file>
+
+<file path="src/components/home/PortfolioSection.tsx">
+"use client";
+
+import { motion } from "framer-motion";
+import Link from "next/link";
+import { ArrowRight, Github, Cpu, Layout, FileText } from "lucide-react";
+import { Card } from "@/components/ui/Card";
+import { cn } from "@/lib/utils";
+import { TechBadge } from "@/components/ui/TechBadge";
+import { CardIcon } from "@/components/ui/CardIcon";
+
+const projects = [
+  {
+    id: "twitter-scraper",
+    title: "Twitter Sentiment Engine",
+    subtitle: "Saving $60k/yr in API Costs",
+    description:
+      "A production-grade scraping microservice handling 10k+ daily requests. Features browser pooling, proxy rotation, and anti-bot evasion algorithms.",
+    tags: ["Node.js", "Puppeteer", "MongoDB", "Docker"],
+    link: "/portfolio/twitter-scraper-engine",
+    github: "https://github.com/0xShoyu/twitter-scanner-public",
+    icon: Cpu,
+    color: "text-emerald-400",
+    size: "large",
+  },
+  {
+    id: "portfolio",
+    title: "0xShoyu.dev",
+    subtitle: "Next.js 15 Documentation Hub",
+    description:
+      "My digital garden built with App Router, MDX, and Tailwind v4. Designed for performance and developer experience.",
+    tags: ["Next.js 15", "React", "Tailwind v4"],
+    link: "/portfolio/0xshoyu-dev-architecture",
+    github: "https://github.com/0xShoyu/portfolio-app",
+    icon: Layout,
+    color: "text-blue-400",
+    size: "small",
+  },
+  {
+    id: "star-miner",
+    title: "Star Miner Protocol",
+    subtitle: "Game Design Document (GDD)",
+    description:
+      "System architecture for a decentralized resource management game, featuring complex tokenomics and simulated economy.",
+    tags: ["System Design", "Tokenomics"],
+    link: "/docs/star-miner-gdd",
+    github: null,
+    icon: FileText,
+    color: "text-amber-400",
+    size: "small",
+  },
+];
+
+export function PortfolioSection() {
+  return (
+    <section id="portfolio" className="pb-32 scroll-mt-24 relative">
+      <div className="flex flex-col gap-4 mb-12">
+        <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+          My Portfolio.
+        </h2>
+        <p className="text-muted text-lg max-w-2xl font-light">
+          Here are a few projects that demonstrate my ability to ship complex
+          systems.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {projects.map((project, index) => (
+          <motion.div
+            key={project.id}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: index * 0.1 }}
+            className={cn(
+              project.size === "large" ? "md:col-span-2" : "md:col-span-1",
+            )}
+          >
+            <Card className="h-full flex flex-col justify-between group hover:border-white/10 transition-all duration-500">
+              {/* Header: Icon + Links */}
+              <div className="flex justify-between items-start mb-6">
+                <CardIcon icon={project.icon} color={project.color} />
+
+                {project.github && (
+                  <a
+                    href={project.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted hover:text-foreground transition-colors p-2"
+                  >
+                    <Github size={20} />
+                  </a>
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="flex-1">
+                <div className="flex items-baseline justify-between mb-2">
+                  <h3 className="text-2xl font-bold text-foreground tracking-tight group-hover:text-primary transition-colors">
+                    {project.title}
+                  </h3>
+                </div>
+
+                <p
+                  className={cn(
+                    "text-sm font-medium mb-4 opacity-80",
+                    project.color,
+                  )}
+                >
+                  {project.subtitle}
+                </p>
+
+                <p className="text-muted leading-relaxed font-light text-sm mb-8">
+                  {project.description}
+                </p>
+              </div>
+
+              {/* Footer: Tags & Action Button */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-auto">
+                <div className="flex flex-wrap gap-2">
+                  {project.tags.map((tag) => (
+                    <TechBadge key={tag} name={tag} />
+                  ))}
+                </div>
+
+                {/* Case Study Button */}
+                <Link
+                  href={project.link}
+                  className="group/link inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors mt-4 sm:mt-0"
+                >
+                  Read Case Study
+                  <ArrowRight
+                    size={16}
+                    className="transition-transform group-hover/link:translate-x-1"
+                  />
+                </Link>
+              </div>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "portfolio-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "framer-motion": "^12.29.2",
+    "gray-matter": "^4.0.3",
+    "lucide-react": "^0.563.0",
+    "next": "16.1.6",
+    "next-mdx-remote": "^6.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "rehype-pretty-code": "^0.14.1",
+    "remark-gfm": "^4.0.1",
+    "shiki": "^3.22.0",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+</file>
+
+<file path="src/app/globals.css">
+/* src/app/globals.css */
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* =========================================
+   1. MODERN CSS RESET
+   Based on Josh W. Comeau's reset principles.
+   ========================================= */
+
+/* Use border-box for everything to make sizing predictable */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Ensure full height and smooth scrolling behavior */
+html, body {
+  min-height: 100%;
+  scroll-behavior: smooth;
+  overflow-x: clip;
+}
+
+/* Treat media as block-level to avoid alignment issues */
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* Inherit fonts for form controls */
+input, button, textarea, select {
+  font: inherit;
+}
+
+/* Prevent text overflow from breaking layouts */
+p, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+}
+
+/* Create a root stacking context (useful for Next.js/React) */
+#root, #__next {
+  isolation: isolate;
+}
+
+/* =========================================
+   2. THEME CONFIGURATION (Tailwind v4)
+   ========================================= */
+@theme {
+  --color-background: #082f49; /* Sky 950 */
+  --color-foreground: #f0f9ff; /* Sky 50 */
+
+  --color-primary: #38bdf8;    /* Sky 400 */
+  --color-primary-foreground: #082f49; /* Sky 950 */
+
+  --color-card: rgba(12, 74, 110, 0.5); /* Sky 900 (Transparent) */
+  --color-card-foreground: #f0f9ff;
+
+  --color-border: rgba(56, 189, 248, 0.2); /* Sky 400 (Low Opacity) */
+  --color-muted: #94a3b8; /* Slate 400 */
+}
+
+/* =========================================
+   3. BASE STYLES
+   ========================================= */
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+/* =========================================
+   4. TYPOGRAPHY OVERRIDES (Prose)
+   Map Tailwind Typography to our theme variables.
+   ========================================= */
+.prose {
+  --tw-prose-body: var(--color-foreground);
+  --tw-prose-headings: var(--color-foreground);
+  --tw-prose-lead: var(--color-muted);
+  --tw-prose-links: var(--color-primary);
+  --tw-prose-bold: var(--color-foreground);
+  --tw-prose-counters: var(--color-muted);
+  --tw-prose-bullets: var(--color-muted);
+  --tw-prose-hr: var(--color-border);
+  --tw-prose-quotes: var(--color-foreground);
+  --tw-prose-quote-borders: var(--color-border);
+  --tw-prose-captions: var(--color-muted);
+  --tw-prose-code: var(--color-primary);
+  --tw-prose-pre-code: var(--color-foreground);
+  --tw-prose-pre-bg: var(--color-card);
+  --tw-prose-th-borders: var(--color-border);
+  --tw-prose-td-borders: var(--color-border);
+
+  /* Optional: Limit width for better readability */
+  max-width: 65ch;
+}
+
+/* =========================================
+   5. TABLE CUSTOMIZATION (Apple Style)
+   ========================================= */
+.prose table {
+  font-size: 0.875rem; /* text-sm */
+  width: 100%;
+  border-collapse: separate; 
+  border-spacing: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem; /* rounded-xl */
+  overflow: hidden;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  background-color: var(--color-card);
+}
+
+.prose thead {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.prose thead th {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  text-align: left;
+  color: var(--color-foreground);
+}
+
+.prose tbody td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-muted);
+}
+
+.prose tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.prose tbody strong {
+  color: var(--color-primary); 
+  font-weight: 600;
+}
+
+/* =========================================
+   6. CODE BLOCK STYLING (Rehype Pretty Code)
+   让代码块看起来像精致的编辑器窗口
+   ========================================= */
+
+.prose pre {
+  @apply bg-black/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden;
+  padding: 1.25rem; /* p-5 */
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  line-height: 1.7;
+}
+
+.prose code {
+  @apply font-mono text-sm;
+  &::before {
+    content: "" !important;
+  }
+  &::after {
+    content: "" !important;
+  }
+}
+
+.prose :not(pre) > code {
+  @apply bg-primary/10 text-primary px-1.5 py-0.5 rounded-md border border-primary/20 text-[0.85em] font-medium;
+}
+
+.prose pre > code {
+  background-color: transparent !important;
+  display: grid; 
+}
+
+.prose pre::-webkit-scrollbar {
+  height: 8px;
+}
+.prose pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+.prose pre::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full;
+}
+.prose pre::-webkit-scrollbar-thumb:hover {
+  @apply bg-white/20;
+}
+</file>
+
+</files>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
+import { MarketTicker } from "@/components/layout/MarketTicker";
 
 export const metadata: Metadata = {
   title: "0xShoyu | Product Engineer",
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="bg-background text-foreground antialiased">
+        <MarketTicker />
         <Navbar />
         <main>{children}</main>
       </body>
