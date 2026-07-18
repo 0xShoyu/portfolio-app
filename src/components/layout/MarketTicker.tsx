@@ -11,7 +11,7 @@ export async function MarketTicker() {
   const displayData = [...data, ...data];
 
   return (
-    <div className="w-full bg-black/80 border-b border-white/5 text-[11px] font-mono overflow-hidden flex items-center h-8 z-50">
+    <div className="w-full bg-black/80 border-b border-white/5 text-[11px] font-mono overflow-hidden flex items-center h-8 z-50 sticky top-0">
       <div className="flex animate-marquee whitespace-nowrap">
         {displayData.map((asset, i) => (
           <div
