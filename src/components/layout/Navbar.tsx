@@ -20,7 +20,7 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
+    <header className="sticky top-8 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
       <Container>
         <div className="flex h-16 items-center justify-between">
           {/* Logo Area */}
