@@ -1,3 +1,4 @@
+export const revalidate = 60;
 import type { Metadata } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
