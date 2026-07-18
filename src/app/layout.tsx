@@ -1,8 +1,9 @@
-export const revalidate = 60;
 import type { Metadata } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { MarketTicker } from "@/components/layout/MarketTicker";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "0xShoyu | Product Engineer",
