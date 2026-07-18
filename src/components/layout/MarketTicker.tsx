@@ -2,10 +2,6 @@
 import { getMarketData } from "@/lib/market";
 import { TrendingDown, TrendingUp } from "lucide-react";
 
-// ISR 缓存策略：每 60 秒后台重新验证一次数据
-// 这保证了你的页面依然是静态化（SSG）的极速体验
-export const revalidate = 60;
-
 export async function MarketTicker() {
   const data = await getMarketData();
 
