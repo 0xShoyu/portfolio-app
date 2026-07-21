@@ -1,0 +1,164 @@
+---
+title: "Simulating a Universe: The Engineering of Asteroid Miner"
+date: "2026-06-27"
+tags: ["TypeScript", "React", "Vite", "Canvas API", "Game Design", "System Design", "AI-Augmented", "Low Poly 3D"]
+description: "How I engineered a multi-physics asteroid mining survival game from first principles — and used AI to ship it at indie speed."
+---
+
+## The Strategic Premise
+
+This game was not conceived in a vacuum. It was conceived in a geopolitical one.
+
+The second Space Race is underway. After Elon Musk's successful Mars colonization, the next frontier became the carbonaceous asteroid belt — bodies rich in silicates, water ice, and organic compounds. In this world, independent miners, not nation-states, are racing to stake claims on C-type asteroids and ship refined materials back to the inner solar system.
+
+**Asteroid Miner puts you in that miner's suit.**
+
+You are not a god-view city planner. You are a single pilot, dropped onto a finite rock in the outer belt, with limited oxygen, limited water, and the full weight of the logistics problem on your shoulders.
+
+### The Design Problem:
+
+Most factory games abstract the human element away. The "player" is an invisible hand moving resources between buildings. There is no cost to failure, no embodied risk.
+
+### The Solution:
+
+**A survival-factory hybrid where the pilot IS the system's most fragile component** — and the factory exists to keep them alive long enough to get rich.
+
+### The Result:
+
+A browser-native simulation built on Vite + React + Canvas, deployable instantly with no download, with a full pneumatic logistics network, a mobile railway mining system, and a 3D Low Poly visual layer currently in development.
+
+---
+
+## 🏗 Architecture: Browser-First, Steam-Ready
+
+The choice of Vite + React + Canvas was a deliberate product decision, not a technical default.
+
+### Why Not a Game Engine?
+
+Unity and Godot solve distribution. But they create friction in the iteration loop — build times, editor overhead, platform-specific quirks. For a solo developer validating game feel, that friction is expensive.
+
+The browser eliminates it entirely.
+
+```
+Share a URL → Anyone plays instantly → Feedback in hours, not days
+```
+
+This meant I could run playtests with zero onboarding cost. Every system I shipped was validated by real players before I invested further in it.
+
+The architecture also solves the long-term distribution problem: a Vite + React project can be packaged via Electron or Tauri for Steam with minimal structural changes. **The browser build IS the demo. The packaged build IS the product.**
+
+### The Development Protocol
+
+The build sequence was deliberate:
+
+1. **React-only prototype** — All game logic implemented as React state. Full test coverage before any rendering investment.
+2. **Canvas migration** — Once systems passed validation, rendering was migrated to Canvas for performance and precise control over the simulation loop.
+3. **3D layer (in progress)** — Low Poly aesthetic being introduced via Three.js, preserving the core simulation beneath a new visual surface.
+
+This is the engineering equivalent of a product go-to-market sequence: validate the core loop cheaply, then invest in the experience layer.
+
+---
+
+## 🛠 Technical Deep Dive
+
+### 1. The Pneumatic Pipe Network: Solids and Fluids, One System
+
+The naive assumption about pipe networks in factory games is that pipes carry liquids. I designed against this constraint from the start.
+
+The pipe system in Asteroid Miner is **pneumatic** — compressed gas carries both fluid resources *and* solid particulates through the same network. A Calciner outputs powdered silicate. An Electrolyzer outputs oxygen gas. Both travel through pipes. The distinction is not the transport medium; it is the processing endpoint.
+
+```typescript
+// src/systems/fluids/PneumaticNode.ts
+interface PipePayload {
+  type: 'fluid' | 'solid_particulate';
+  resource: ResourceType;
+  quantity: number;
+  pressureRequired: number; // solids need higher delta-P to move
+}
+
+tick(dt: number): void {
+  for (const connection of this.connections) {
+    const delta = (this.pressure - connection.pressure) * FLOW_RATE * dt;
+    if (delta >= this.payload.pressureRequired) {
+      this.transferPayload(connection, delta, dt);
+    }
+  }
+}
+```
+
+The pressure model means players must engineer their network topology, not just their inventory. A poorly pressurized segment will stall transport regardless of payload type — a diagnostic problem that rewards system-level thinking.
+
+### 2. The Railway System: Mobile Mining Infrastructure
+
+This is the design decision I am most proud of, because it solves a real gameplay frustration that most factory games ignore.
+
+In conventional factory games, when a resource node depletes, you face a mandatory teardown-rebuild cycle: deconstruct the mining machine, move it, reconstruct it on the new node. This is busywork. It is not strategy; it is janitorial.
+
+**I eliminated it entirely.**
+
+The Railway system reframes the mining machine as a *mobile unit*, not a placed building. Rail lines connect resource tiles into a continuous mining zone. The mining machine rides the rail, automatically targeting the richest available tile beneath it. When a tile depletes, the machine advances to the next without player intervention.
+
+```typescript
+// src/systems/railway/MiningCart.ts
+update(dt: number): void {
+  const currentTile = this.getCurrentTile();
+
+  if (currentTile.resourceDepleted()) {
+    const nextTile = this.rail.getNextRichestTile(this.position);
+    if (nextTile) {
+      this.moveTo(nextTile); // automatic repositioning
+    }
+  } else {
+    this.mine(currentTile, dt);
+  }
+}
+```
+
+The railway also carries an integrated pneumatic pipe channel. Extracted ore is immediately injected into the pipe network at the cart's current position, removing the need for separate ore-collection logistics. **The rail line IS the logistics line.**
+
+The strategic implication: the player's job shifts from *managing machines* to *designing rail networks*. Where you lay track determines your mining efficiency ceiling. This is a fundamentally more interesting problem.
+
+### 3. The Survival Loop: Finite Rock, Infinite Pressure
+
+The asteroid is finite. This is not a limitation — it is the game's central dramatic engine.
+
+Every resource on the rock exists in fixed quantity. The factory layer is not about growth for its own sake; it is about extracting maximum value from a shrinking asset before it runs out. This mirrors a principle from the tokenomics design work in my Web3 years: **scarcity with genuine utility creates emergent player behavior without scripted events.**
+
+| Resource | Source | Consumption | Consequence of Depletion |
+|---|---|---|---|
+| **Silicate** | Asteroid tiles | Calciner feedstock | Machine starvation |
+| **H₂O** | Hydrated ore veins | Pilot hydration + Electrolyzer | O₂ production collapse |
+| **O₂** | Electrolyzer output | Pilot respiration | Immediate pilot death |
+| **Power** | Solar array | All machines | Full system shutdown |
+
+The interdependency is structural. No single resource failure is instantly fatal — except oxygen. Everything else cascades slowly, giving the player time to diagnose and respond. **That diagnostic window is where the strategy lives.**
+
+---
+
+## 🎨 Visual Direction: Low Poly as a Design Choice
+
+The 3D migration currently underway is not a visual upgrade. It is a **communication decision**.
+
+Low Poly aesthetics are readable at a glance — clear silhouettes, unambiguous material differentiation, no visual noise from texture detail. For a game where the player must parse a complex logistics network in real time, visual clarity is a gameplay feature, not a stylistic preference.
+
+The asteroid surfaces will use procedural geometry with vertex-displaced rock formations. Machines will retain clean geometric forms with material-based color coding. The pilot EVA suit will be the only high-contrast element on screen — keeping player attention anchored to the survival layer.
+
+---
+
+## Impact Analysis
+
+Asteroid Miner is a proof-of-concept for a development thesis: **a solo operator with clear system design and AI tooling can ship simulation complexity that previously required a team.**
+
+| Metric | Traditional Indie Team | 0xShoyu Approach |
+|---|---|---|
+| **Team Size** | 3–5 developers | **1 (AI-augmented)** |
+| **Distribution Friction** | Engine-specific build pipeline | **Share a URL** |
+| **Mining System** | Static placed machines | **Mobile railway infrastructure** |
+| **Logistics Network** | Fluid-only pipes | **Pneumatic: solids + fluids unified** |
+| **Dev Tooling Cost** | Engine license + asset store | **~$0 (Canvas + Gemini free tier)** |
+
+The game is in active development. Remaining systems include the agricultural caloric loop, advanced rail routing algorithms, and the end-game depletion event. Steam Early Access release is the target milestone.
+
+---
+
+*Building in public on X [@ShoyuChef](https://x.com/ShoyuChef). Every system shipped gets a thread.*

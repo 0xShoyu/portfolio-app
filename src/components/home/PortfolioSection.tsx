@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Github, Cpu, Layout, FileText } from "lucide-react";
+import { ArrowRight, Github, Cpu, Layout, Rocket } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import { TechBadge } from "@/components/ui/TechBadge";
@@ -36,18 +36,18 @@ const projects = [
     size: "small",
   },
   {
-    id: "star-miner",
-    title: "Star Miner Protocol",
-    subtitle: "Game Design Document (GDD)",
-    description:
-      "System architecture for a decentralized resource management game, featuring complex tokenomics and simulated economy.",
-    tags: ["System Design", "Tokenomics"],
-    link: "/docs/star-miner-gdd",
-    github: null,
-    icon: FileText,
-    color: "text-amber-400",
-    size: "small",
-  },
+  id: "asteroid-miner",
+  title: "Asteroid Miner 2.0",
+  subtitle: "Survival-Factory Hybrid, Solo-Built",
+  description:
+    "A multi-physics asteroid mining survival game — pneumatic logistics, mobile railway mining, and an AI-augmented dev workflow.",
+  tags: ["TypeScript", "React", "Vite", "AI-Augmented"],
+  link: "/portfolio/asteroid-miner",
+  github: null,
+  icon: Rocket,
+  color: "text-amber-400",
+  size: "small",
+},
 ];
 
 export function PortfolioSection() {
