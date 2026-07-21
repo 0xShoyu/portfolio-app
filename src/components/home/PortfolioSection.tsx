@@ -37,7 +37,7 @@ const projects = [
   },
   {
   id: "asteroid-miner",
-  title: "Asteroid Miner 2.0",
+  title: "Asteroid Miner",
   subtitle: "Survival-Factory Hybrid, Solo-Built",
   description:
     "A multi-physics asteroid mining survival game — pneumatic logistics, mobile railway mining, and an AI-augmented dev workflow.",
