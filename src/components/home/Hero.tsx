@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, FileText, Terminal } from "lucide-react";
+import { ArrowRight, Box, Terminal } from "lucide-react";
 import Link from "next/link";
 import { CodeWindow } from "./CodeWindow";
 
@@ -78,12 +78,12 @@ export function Hero() {
             </Link>
 
             <Link
-              href="/docs"
-              className="group inline-flex items-center gap-2 rounded-xl border border-border bg-background/50 px-6 py-3.5 text-base font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-primary hover:border-primary/50"
-            >
-              <FileText size={20} />
-              Read Docs
-            </Link>
+  href="/#tools"
+  className="group inline-flex items-center gap-2 rounded-xl border border-border bg-background/50 px-6 py-3.5 text-base font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-primary hover:border-primary/50"
+>
+  <Box size={20} />
+  Explore Tools
+</Link>
           </div>
         </motion.div>
 

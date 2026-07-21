@@ -1,18 +1,18 @@
 import { Container } from "@/components/ui/Container";
 import { Hero } from "@/components/home/Hero";
 import { FeatureGrid } from "@/components/home/FeatureGrid";
+import { ToolsSection } from "@/components/home/ToolsSection";
 import { PortfolioSection } from "@/components/home/PortfolioSection";
 
 export default function Home() {
   return (
     <Container>
-      {/* 1. Hero */}
       <Hero />
 
-      {/* 2. Bento Grid */}
       <FeatureGrid />
 
-      {/* 3. Portfolio */}
+      <ToolsSection />
+
       <PortfolioSection />
 
       {/* 4. Footer Placeholder */}
