@@ -9,13 +9,12 @@ export default function Home() {
     <Container>
       <Hero />
 
-      <FeatureGrid />
-
-      <ToolsSection />
+      <FeatureGrid /> 
 
       <PortfolioSection />
 
-      {/* 4. Footer Placeholder */}
+      <ToolsSection />
+
       <div className="py-24 border-t border-border/40 mt-12 text-center">
         <p className="text-muted text-sm">
           © 2026 0xShoyu. Built with Next.js & Coffee.
