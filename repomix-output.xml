@@ -1,10 +1,10 @@
-This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
 
 <file_summary>
 This section contains a summary of this file.
 
 <purpose>
-This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+This file contains a packed representation of the entire repository's contents.
 It is designed to be easily consumable by AI systems for analysis, code review,
 or other automated processes.
 </purpose>
@@ -32,7 +32,6 @@ The content is organized as follows:
 <notes>
 - Some files may have been excluded based on .gitignore rules and Repomix's configuration
 - Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
-- Files matching these patterns are excluded: package-lock.json, dist, **/*.svg, **/*.png, **/*.jpg, **/*.json
 - Files matching patterns in .gitignore are excluded
 - Files matching default ignore patterns are excluded
 - Files are sorted by Git change count (files with more changes are at the bottom)
@@ -44,12 +43,28 @@ The content is organized as follows:
 content/
   portfolio/
     0xshoyu-dev-architecture.mdx
+    asteroid-miner.mdx
     twitter-scraper-engine.mdx
+  tools/
+    first-tool.mdx
 public/
+  file.svg
+  globe.svg
+  next.svg
   threejs-preview.html
+  vercel.svg
+  window.svg
 src/
   app/
+    api/
+      generate-model/
+        route.ts
+      review-model/
+        route.ts
     portfolio/
+      [slug]/
+        page.tsx
+    tools/
       [slug]/
         page.tsx
     favicon.ico
@@ -61,8 +76,8 @@ src/
       CodeWindow.tsx
       FeatureGrid.tsx
       Hero.tsx
-      Hero.tsx_copy
       PortfolioSection.tsx
+      ToolsSection.tsx
     layout/
       MarketTicker.tsx
       Navbar.tsx
@@ -78,135 +93,100 @@ src/
 .gitignore
 eslint.config.mjs
 next.config.ts
-portfolio-app-code.xml
+package.json
 postcss.config.mjs
+tsconfig.json
 </directory_structure>
 
 <files>
 This section contains the contents of the repository's files.
 
-<file path="portfolio-app-code.xml">
-This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+<file path="src/app/api/generate-model/route.ts">
+import { GoogleGenAI } from '@google/genai';
+import { NextRequest, NextResponse } from 'next/server';
 
-<file_summary>
-This section contains a summary of this file.
+// 删掉原来顶层的 const ai = new GoogleGenAI(...)
 
-<purpose>
-This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
-It is designed to be easily consumable by AI systems for analysis, code review,
-or other automated processes.
-</purpose>
+const SYSTEM_PROMPT = `...`; // 不变
 
-<file_format>
-The content is organized as follows:
-1. This summary section
-2. Repository information
-3. Directory structure
-4. Repository files (if enabled)
-5. Multiple file entries, each consisting of:
-  - File path as an attribute
-  - Full contents of the file
-</file_format>
+export async function POST(req: NextRequest) {
+  try {
+    const { description, previousCode, feedback, apiKey } = await req.json();
+    if (!description || typeof description !== 'string') {
+      return NextResponse.json({ error: 'Missing description' }, { status: 400 });
+    }
 
-<usage_guidelines>
-- This file should be treated as read-only. Any changes should be made to the
-  original repository files, not this packed version.
-- When processing this file, use the file path to distinguish
-  between different files in the repository.
-- Be aware that this file may contain sensitive information. Handle it with
-  the same level of security as you would the original repository.
-</usage_guidelines>
+    const ai = new GoogleGenAI({ apiKey: apiKey || process.env.GEMINI_API_KEY });
 
-<notes>
-- Some files may have been excluded based on .gitignore rules and Repomix's configuration
-- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
-- Files matching these patterns are excluded: package-lock.json, dist, **/*.svg, **/*.png, **/*.jpg, **/*.json
-- Files matching patterns in .gitignore are excluded
-- Files matching default ignore patterns are excluded
-- Files are sorted by Git change count (files with more changes are at the bottom)
-</notes>
+    const userPrompt = previousCode && feedback
+      ? `Original request: ${description}\n\nPrevious code:\n${previousCode}\n\nA reviewer looked at a render of this and said:\n"${feedback}"\n\nRewrite the buildModel function to fix this, while still following all the rules.`
+      : description;
 
-</file_summary>
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: userPrompt,
+      config: { systemInstruction: SYSTEM_PROMPT, temperature: 0.8 },
+    });
 
-<directory_structure>
-content/
-  docs/
-    first-doc.mdx
-    second-doc.mdx
-  portfolio/
-    0xshoyu-dev-architecture.mdx
-    twitter-scraper-engine.mdx
-public/
-  threejs-preview.html
-src/
-  app/
-    portfolio/
-      [slug]/
-        page.tsx
-    favicon.ico
-    globals.css
-    layout.tsx
-    page.tsx
-  components/
-    home/
-      CodeWindow.tsx
-      FeatureGrid.tsx
-      Hero.tsx
-      Hero.tsx_copy
-      PortfolioSection.tsx
-    layout/
-      MarketTicker.tsx
-      Navbar.tsx
-    ui/
-      Card.tsx
-      CardIcon.tsx
-      Container.tsx
-      TechBadge.tsx
-  lib/
-    market.ts
-    mdx.ts
-    utils.ts
-.gitignore
-eslint.config.mjs
-next.config.ts
-postcss.config.mjs
-</directory_structure>
+    let code = (response.text ?? '').trim();
+    code = code.replace(/^```(?:javascript|js)?\n?/i, '').replace(/```$/i, '').trim();
 
-<files>
-This section contains the contents of the repository's files.
-
-<file path="content/docs/first-doc.mdx">
----
-title: "第一篇技术文档"
-publishedAt: "2026-02-02"
-summary: "这是用来测试 MDX 读取功能的文档，记录了从运营转向开发的经验。"
-slug: "first-doc"
----
-
-# Hello World
-
-这是我的第一篇技术文档。如果能读取到这些文字，说明 **数据层** 配置成功了！
-
-## 为什么选择 MDX？
-
-因为它可以像 React 组件一样渲染。
+    return NextResponse.json({ code });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Generation failed' }, { status: 500 });
+  }
+}
 </file>
 
-<file path="content/docs/second-doc.mdx">
----
-title: "第二篇技术文档"
-publishedAt: "2026-02-02"
-summary: "这是用来测试 MDX 读取功能的文档，记录了从运营转向开发的经验。"
-slug: "second-doc"
----
+<file path="src/app/api/review-model/route.ts">
+import { GoogleGenAI } from '@google/genai';
+import { NextRequest, NextResponse } from 'next/server';
 
-# Hello World Again
+const REVIEW_SYSTEM_PROMPT = `You are reviewing a screenshot of a rendered low-poly 3D model against the text description it was supposed to match.
 
-这是我的第一篇技术文档。如果能读取到这些文字，说明 **数据层** 配置成功了！
+Score how well the render matches the description on a 0 to 1 scale.
+Decide "continue" if it's a reasonable match for a simple low-poly game asset, or "refine" if something important is clearly wrong (wrong shape, missing part, badly wrong proportions).
+Be lenient about minor low-poly stylization — this is not meant to be realistic.
 
-## 为什么选择 MDX？
+If "refine", give one short, specific, actionable sentence describing what to change.
 
-因为它可以像 React 组件一样渲染。
+Respond ONLY with JSON in this exact shape, nothing else:
+{"decision": "continue" | "refine", "score": 0.0, "critique": ""}`;
+
+export async function POST(req: NextRequest) {
+  try {
+    const { description, screenshot } = await req.json();
+    const ai = new GoogleGenAI({ apiKey: apiKey || process.env.GEMINI_API_KEY });
+    if (!description || !screenshot) {
+      return NextResponse.json({ error: 'Missing description or screenshot' }, { status: 400 });
+    }
+
+    const base64Data = screenshot.replace(/^data:image\/\w+;base64,/, '');
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: `The model was supposed to be: "${description}"` },
+            { inlineData: { mimeType: 'image/png', data: base64Data } },
+          ],
+        },
+      ],
+      config: {
+        systemInstruction: REVIEW_SYSTEM_PROMPT,
+        temperature: 0.4,
+        responseMimeType: 'application/json',
+      },
+    });
+
+    const verdict = JSON.parse((response.text ?? '').trim());
+    return NextResponse.json(verdict);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Review failed' }, { status: 500 });
+  }
+}
 </file>
 
 <file path="content/portfolio/0xshoyu-dev-architecture.mdx">
@@ -300,6 +280,173 @@ By treating my portfolio as a **Product** rather than a weekend project, I demon
 | **Styling Engine** | Tailwind v3 | **Tailwind v4 (Native CSS)** |
 
 [View Source Code on GitHub](https://github.com/0xShoyu/portfolio-app)
+</file>
+
+<file path="content/portfolio/asteroid-miner.mdx">
+---
+title: "Simulating a Universe: The Engineering of Asteroid Miner"
+date: "2026-06-27"
+tags: ["TypeScript", "React", "Vite", "Canvas API", "Game Design", "System Design", "AI-Augmented", "Low Poly 3D"]
+description: "How I engineered a multi-physics asteroid mining survival game from first principles — and used AI to ship it at indie speed."
+---
+
+## The Strategic Premise
+
+This game was not conceived in a vacuum. It was conceived in a geopolitical one.
+
+The second Space Race is underway. After Elon Musk's successful Mars colonization, the next frontier became the carbonaceous asteroid belt — bodies rich in silicates, water ice, and organic compounds. In this world, independent miners, not nation-states, are racing to stake claims on C-type asteroids and ship refined materials back to the inner solar system.
+
+**Asteroid Miner puts you in that miner's suit.**
+
+You are not a god-view city planner. You are a single pilot, dropped onto a finite rock in the outer belt, with limited oxygen, limited water, and the full weight of the logistics problem on your shoulders.
+
+### The Design Problem:
+
+Most factory games abstract the human element away. The "player" is an invisible hand moving resources between buildings. There is no cost to failure, no embodied risk.
+
+### The Solution:
+
+**A survival-factory hybrid where the pilot IS the system's most fragile component** — and the factory exists to keep them alive long enough to get rich.
+
+### The Result:
+
+A browser-native simulation built on Vite + React + Canvas, deployable instantly with no download, with a full pneumatic logistics network, a mobile railway mining system, and a 3D Low Poly visual layer currently in development.
+
+---
+
+## 🏗 Architecture: Browser-First, Steam-Ready
+
+The choice of Vite + React + Canvas was a deliberate product decision, not a technical default.
+
+### Why Not a Game Engine?
+
+Unity and Godot solve distribution. But they create friction in the iteration loop — build times, editor overhead, platform-specific quirks. For a solo developer validating game feel, that friction is expensive.
+
+The browser eliminates it entirely.
+
+```
+Share a URL → Anyone plays instantly → Feedback in hours, not days
+```
+
+This meant I could run playtests with zero onboarding cost. Every system I shipped was validated by real players before I invested further in it.
+
+The architecture also solves the long-term distribution problem: a Vite + React project can be packaged via Electron or Tauri for Steam with minimal structural changes. **The browser build IS the demo. The packaged build IS the product.**
+
+### The Development Protocol
+
+The build sequence was deliberate:
+
+1. **React-only prototype** — All game logic implemented as React state. Full test coverage before any rendering investment.
+2. **Canvas migration** — Once systems passed validation, rendering was migrated to Canvas for performance and precise control over the simulation loop.
+3. **3D layer (in progress)** — Low Poly aesthetic being introduced via Three.js, preserving the core simulation beneath a new visual surface.
+
+This is the engineering equivalent of a product go-to-market sequence: validate the core loop cheaply, then invest in the experience layer.
+
+---
+
+## 🛠 Technical Deep Dive
+
+### 1. The Pneumatic Pipe Network: Solids and Fluids, One System
+
+The naive assumption about pipe networks in factory games is that pipes carry liquids. I designed against this constraint from the start.
+
+The pipe system in Asteroid Miner is **pneumatic** — compressed gas carries both fluid resources *and* solid particulates through the same network. A Calciner outputs powdered silicate. An Electrolyzer outputs oxygen gas. Both travel through pipes. The distinction is not the transport medium; it is the processing endpoint.
+
+```typescript
+// src/systems/fluids/PneumaticNode.ts
+interface PipePayload {
+  type: 'fluid' | 'solid_particulate';
+  resource: ResourceType;
+  quantity: number;
+  pressureRequired: number; // solids need higher delta-P to move
+}
+
+tick(dt: number): void {
+  for (const connection of this.connections) {
+    const delta = (this.pressure - connection.pressure) * FLOW_RATE * dt;
+    if (delta >= this.payload.pressureRequired) {
+      this.transferPayload(connection, delta, dt);
+    }
+  }
+}
+```
+
+The pressure model means players must engineer their network topology, not just their inventory. A poorly pressurized segment will stall transport regardless of payload type — a diagnostic problem that rewards system-level thinking.
+
+### 2. The Railway System: Mobile Mining Infrastructure
+
+This is the design decision I am most proud of, because it solves a real gameplay frustration that most factory games ignore.
+
+In conventional factory games, when a resource node depletes, you face a mandatory teardown-rebuild cycle: deconstruct the mining machine, move it, reconstruct it on the new node. This is busywork. It is not strategy; it is janitorial.
+
+**I eliminated it entirely.**
+
+The Railway system reframes the mining machine as a *mobile unit*, not a placed building. Rail lines connect resource tiles into a continuous mining zone. The mining machine rides the rail, automatically targeting the richest available tile beneath it. When a tile depletes, the machine advances to the next without player intervention.
+
+```typescript
+// src/systems/railway/MiningCart.ts
+update(dt: number): void {
+  const currentTile = this.getCurrentTile();
+
+  if (currentTile.resourceDepleted()) {
+    const nextTile = this.rail.getNextRichestTile(this.position);
+    if (nextTile) {
+      this.moveTo(nextTile); // automatic repositioning
+    }
+  } else {
+    this.mine(currentTile, dt);
+  }
+}
+```
+
+The railway also carries an integrated pneumatic pipe channel. Extracted ore is immediately injected into the pipe network at the cart's current position, removing the need for separate ore-collection logistics. **The rail line IS the logistics line.**
+
+The strategic implication: the player's job shifts from *managing machines* to *designing rail networks*. Where you lay track determines your mining efficiency ceiling. This is a fundamentally more interesting problem.
+
+### 3. The Survival Loop: Finite Rock, Infinite Pressure
+
+The asteroid is finite. This is not a limitation — it is the game's central dramatic engine.
+
+Every resource on the rock exists in fixed quantity. The factory layer is not about growth for its own sake; it is about extracting maximum value from a shrinking asset before it runs out. This mirrors a principle from the tokenomics design work in my Web3 years: **scarcity with genuine utility creates emergent player behavior without scripted events.**
+
+| Resource | Source | Consumption | Consequence of Depletion |
+|---|---|---|---|
+| **Silicate** | Asteroid tiles | Calciner feedstock | Machine starvation |
+| **H₂O** | Hydrated ore veins | Pilot hydration + Electrolyzer | O₂ production collapse |
+| **O₂** | Electrolyzer output | Pilot respiration | Immediate pilot death |
+| **Power** | Solar array | All machines | Full system shutdown |
+
+The interdependency is structural. No single resource failure is instantly fatal — except oxygen. Everything else cascades slowly, giving the player time to diagnose and respond. **That diagnostic window is where the strategy lives.**
+
+---
+
+## 🎨 Visual Direction: Low Poly as a Design Choice
+
+The 3D migration currently underway is not a visual upgrade. It is a **communication decision**.
+
+Low Poly aesthetics are readable at a glance — clear silhouettes, unambiguous material differentiation, no visual noise from texture detail. For a game where the player must parse a complex logistics network in real time, visual clarity is a gameplay feature, not a stylistic preference.
+
+The asteroid surfaces will use procedural geometry with vertex-displaced rock formations. Machines will retain clean geometric forms with material-based color coding. The pilot EVA suit will be the only high-contrast element on screen — keeping player attention anchored to the survival layer.
+
+---
+
+## Impact Analysis
+
+Asteroid Miner is a proof-of-concept for a development thesis: **a solo operator with clear system design and AI tooling can ship simulation complexity that previously required a team.**
+
+| Metric | Traditional Indie Team | 0xShoyu Approach |
+|---|---|---|
+| **Team Size** | 3–5 developers | **1 (AI-augmented)** |
+| **Distribution Friction** | Engine-specific build pipeline | **Share a URL** |
+| **Mining System** | Static placed machines | **Mobile railway infrastructure** |
+| **Logistics Network** | Fluid-only pipes | **Pneumatic: solids + fluids unified** |
+| **Dev Tooling Cost** | Engine license + asset store | **~$0 (Canvas + Gemini free tier)** |
+
+The game is in active development. Remaining systems include the agricultural caloric loop, advanced rail routing algorithms, and the end-game depletion event. Steam Early Access release is the target milestone.
+
+---
+
+*Building in public on X [@ShoyuChef](https://x.com/ShoyuChef). Every system shipped gets a thread.*
 </file>
 
 <file path="content/portfolio/twitter-scraper-engine.mdx">
@@ -429,6 +576,164 @@ This project defines my approach to Engineering: **It is not just about writing 
 [View Source Code on GitHub](https://github.com/0xShoyu/twitter-scanner-public)
 </file>
 
+<file path="content/tools/first-tool.mdx">
+
+</file>
+
+<file path="public/file.svg">
+<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
+</file>
+
+<file path="public/globe.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+</file>
+
+<file path="public/next.svg">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
+</file>
+
+<file path="public/vercel.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
+</file>
+
+<file path="public/window.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+</file>
+
+<file path="src/app/tools/[slug]/page.tsx">
+import { getPostBySlug, getAllSlugs } from "@/lib/mdx";
+import { Container } from "@/components/ui/Container";
+import { notFound } from "next/navigation";
+import { MDXRemote } from "next-mdx-remote/rsc";
+import { ArrowLeft, Calendar, User } from "lucide-react";
+import Link from "next/link";
+import remarkGfm from "remark-gfm";
+import rehypePrettyCode from "rehype-pretty-code";
+
+const CustomLink = (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
+  const href = props.href;
+  const isInternal = href && (href.startsWith("/") || href.startsWith("#"));
+
+  if (isInternal) {
+    return (
+      <Link
+        href={href}
+        className="text-primary hover:underline underline-offset-4"
+        {...props}
+      >
+        {props.children}
+      </Link>
+    );
+  }
+
+  return (
+    <a
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-primary hover:underline underline-offset-4 cursor-pointer"
+      {...props}
+    >
+      {props.children}
+    </a>
+  );
+};
+
+const components = {
+  a: CustomLink,
+};
+
+const prettyCodeOptions = {
+  theme: "github-dark",
+  keepBackground: false,
+  defaultLang: "plaintext",
+};
+
+export async function generateStaticParams() {
+  const slugs = getAllSlugs("tools");
+  return slugs.map((slug) => ({ slug }));
+}
+
+export default async function ProjectPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const post = getPostBySlug("tools", slug);
+
+  if (!post) {
+    notFound();
+  }
+
+  return (
+    <Container className="py-16 md:py-24">
+      <div className="max-w-3xl mx-auto">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-muted hover:text-primary transition-colors mb-12 group"
+        >
+          <ArrowLeft
+            size={16}
+            className="transition-transform group-hover:-translate-x-1"
+          />
+          Back to Home
+        </Link>
+
+        <article>
+          <header className="mb-12">
+            <div className="flex flex-wrap gap-2 mb-6">
+              {post.metadata.tags?.map((tag: string) => (
+                <span
+                  key={tag}
+                  className="px-2.5 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-medium border border-primary/20"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            <h1 className="text-4xl md:text-5xl font-extrabold text-foreground mb-8 tracking-tight leading-[1.2]">
+              {post.metadata.title}
+            </h1>
+
+            <div className="flex items-center gap-6 text-muted text-sm border-y border-border/40 py-4">
+              <div className="flex items-center gap-2">
+                <Calendar size={14} className="opacity-70" />
+                {post.metadata.date}
+              </div>
+              <div className="flex items-center gap-2">
+                <User size={14} className="opacity-70" />
+                0xShoyu
+              </div>
+            </div>
+          </header>
+
+          <div className="prose prose-sky dark:prose-invert max-w-none">
+            <MDXRemote
+              source={post.content}
+              components={components}
+              options={{
+                mdxOptions: {
+                  remarkPlugins: [remarkGfm],
+                  rehypePlugins: [[rehypePrettyCode, prettyCodeOptions]],
+                },
+              }}
+            />
+          </div>
+
+          <div className="mt-20 pt-12 border-t border-border/40 text-center">
+            <p className="text-muted text-sm italic">
+              Thanks for reading. Feel free to reach out if you have any
+              questions about this project.
+            </p>
+          </div>
+        </article>
+      </div>
+    </Container>
+  );
+}
+</file>
+
 <file path="src/components/home/CodeWindow.tsx">
 "use client";
 
@@ -548,147 +853,39 @@ export function CodeWindow() {
 }
 </file>
 
-<file path="src/components/home/Hero.tsx_copy">
+<file path="src/components/home/ToolsSection.tsx">
 "use client";
 
-import { motion } from "framer-motion";
-import { ArrowRight, FileText, Terminal } from "lucide-react";
-import Link from "next/link";
+import { Card } from "@/components/ui/Card";
+import { Box } from "lucide-react";
 
-export function Hero() {
+export function ToolsSection() {
   return (
-    <section className="relative flex flex-col items-start justify-center pt-8 pb-10 md:pt-12 md:pb-16 overflow-visible">
-      <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 -right-24 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="relative z-10 max-w-5xl flex flex-col gap-y-6 md:gap-y-8"
-      >
-        {/* 1. Badge */}
-        <div>
-          <div className="inline-flex items-center overflow-hidden rounded-full border border-amber-500/30 bg-amber-500/10 py-1.5 px-4 backdrop-blur-sm">
-            <span className="relative flex h-2 w-2 mr-3">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
-            </span>
-            <span className="text-[10px] sm:text-xs font-bold text-amber-300 tracking-[0.15em] uppercase">
-              Available for New Projects
-            </span>
-          </div>
-        </div>
-
-        {/* 2. H1 */}
-        <h1 className="flex flex-col gap-y-2 md:gap-y-3">
-          <span className="text-5xl sm:text-7xl font-extrabold tracking-tight text-white leading-tight">
-            Product Engineer.
-          </span>
-          <span className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent leading-[1.2]">
-            Focused on System Design & Delivery.
-          </span>
-        </h1>
-
-        {/* 3. Intro Paragraph */}
-        <div className="max-w-3xl mt-6">
-          <p className="max-w-2xl text-xl md:text-2xl text-muted-foreground leading-relaxed font-normal">
-            I am{" "}
-            <strong className="text-foreground font-semibold">0xShoyu</strong>.
-            <br className="hidden md:block" />I translate{" "}
-            <span className="text-rose-300 font-medium">abstract concepts</span>{" "}
-            into{" "}
-            <strong className="text-amber-300 font-medium">
-              high-fidelity interfaces
-            </strong>
-            , and finally into{" "}
-            <strong className="text-primary font-semibold">
-              production-ready code
-            </strong>
-            .
-          </p>
-        </div>
-
-        {/* 4. Buttons */}
-        <div className="flex flex-wrap gap-6 pt-4">
-          <Link
-            href="/portfolio"
-            className="group relative inline-flex items-center gap-3 rounded-xl bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-xl shadow-primary/20 transition-all hover:bg-primary/90 hover:-translate-y-1 active:translate-y-0 active:scale-95"
-          >
-            <Terminal size={22} />
-            View Portfolio
-            <ArrowRight
-              size={20}
-              className="transition-transform group-hover:translate-x-1"
-            />
-          </Link>
-
-          <Link
-            href="/docs"
-            className="group inline-flex items-center gap-3 rounded-xl border border-border bg-background/50 px-8 py-4 text-lg font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-primary hover:border-primary/50 active:scale-95"
-          >
-            <FileText size={22} />
-            Read Docs
-          </Link>
-        </div>
-      </motion.div>
-    </section>
-  );
-}
-</file>
-
-<file path="src/components/layout/MarketTicker.tsx">
-// src/components/layout/MarketTicker.tsx
-import { getMarketData } from "@/lib/market";
-import { TrendingDown, TrendingUp } from "lucide-react";
-
-// ISR 缓存策略：每 60 秒后台重新验证一次数据
-// 这保证了你的页面依然是静态化（SSG）的极速体验
-export const revalidate = 60;
-
-export async function MarketTicker() {
-  const data = await getMarketData();
-
-  if (!data || data.length === 0) return null;
-
-  // 将数据复制一份以实现无缝循环滚动
-  const displayData = [...data, ...data];
-
-  return (
-    <div className="w-full bg-black/80 border-b border-white/5 text-[11px] font-mono overflow-hidden flex items-center h-8 z-50">
-      <div className="flex animate-marquee whitespace-nowrap">
-        {displayData.map((asset, i) => (
-          <div
-            key={`${asset.symbol}-${i}`}
-            className="flex items-center gap-2 px-6 border-r border-white/10 last:border-none"
-          >
-            <span className="text-muted-foreground font-semibold">
-              {asset.name}
-            </span>
-            <span className="text-foreground">
-              {/* 根据资产类型决定小数位数 */}
-              {asset.price > 1000
-                ? asset.price.toLocaleString("en-US", {
-                    maximumFractionDigits: 0,
-                  })
-                : asset.price.toFixed(2)}
-            </span>
-            <span
-              className={`flex items-center ${
-                asset.isUp ? "text-emerald-400" : "text-rose-400"
-              }`}
-            >
-              {asset.isUp ? (
-                <TrendingUp size={12} className="mr-0.5" />
-              ) : (
-                <TrendingDown size={12} className="mr-0.5" />
-              )}
-              {Math.abs(asset.changePercent).toFixed(2)}%
-            </span>
-          </div>
-        ))}
+    <section id="tools" className="pb-32 scroll-mt-24 relative">
+      <div className="flex flex-col gap-4 mb-12">
+        <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+          Tools.
+        </h2>
+        <p className="text-muted text-lg max-w-2xl font-light">
+          An AI-assisted low-poly Three.js model previewer — describe a
+          shape, watch it render live.
+        </p>
       </div>
-    </div>
+
+      <Card className="p-0">
+        <div className="flex items-center gap-3 px-5 py-3 border-b border-white/5">
+          <Box size={18} className="text-primary" />
+          <span className="text-sm font-semibold text-foreground">
+            3D Model Previewer & Generator
+          </span>
+        </div>
+        <iframe
+          src="/threejs-preview.html"
+          className="w-full h-[640px] border-0"
+          title="Three.js Model Previewer"
+        />
+      </Card>
+    </section>
   );
 }
 </file>
@@ -950,6 +1147,43 @@ const config = {
 };
 
 export default config;
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
 </file>
 
 <file path="src/app/portfolio/[slug]/page.tsx">
@@ -1355,6 +1589,68 @@ next-env.d.ts
     padding: 6px 8px; font-size: 12px; cursor: pointer;
   }
 
+  #keyRow {
+    display: flex; align-items: center; gap: 8px; padding: 6px 12px 0 12px;
+    background: var(--panel-alt); flex: 0 0 auto;
+  }
+  #keyRow label { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+  #apiKeyInput {
+    flex: 1 1 auto; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 5px;
+    padding: 6px 10px; font-size: 12px; outline: none; font-family: monospace;
+  }
+  #apiKeyInput:focus { border-color: var(--accent); }
+  #keyHint { font-size: 10px; color: var(--text-dim); padding: 4px 12px 2px 12px; background: var(--panel-alt); }
+
+  #genRow {
+    display: flex; gap: 8px; padding: 8px 12px;
+    background: var(--panel-alt); border-bottom: 1px solid var(--border);
+    flex: 0 0 auto;
+  }
+  #descInput {
+    flex: 1 1 auto; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 5px;
+    padding: 7px 10px; font-size: 13px; outline: none;
+  }
+  #descInput:focus { border-color: var(--accent); }
+  #genBtn {
+    background: var(--accent-dim); color: var(--accent);
+    border: 1px solid var(--accent); border-radius: 5px;
+    padding: 7px 14px; font-size: 13px; font-weight: 600;
+    cursor: pointer; white-space: nowrap;
+  }
+  #genBtn:disabled { opacity: 0.5; cursor: default; }
+
+  #topOverlay {
+    position: absolute; top: 10px; left: 10px; right: 10px;
+    display: flex; flex-direction: column; gap: 6px;
+    pointer-events: none;
+  }
+  #topOverlay > * { pointer-events: auto; }
+  #reviewBar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  #reviewBtn, #regenBtn {
+    background: rgba(11,15,22,0.7); color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 5px 10px; font-size: 11px; cursor: pointer;
+  }
+  #reviewBtn:disabled { opacity: 0.4; cursor: default; }
+  #regenBtn { color: var(--accent); border-color: var(--accent-dim); display: none; }
+  #verdictBadge {
+    font-family: monospace; font-size: 11px; padding: 5px 8px;
+    border-radius: 4px; background: rgba(11,15,22,0.7);
+  }
+  #verdictBadge:empty { display: none; padding: 0; }
+  #verdictBadge.pass { color: #4ade80; border: 1px solid #2f6b46; }
+  #verdictBadge.refine { color: #fbbf24; border: 1px solid #7a5f1a; }
+
+  #critiqueBox {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(8,32,38,0.94); color: #7dd3e8;
+    font-family: monospace; font-size: 12px; padding: 10px 12px;
+    border-top: 1px solid #145a68; display: none; white-space: pre-wrap;
+    max-height: 40%; overflow-y: auto;
+  }
+
   main {
     flex: 1 1 auto; display: flex; min-height: 0;
   }
@@ -1380,10 +1676,9 @@ next-env.d.ts
   canvas { display: block; width: 100%; height: 100%; }
 
   #stats {
-    position: absolute; top: 10px; left: 10px;
     font-family: monospace; font-size: 11px; color: var(--text-dim);
     background: rgba(11,15,22,0.7); padding: 6px 10px; border-radius: 4px;
-    border: 1px solid var(--border); pointer-events: none;
+    border: 1px solid var(--border);
   }
   #stats span { color: var(--accent); }
 
@@ -1445,6 +1740,15 @@ next-env.d.ts
   </div>
   <main>
     <div id="codePane" class="pane tabHidden">
+      <div id="keyRow">
+        <label for="apiKeyInput">🔑</label>
+        <input id="apiKeyInput" type="password" placeholder="Gemini API key (session only, never saved)" autocomplete="off" />
+      </div>
+      <div id="keyHint">Only kept in memory for this tab — gone on refresh, never stored or sent anywhere but your own /api routes.</div>
+      <div id="genRow">
+        <input id="descInput" type="text" placeholder="Describe a model… e.g. a chibi astronaut with a jetpack" />
+        <button id="genBtn">✨ Generate</button>
+      </div>
       <div id="codeHint">
         Write a <code>function buildModel(THREE) { ... return group; }</code> — return a Mesh or Group. Camera, lighting, rotation and auto-fit are handled for you. (⌘/Ctrl+Enter to run)
       </div>
@@ -1452,8 +1756,16 @@ next-env.d.ts
     </div>
     <div id="previewPane" class="pane">
       <div id="canvasHolder"></div>
-      <div id="stats"><span id="triLabel">Triangles</span>: <span id="triCount">0</span> | <span id="vertLabel">Vertices</span>: <span id="vertCount">0</span></div>
+      <div id="topOverlay">
+        <div id="stats"><span id="triLabel">Triangles</span>: <span id="triCount">0</span> | <span id="vertLabel">Vertices</span>: <span id="vertCount">0</span></div>
+        <div id="reviewBar">
+          <button id="reviewBtn">🔍 Review</button>
+          <button id="regenBtn">↻ Regenerate</button>
+          <span id="verdictBadge"></span>
+        </div>
+      </div>
       <div id="errorBox"></div>
+      <div id="critiqueBox"></div>
     </div>
   </main>
 </div>
@@ -1542,7 +1854,13 @@ const TRANSLATIONS = {
     triangles: 'Triangles',
     vertices: 'Vertices',
     errNotObject: 'buildModel(THREE) must return a THREE.Object3D (a Mesh or Group)',
-    errRender: 'Render error: '
+    errRender: 'Render error: ',
+    descPlaceholder: 'Describe a model… e.g. a chibi astronaut with a jetpack',
+    generate: '✨ Generate',
+    review: '🔍 Review',
+    regenerate: '↻ Regenerate',
+    keyPlaceholder: 'Gemini API key (session only, never saved)',
+    keyHint: 'Only kept in memory for this tab — gone on refresh, never stored or sent anywhere but your own /api routes.'
   },
   zh: {
     title: '🚀 Three.js 模型预览器',
@@ -1555,7 +1873,13 @@ const TRANSLATIONS = {
     triangles: '三角面',
     vertices: '顶点',
     errNotObject: 'buildModel(THREE) 必须 return 一个 THREE.Object3D（Mesh 或 Group）',
-    errRender: '渲染错误: '
+    errRender: '渲染错误: ',
+    descPlaceholder: '描述一个模型…比如"背着喷射背包的圆滚滚宇航员"',
+    generate: '✨ 生成',
+    review: '🔍 评审',
+    regenerate: '↻ 重新生成',
+    keyPlaceholder: 'Gemini API key（只在本次会话有效，不会保存）',
+    keyHint: '只存在这个标签页的内存里——刷新就没了，不会被保存，也只会发给你自己的 /api 接口。'
   },
   ja: {
     title: '🚀 Three.js モデルプレビューア',
@@ -1568,7 +1892,13 @@ const TRANSLATIONS = {
     triangles: '三角形',
     vertices: '頂点',
     errNotObject: 'buildModel(THREE) は THREE.Object3D（Mesh または Group）を return する必要があります',
-    errRender: 'レンダリングエラー: '
+    errRender: 'レンダリングエラー: ',
+    descPlaceholder: 'モデルを説明…例：ジェットパックを背負ったちびキャラの宇宙飛行士',
+    generate: '✨ 生成',
+    review: '🔍 レビュー',
+    regenerate: '↻ 再生成',
+    keyPlaceholder: 'Gemini APIキー（このセッションのみ、保存されません）',
+    keyHint: 'このタブのメモリ内にのみ保持されます。リロードすると消え、自分の /api ルート以外には送信されません。'
   }
 };
 
@@ -1593,6 +1923,12 @@ function applyLanguage(lang) {
   document.getElementById('vertLabel').textContent = t.vertices;
   document.getElementById('tabPreviewLabel').textContent = t.tabPreview;
   document.getElementById('tabCodeLabel').textContent = t.tabCode;
+  descInput.placeholder = t.descPlaceholder;
+  genBtn.textContent = t.generate;
+  reviewBtn.textContent = t.review;
+  regenBtn.textContent = t.regenerate;
+  apiKeyInput.placeholder = t.keyPlaceholder;
+  document.getElementById('keyHint').textContent = t.keyHint;
   // Swap the starter code to match, only if the user hasn't edited it yet
   if (isDefaultCode(codeEditor.value)) {
     codeEditor.value = DEFAULT_CODE[lang];
@@ -1652,13 +1988,111 @@ clearBtn.addEventListener('click', () => {
   clearError();
 });
 
+// ---------- AI 生成 + 视觉反馈自我修正 ----------
+const descInput = document.getElementById('descInput');
+const apiKeyInput = document.getElementById('apiKeyInput');
+const genBtn = document.getElementById('genBtn');
+const reviewBtn = document.getElementById('reviewBtn');
+const regenBtn = document.getElementById('regenBtn');
+const verdictBadge = document.getElementById('verdictBadge');
+const critiqueBox = document.getElementById('critiqueBox');
+
+let lastCritique = '';
+
+function resetReviewUI() {
+  verdictBadge.textContent = '';
+  verdictBadge.className = '';
+  critiqueBox.style.display = 'none';
+  regenBtn.style.display = 'none';
+}
+
+async function generateFromDescription(useFeedback) {
+  const description = descInput.value.trim();
+  if (!description) {
+    showError('Enter a description first.');
+    return;
+  }
+  genBtn.disabled = true;
+  const originalLabel = genBtn.textContent;
+  genBtn.textContent = '⏳ …';
+  clearError();
+  resetReviewUI();
+  try {
+    const body = useFeedback
+      ? { description, previousCode: codeEditor.value, feedback: lastCritique, apiKey: apiKeyInput.value.trim() || undefined }
+      : { description, apiKey: apiKeyInput.value.trim() || undefined };
+    const res = await fetch('/api/generate-model', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    codeEditor.value = data.code;
+    runUserCode();
+  } catch (err) {
+    showError('Generate failed: ' + (err.message || String(err)));
+  } finally {
+    genBtn.disabled = false;
+    genBtn.textContent = originalLabel;
+  }
+}
+
+async function reviewCurrentRender() {
+  const description = descInput.value.trim();
+  if (!description) {
+    showError('Enter a description above first, so Review knows what to check against.');
+    return;
+  }
+  reviewBtn.disabled = true;
+  const originalLabel = reviewBtn.textContent;
+  reviewBtn.textContent = '⏳ …';
+  try {
+    renderer.render(scene, camera); // 确保画面是最新的
+    const screenshot = renderer.domElement.toDataURL('image/png');
+    const res = await fetch('/api/review-model', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description, screenshot, apiKey: apiKeyInput.value.trim() || undefined }),
+    });
+    const verdict = await res.json();
+    if (verdict.error) throw new Error(verdict.error);
+
+    const pct = Math.round((verdict.score || 0) * 100);
+    verdictBadge.textContent = `${verdict.decision} (${pct}%)`;
+    verdictBadge.className = verdict.decision === 'continue' ? 'pass' : 'refine';
+
+    if (verdict.decision === 'refine' && verdict.critique) {
+      lastCritique = verdict.critique;
+      critiqueBox.textContent = '💬 ' + verdict.critique;
+      critiqueBox.style.display = 'block';
+      regenBtn.style.display = 'inline-block';
+    } else {
+      critiqueBox.style.display = 'none';
+      regenBtn.style.display = 'none';
+    }
+  } catch (err) {
+    showError('Review failed: ' + (err.message || String(err)));
+  } finally {
+    reviewBtn.disabled = false;
+    reviewBtn.textContent = originalLabel;
+  }
+}
+
+genBtn.addEventListener('click', () => generateFromDescription(false));
+descInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') generateFromDescription(false);
+});
+reviewBtn.addEventListener('click', reviewCurrentRender);
+regenBtn.addEventListener('click', () => generateFromDescription(true));
+
 // ---------- Three.js 场景搭建 ----------
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b0f16);
 
 const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 canvasHolder.appendChild(renderer.domElement);
 
@@ -1848,34 +2282,6 @@ animate();
 </html>
 </file>
 
-<file path="src/app/layout.tsx">
-import type { Metadata } from "next";
-import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
-import { MarketTicker } from "@/components/layout/MarketTicker";
-
-export const metadata: Metadata = {
-  title: "0xShoyu | Product Engineer",
-  description: "Former COO turned Full-Stack Product Engineer.",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="en" className="dark">
-      <body className="bg-background text-foreground antialiased">
-        <MarketTicker />
-        <Navbar />
-        <main>{children}</main>
-      </body>
-    </html>
-  );
-}
-</file>
-
 <file path="src/components/home/FeatureGrid.tsx">
 "use client";
 
@@ -1965,11 +2371,63 @@ export function FeatureGrid() {
 }
 </file>
 
+<file path="src/components/layout/MarketTicker.tsx">
+// src/components/layout/MarketTicker.tsx
+import { getMarketData } from "@/lib/market";
+import { TrendingDown, TrendingUp } from "lucide-react";
+
+export async function MarketTicker() {
+  const data = await getMarketData();
+
+  if (!data || data.length === 0) return null;
+
+  // 将数据复制一份以实现无缝循环滚动
+  const displayData = [...data, ...data];
+
+  return (
+    <div className="w-full bg-black/80 border-b border-white/5 text-[11px] font-mono overflow-hidden flex items-center h-8 z-50 sticky top-0">
+      <div className="flex animate-marquee whitespace-nowrap">
+        {displayData.map((asset, i) => (
+          <div
+            key={`${asset.symbol}-${i}`}
+            className="flex items-center gap-2 px-6 border-r border-white/10 last:border-none"
+          >
+            <span className="text-muted-foreground font-semibold">
+              {asset.name}
+            </span>
+            <span className="text-foreground">
+              {/* 根据资产类型决定小数位数 */}
+              {asset.price > 1000
+                ? asset.price.toLocaleString("en-US", {
+                    maximumFractionDigits: 0,
+                  })
+                : asset.price.toFixed(2)}
+            </span>
+            <span
+              className={`flex items-center ${
+                asset.isUp ? "text-emerald-400" : "text-rose-400"
+              }`}
+            >
+              {asset.isUp ? (
+                <TrendingUp size={12} className="mr-0.5" />
+              ) : (
+                <TrendingDown size={12} className="mr-0.5" />
+              )}
+              {Math.abs(asset.changePercent).toFixed(2)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+</file>
+
 <file path="src/components/home/Hero.tsx">
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, FileText, Terminal } from "lucide-react";
+import { ArrowRight, Box, Terminal } from "lucide-react";
 import Link from "next/link";
 import { CodeWindow } from "./CodeWindow";
 
@@ -2046,12 +2504,12 @@ export function Hero() {
             </Link>
 
             <Link
-              href="/docs"
-              className="group inline-flex items-center gap-2 rounded-xl border border-border bg-background/50 px-6 py-3.5 text-base font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-primary hover:border-primary/50"
-            >
-              <FileText size={20} />
-              Read Docs
-            </Link>
+  href="/#tools"
+  className="group inline-flex items-center gap-2 rounded-xl border border-border bg-background/50 px-6 py-3.5 text-base font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-primary hover:border-primary/50"
+>
+  <Box size={20} />
+  Explore Tools
+</Link>
           </div>
         </motion.div>
 
@@ -2069,25 +2527,54 @@ export function Hero() {
 }
 </file>
 
+<file path="src/app/layout.tsx">
+import type { Metadata } from "next";
+import "./globals.css";
+import { Navbar } from "@/components/layout/Navbar";
+import { MarketTicker } from "@/components/layout/MarketTicker";
+
+export const revalidate = 60;
+
+export const metadata: Metadata = {
+  title: "0xShoyu | Product Engineer",
+  description: "Former COO turned Full-Stack Product Engineer.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className="dark">
+      <body className="bg-background text-foreground antialiased">
+        <MarketTicker />
+        <Navbar />
+        <main>{children}</main>
+      </body>
+    </html>
+  );
+}
+</file>
+
 <file path="src/app/page.tsx">
 import { Container } from "@/components/ui/Container";
 import { Hero } from "@/components/home/Hero";
 import { FeatureGrid } from "@/components/home/FeatureGrid";
+import { ToolsSection } from "@/components/home/ToolsSection";
 import { PortfolioSection } from "@/components/home/PortfolioSection";
 
 export default function Home() {
   return (
     <Container>
-      {/* 1. Hero */}
       <Hero />
 
-      {/* 2. Bento Grid */}
-      <FeatureGrid />
+      <FeatureGrid /> 
 
-      {/* 3. Portfolio */}
       <PortfolioSection />
 
-      {/* 4. Footer Placeholder */}
+      <ToolsSection />
+
       <div className="py-24 border-t border-border/40 mt-12 text-center">
         <p className="text-muted text-sm">
           © 2026 0xShoyu. Built with Next.js & Coffee.
@@ -2098,255 +2585,45 @@ export default function Home() {
 }
 </file>
 
-<file path="src/components/layout/Navbar.tsx">
-"use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
-import { Container } from "@/components/ui/Container";
-import { Menu, X, Terminal } from "lucide-react";
-import { useState } from "react";
-
-const navItems = [
-  { name: "Portfolio", href: "/#portfolio" },
-  { name: "Docs", href: "/docs" },
-  { name: "Blog", href: "/blog" },
-];
-
-export function Navbar() {
-  const pathname = usePathname();
-  const [hoveredPath, setHoveredPath] = useState<string | null>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
-      <Container>
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo Area */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-bold text-xl tracking-tight"
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Terminal size={18} />
-            </div>
-            <span>0xShoyu</span>
-          </Link>
-
-          {/* Desktop Navbar */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const isActive =
-                item.href === "/#portfolio"
-                  ? false
-                  : pathname.startsWith(item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "relative px-4 py-2 text-sm font-medium transition-colors",
-                    isActive
-                      ? "text-primary"
-                      : "text-muted hover:text-foreground",
-                  )}
-                  onMouseEnter={() => setHoveredPath(item.href)}
-                  onMouseLeave={() => setHoveredPath(null)}
-                >
-                  {/* Apple Style Hover Effect */}
-                  {hoveredPath === item.href && (
-                    <motion.div
-                      layoutId="navbar-hover"
-                      className="absolute inset-0 -z-10 rounded-md bg-white/5"
-                      transition={{
-                        type: "spring",
-                        stiffness: 350,
-                        damping: 30,
-                      }}
-                    />
-                  )}
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Mobile Navbar */}
-          <button
-            className="md:hidden p-2 text-muted hover:text-foreground"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-      </Container>
-
-      {/* Mobile Dropdown */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border/40 bg-background px-4 py-4 space-y-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block rounded-md px-3 py-2 text-base font-medium text-muted hover:bg-white/5 hover:text-primary"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {item.name}
-            </Link>
-          ))}
-        </div>
-      )}
-    </header>
-  );
-}
-</file>
-
-<file path="src/components/home/PortfolioSection.tsx">
-"use client";
-
-import { motion } from "framer-motion";
-import Link from "next/link";
-import { ArrowRight, Github, Cpu, Layout, FileText } from "lucide-react";
-import { Card } from "@/components/ui/Card";
-import { cn } from "@/lib/utils";
-import { TechBadge } from "@/components/ui/TechBadge";
-import { CardIcon } from "@/components/ui/CardIcon";
-
-const projects = [
-  {
-    id: "twitter-scraper",
-    title: "Twitter Sentiment Engine",
-    subtitle: "Saving $60k/yr in API Costs",
-    description:
-      "A production-grade scraping microservice handling 10k+ daily requests. Features browser pooling, proxy rotation, and anti-bot evasion algorithms.",
-    tags: ["Node.js", "Puppeteer", "MongoDB", "Docker"],
-    link: "/portfolio/twitter-scraper-engine",
-    github: "https://github.com/0xShoyu/twitter-scanner-public",
-    icon: Cpu,
-    color: "text-emerald-400",
-    size: "large",
+<file path="package.json">
+{
+  "name": "portfolio-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
   },
-  {
-    id: "portfolio",
-    title: "0xShoyu.dev",
-    subtitle: "Next.js 15 Documentation Hub",
-    description:
-      "My digital garden built with App Router, MDX, and Tailwind v4. Designed for performance and developer experience.",
-    tags: ["Next.js 15", "React", "Tailwind v4"],
-    link: "/portfolio/0xshoyu-dev-architecture",
-    github: "https://github.com/0xShoyu/portfolio-app",
-    icon: Layout,
-    color: "text-blue-400",
-    size: "small",
+  "dependencies": {
+    "@google/genai": "^2.12.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "framer-motion": "^12.29.2",
+    "gray-matter": "^4.0.3",
+    "lucide-react": "^0.563.0",
+    "next": "16.1.6",
+    "next-mdx-remote": "^6.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "rehype-pretty-code": "^0.14.1",
+    "remark-gfm": "^4.0.1",
+    "shiki": "^3.22.0",
+    "tailwind-merge": "^3.4.0",
+    "yahoo-finance2": "^3.14.0"
   },
-  {
-    id: "star-miner",
-    title: "Star Miner Protocol",
-    subtitle: "Game Design Document (GDD)",
-    description:
-      "System architecture for a decentralized resource management game, featuring complex tokenomics and simulated economy.",
-    tags: ["System Design", "Tokenomics"],
-    link: "/docs/star-miner-gdd",
-    github: null,
-    icon: FileText,
-    color: "text-amber-400",
-    size: "small",
-  },
-];
-
-export function PortfolioSection() {
-  return (
-    <section id="portfolio" className="pb-32 scroll-mt-24 relative">
-      <div className="flex flex-col gap-4 mb-12">
-        <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-          My Portfolio.
-        </h2>
-        <p className="text-muted text-lg max-w-2xl font-light">
-          Here are a few projects that demonstrate my ability to ship complex
-          systems.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {projects.map((project, index) => (
-          <motion.div
-            key={project.id}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: index * 0.1 }}
-            className={cn(
-              project.size === "large" ? "md:col-span-2" : "md:col-span-1",
-            )}
-          >
-            <Card className="h-full flex flex-col justify-between group hover:border-white/10 transition-all duration-500">
-              {/* Header: Icon + Links */}
-              <div className="flex justify-between items-start mb-6">
-                <CardIcon icon={project.icon} color={project.color} />
-
-                {project.github && (
-                  <a
-                    href={project.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted hover:text-foreground transition-colors p-2"
-                  >
-                    <Github size={20} />
-                  </a>
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="flex-1">
-                <div className="flex items-baseline justify-between mb-2">
-                  <h3 className="text-2xl font-bold text-foreground tracking-tight group-hover:text-primary transition-colors">
-                    {project.title}
-                  </h3>
-                </div>
-
-                <p
-                  className={cn(
-                    "text-sm font-medium mb-4 opacity-80",
-                    project.color,
-                  )}
-                >
-                  {project.subtitle}
-                </p>
-
-                <p className="text-muted leading-relaxed font-light text-sm mb-8">
-                  {project.description}
-                </p>
-              </div>
-
-              {/* Footer: Tags & Action Button */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-auto">
-                <div className="flex flex-wrap gap-2">
-                  {project.tags.map((tag) => (
-                    <TechBadge key={tag} name={tag} />
-                  ))}
-                </div>
-
-                {/* Case Study Button */}
-                <Link
-                  href={project.link}
-                  className="group/link inline-flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors mt-4 sm:mt-0"
-                >
-                  Read Case Study
-                  <ArrowRight
-                    size={16}
-                    className="transition-transform group-hover/link:translate-x-1"
-                  />
-                </Link>
-              </div>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-    </section>
-  );
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
 }
 </file>
 
@@ -2575,1902 +2852,12 @@ body {
 }
 </file>
 
-</files>
-</file>
-
-<file path="content/portfolio/0xshoyu-dev-architecture.mdx">
----
-title: "High-Fidelity Execution: The Architecture of 0xShoyu.dev"
-date: "2026-02-22"
-description: "How I engineered a zero-cost, hyper-fast digital garden using Next.js 15, Tailwind v4, and a custom MDX parsing engine."
-tags: ["Next.js 15", "React 19", "Tailwind v4", "System Design"]
----
-
-## The Strategic Crisis
-
-A modern Product Engineer needs more than a static PDF resume; they need a tangible, production-grade artifact that proves their capability. However, most developers default to heavy CMS platforms (Contentful, Sanity) or bloated templates that introduce unnecessary monthly operational costs (SaaS bloat) and technical debt.
-
-### The Solution:
-**A fully sovereign, Git-backed MDX engine deployed on the edge.**
-
-### The Result:
-A 100/100 Lighthouse score, **$0 monthly operating cost**, and an authoring experience that allows me to write technical documentation in native Markdown while rendering interactive React components.
-
----
-
-## 🏗 Architecture: The Git-Backed CMS
-
-Instead of fetching data from a third-party API, I leveraged the Node.js file system (`fs`) to parse local `.mdx` files at build time using `gray-matter`.
-
-<div className="my-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div className="p-6 rounded-xl bg-card border border-border/50">
-    <h3 className="font-bold text-lg mb-2 text-foreground">1. Build-Time Parsing</h3>
-    <div className="text-sm text-muted-foreground leading-relaxed">
-      Next.js App Router fetches and compiles the MDX files during the build process, resulting in statically generated (SSG) pages that serve instantly via CDN.
-    </div>
-  </div>
-  <div className="p-6 rounded-xl bg-card border border-border/50">
-    <h3 className="font-bold text-lg mb-2 text-foreground">2. Component Injection</h3>
-    <div className="text-sm text-muted-foreground leading-relaxed">
-      Using <code>next-mdx-remote/rsc</code>, I map standard Markdown elements to custom Tailwind-styled React Server Components, securing external links automatically.
-    </div>
-  </div>
-</div>
-
----
-
-## 🛠 Technical Deep Dive
-
-### 1. Bleeding-Edge Styling: Tailwind v4 Native Cascades
-Migrating to Tailwind v4 allowed me to discard the bloated `tailwind.config.ts`. I utilized the new `@theme` directive directly within native CSS to map design system variables. This Apple-inspired "Sky-Dark" theme relies heavily on glassmorphism and SVG noise filters to create a tactile UI.
-
-```css
-/* src/app/globals.css */
-@theme {
-  --color-background: #082f49; /* Sky 950 */
-  --color-foreground: #f0f9ff;
-  --color-primary: #38bdf8;    /* Sky 400 */
-  --color-card: rgba(12, 74, 110, 0.5);
-}
-```
-
-### 2. Interaction Design: The Radial Spotlight
-To achieve a premium, physical feel without layout thrashing, I utilized Framer Motion's `useMotionTemplate` and `useMotionValue`. 
-
-Instead of re-rendering the React tree on every mouse movement, the component tracks the cursor coordinates and updates a CSS radial gradient on a hardware-accelerated overlay.
-
-```tsx
-// GPU-Accelerated Hover State
-<motion.div
-  className="absolute -inset-px rounded-xl opacity-0 group-hover:opacity-100 z-10"
-  style={{
-    background: useMotionTemplate`
-      radial-gradient(
-        650px circle at ${mouseX}px ${mouseY}px,
-        rgba(56, 189, 248, 0.1),
-        transparent 80%
-      )
-    `,
-  }}
-/>
-```
-
----
-
-## Impact Analysis
-
-By treating my portfolio as a **Product** rather than a weekend project, I demonstrated the exact transition from Figma aesthetic to performant code that I bring to enterprise teams.
-
-| Metric | Traditional Headless CMS | 0xShoyu Architecture |
-| :--- | :--- | :--- |
-| **Monthly Cost** | $15 - $50+ | **$0 (Vercel Hobby)** |
-| **Data Fetch Latency** | 100ms - 300ms | **0ms (Static Edge)** |
-| **Authoring** | Web GUI | **Native VSCode (MDX)** |
-| **Styling Engine** | Tailwind v3 | **Tailwind v4 (Native CSS)** |
-
-[View Source Code on GitHub](https://github.com/0xShoyu/portfolio-app)
-</file>
-
-<file path="content/portfolio/twitter-scraper-engine.mdx">
----
-title: "Engineering Sovereignty: The $60k Twitter Scraper"
-date: "2025-02-05"
-description: "A deep dive into architecting a high-performance Puppeteer microservice with browser pooling, priority queuing, and algorithmic cookie rotation."
-tags: ["Node.js", "Puppeteer", "System Design", "MongoDB", "DevOps"]
----
-
-## The Strategic Crisis
-
-In mid-2024, the Web3 data landscape shifted abruptly. Twitter (X) transitioned from a utility model to a high-premium data silo. For our SocialFi project, the minimum viable cost for read-access jumped from negligible to **$5,000/month**.
-
-This wasn't just a budget issue; it was a systemic risk. Relying on a centralized gateway that could change pricing overnight was unacceptable.
-
-### The Solution:
-**A sovereign, distributed scanning engine.**
-
-### The Result:
-Reduced annualized data costs from **$60,000 to around $1,800**, a 99.7% reduction in operational expenditure.
-
----
-
-## 🏗 Architecture: The Asynchronous Core
-
-Most scrapers fail because they bind the request lifecycle to the HTTP connection. If a page takes 30s to load, the API times out.
-
-I decoupled these concerns using **MongoDB as a persistent Task State Machine**.
-
-<div className="my-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div className="p-6 rounded-xl bg-card border border-border/50">
-    <h3 className="font-bold text-lg mb-2 text-foreground">1. Ingress & Queuing</h3>
-    <div className="text-sm text-muted-foreground leading-relaxed">
-      Requests to <code>/search</code> don't spawn browsers. They generate a UUID, persist a "queued" state to MongoDB, and use <code>setImmediate</code> to unblock the Event Loop.
-    </div>
-  </div>
-  <div className="p-6 rounded-xl bg-card border border-border/50">
-    <h3 className="font-bold text-lg mb-2 text-foreground">2. Worker Orchestration</h3>
-    <div className="text-sm text-muted-foreground leading-relaxed">
-      Workers fetch jobs asynchronously. This ensures immediate crash recovery: if the server restarts, pending jobs remain in the database, ready to resume.
-    </div>
-  </div>
-</div>
-
----
-
-## 🛠 Technical Deep Dive
-
-### 1. Browser Pool: The "Lease/Release" Pattern
-Browser automation is memory-expensive. Spawning a new Chromium process for every request causes CPU spikes. I implemented a **Singleton Pool Manager** (`puppeteerPoolManager.js`) that maintains "warm" browser instances.
-
-*   **Load Balancing:** Random index strategy to prevent a single instance from accumulating specific site cache.
-*   **Warm-up Sequence:** Browsers pre-authenticate with proxies and inject cookies *before* accepting jobs.
-
-```typescript
-// src/utils/puppeteerPoolManager.js
-export async function getPageWithQueue(jobId) {
-  // If pool is full, push resolve() to a pendingRequests array
-  // This creates a back-pressure mechanism preventing memory bloat
-  if (browserPool.every(b => b.pagesInUse >= MAX_PAGES)) {
-     return new Promise((resolve) => pendingRequests.push(resolve));
-  }
-  // ... lease logic
-}
-```
-
-### 2. Algorithmic Trust: Weighted Random Selection
-Not all cookies are equal. I engineered a `cookieManager.js` that treats accounts as assets with a "Health Score".
-
-Instead of Round-Robin, we use a **Weighted Random Algorithm**. The selection probability drops drastically if an account encounters a CAPTCHA or login wall.
-
-```javascript
-// Algorithmic Weight Calculation
-const weight = Math.max(1, maxUsage + 1 - currentUsage - (failCount * 5));
-```
-
-*   **Fresh Account:** High probability.
-*   **Failed Once:** Probability drops by factor of 5 (Quarantine).
-*   **Self-Healing:** This allows the system to automatically rotate out flagged accounts without human intervention.
-
-### 3. Evasion Engineering: The "Headless Wall"
-Bypassing Arkose Labs and fingerprinting required a multi-layer defense strategy.
-
-*   **Geometric Jitter:** I implemented a `gentleScroll` routine that uses randomized scroll distances and "thinking pauses" (3000ms + random jitter) to simulate human reading rhythm.
-*   **Network Interception:** By hooking into the request layer, we block `image`, `font`, and `media` types. This reduced bandwidth consumption by **~85%**, critical for keeping residential proxy costs low.
-
-```javascript
-// Optimized Resource Interceptor
-await page.setRequestInterception(true);
-page.on('request', (req) => {
-  // Block heavy assets to save bandwidth ROI
-  if (['image', 'media', 'font'].includes(req.resourceType())) {
-    req.abort();
-  } else {
-    req.continue();
-  }
-});
-```
-
----
-
-## 🛡 Fault Tolerance: The Watchdog
-
-Continuous automation is prone to "zombie processes" (stuck Chromium instances). I built a **Watchdog Timer** that runs on a 60-second interval.
-
-*   **Detection:** Monitors browsers that have been "in use" > 10 minutes.
-*   **Correction:** Automatically kills the PID, spawns a fresh instance, and marks the job as `watchdog_restarted`.
-
-This self-healing architecture allowed the system to run 24/7 with **99.5% uptime**.
-
----
-
-## Impact Analysis
-
-The transition from a dependency model to a sovereign infrastructure transformed our unit economics.
-
-| Feature | Official API (Pro) | Our Engine |
-| :--- | :--- | :--- |
-| **Annual Cost** | $60,000+ | **~$1,800** |
-| **Data Scope** | Limited Fields | **Full DOM Access** |
-| **Retention** | 30-Day Delete | **Permanent (MongoDB)** |
-| **Concurrency** | Rate Limited | **Scalable via Pool** |
-
-This project defines my approach to Engineering: **It is not just about writing code; it's about engineering sovereignty and solving business-critical constraints.**
-
-[View Source Code on GitHub](https://github.com/0xShoyu/twitter-scanner-public)
-</file>
-
-<file path="src/components/home/CodeWindow.tsx">
-"use client";
-
-import { motion } from "framer-motion";
-
-export function CodeWindow() {
-  const codeLines = [
-    {
-      text: "async function executeSearch(jobId, query) {",
-      indent: 0,
-      color: "text-yellow-300",
-    },
-    {
-      text: "  // 1. Auto-rotate Proxy & Cookies",
-      indent: 0,
-      color: "text-slate-500",
-    },
-    {
-      text: "  const cookies = await pickCookieFile();",
-      indent: 2,
-      color: "text-sky-300",
-    },
-    { text: "", indent: 0, color: "" },
-    {
-      text: "  // 2. Browser Pool Management",
-      indent: 0,
-      color: "text-slate-500",
-    },
-    {
-      text: "  await usePageWithQueue(jobId, async (page) => {",
-      indent: 2,
-      color: "text-purple-400",
-    },
-    {
-      text: "    await page.setCookie(...cookies);",
-      indent: 4,
-      color: "text-white",
-    },
-    {
-      text: "    await gotoSafe(page, `x.com/search?q=${query}`);",
-      indent: 4,
-      color: "text-green-400",
-    },
-    { text: "", indent: 0, color: "" },
-    {
-      text: "    // 3. Extraction & Persistence",
-      indent: 0,
-      color: "text-slate-500",
-    },
-    {
-      text: "    const tweets = await scrapeTweets(page);",
-      indent: 4,
-      color: "text-blue-400",
-    },
-    {
-      text: "    await db.tweets.insertMany(tweets);",
-      indent: 4,
-      color: "text-emerald-400",
-    },
-    { text: "", indent: 0, color: "" },
-    {
-      text: "    await gentleScroll(page); // 🤖 Humanize",
-      indent: 4,
-      color: "text-yellow-300",
-    },
-    { text: "  });", indent: 2, color: "text-purple-400" },
-    { text: "}", indent: 0, color: "text-yellow-300" },
-  ];
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-      className="relative w-full max-w-lg rounded-xl border border-white/10 bg-black/50 backdrop-blur-md shadow-2xl shadow-black/50 overflow-hidden font-mono text-[10px] sm:text-xs leading-loose"
-    >
-      {/* Header */}
-      <div className="flex items-center gap-2 border-b border-white/5 bg-white/5 px-4 py-2.5">
-        {" "}
-        <div className="h-2.5 w-2.5 rounded-full bg-red-500/80" />{" "}
-        <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/80" />
-        <div className="h-2.5 w-2.5 rounded-full bg-green-500/80" />
-        <div className="ml-4 text-[10px] font-medium text-slate-500 opacity-70">
-          src/scanner/core.ts
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-4 sm:p-5 overflow-x-auto">
-        <div className="flex flex-col">
-          {codeLines.map((line, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -10 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3, delay: 0.5 + i * 0.1 }}
-              className="flex"
-            >
-              <span className="w-6 shrink-0 text-slate-700 select-none text-right mr-3 opacity-50">
-                {i + 1}
-              </span>
-              <pre
-                className={`${line.color} whitespace-pre font-medium`}
-                style={{ paddingLeft: `${line.indent * 0.5}rem` }}
-              >
-                {line.text}
-              </pre>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      <div className="absolute bottom-0 right-0 h-32 w-32 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
-    </motion.div>
-  );
-}
-</file>
-
-<file path="src/components/home/Hero.tsx_copy">
-"use client";
-
-import { motion } from "framer-motion";
-import { ArrowRight, FileText, Terminal } from "lucide-react";
-import Link from "next/link";
-
-export function Hero() {
-  return (
-    <section className="relative flex flex-col items-start justify-center pt-8 pb-10 md:pt-12 md:pb-16 overflow-visible">
-      <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 -right-24 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="relative z-10 max-w-5xl flex flex-col gap-y-6 md:gap-y-8"
-      >
-        {/* 1. Badge */}
-        <div>
-          <div className="inline-flex items-center overflow-hidden rounded-full border border-amber-500/30 bg-amber-500/10 py-1.5 px-4 backdrop-blur-sm">
-            <span className="relative flex h-2 w-2 mr-3">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
-            </span>
-            <span className="text-[10px] sm:text-xs font-bold text-amber-300 tracking-[0.15em] uppercase">
-              Available for New Projects
-            </span>
-          </div>
-        </div>
-
-        {/* 2. H1 */}
-        <h1 className="flex flex-col gap-y-2 md:gap-y-3">
-          <span className="text-5xl sm:text-7xl font-extrabold tracking-tight text-white leading-tight">
-            Product Engineer.
-          </span>
-          <span className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent leading-[1.2]">
-            Focused on System Design & Delivery.
-          </span>
-        </h1>
-
-        {/* 3. Intro Paragraph */}
-        <div className="max-w-3xl mt-6">
-          <p className="max-w-2xl text-xl md:text-2xl text-muted-foreground leading-relaxed font-normal">
-            I am{" "}
-            <strong className="text-foreground font-semibold">0xShoyu</strong>.
-            <br className="hidden md:block" />I translate{" "}
-            <span className="text-rose-300 font-medium">abstract concepts</span>{" "}
-            into{" "}
-            <strong className="text-amber-300 font-medium">
-              high-fidelity interfaces
-            </strong>
-            , and finally into{" "}
-            <strong className="text-primary font-semibold">
-              production-ready code
-            </strong>
-            .
-          </p>
-        </div>
-
-        {/* 4. Buttons */}
-        <div className="flex flex-wrap gap-6 pt-4">
-          <Link
-            href="/portfolio"
-            className="group relative inline-flex items-center gap-3 rounded-xl bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-xl shadow-primary/20 transition-all hover:bg-primary/90 hover:-translate-y-1 active:translate-y-0 active:scale-95"
-          >
-            <Terminal size={22} />
-            View Portfolio
-            <ArrowRight
-              size={20}
-              className="transition-transform group-hover:translate-x-1"
-            />
-          </Link>
-
-          <Link
-            href="/docs"
-            className="group inline-flex items-center gap-3 rounded-xl border border-border bg-background/50 px-8 py-4 text-lg font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-primary hover:border-primary/50 active:scale-95"
-          >
-            <FileText size={22} />
-            Read Docs
-          </Link>
-        </div>
-      </motion.div>
-    </section>
-  );
-}
-</file>
-
-<file path="src/components/ui/CardIcon.tsx">
-"use client";
-
-import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
-
-interface CardIconProps {
-  icon: LucideIcon | any;
-  color: string; // e.g., "text-blue-400"
-  className?: string;
-}
-
-export function CardIcon({ icon: Icon, color, className }: CardIconProps) {
-  const haloColor = color.replace("text-", "bg-");
-
-  return (
-    <div className={cn("relative inline-block mb-6", className)}>
-      {/* Halo Effect */}
-      <div
-        className={cn(
-          "absolute inset-0 rounded-xl blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-500",
-          haloColor,
-        )}
-      />
-      {/* Icon Container */}
-      <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-foreground group-hover:scale-110 group-hover:bg-white/10 transition-all duration-300">
-        <Icon size={24} className={color} />
-      </div>
-    </div>
-  );
-}
-</file>
-
-<file path="src/components/ui/Container.tsx">
-import { cn } from "@/lib/utils";
-
-interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
-}
-
-export function Container({ className, children, ...props }: ContainerProps) {
-  return (
-    <div
-      className={cn("mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8", className)}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
-</file>
-
-<file path="src/components/ui/TechBadge.tsx">
-"use client";
-
-import { cn } from "@/lib/utils";
-import {
-  Code2,
-  Database,
-  Bot,
-  Terminal,
-  TrendingUp,
-  Briefcase,
-  Layers,
-  Globe,
-  Zap,
-  Box,
-  Cpu,
-  Layout,
-  FileText,
-} from "lucide-react";
-
-const FigmaIcon = ({ size, className }: any) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="312 340 400 600"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className={className}
-  >
-    <path d="M312 840C312 784.772 356.772 740 412 740H512V840C512 895.228 467.228 940 412 940C356.772 940 312 895.228 312 840Z" fill="currentColor" />
-    <path d="M512 340V540H612C667.228 540 712 495.228 712 440C712 384.772 667.228 340 612 340H512Z" fill="currentColor" />
-    <path d="M611.167 740C666.395 740 711.167 695.228 711.167 640C711.167 584.772 666.395 540 611.167 540C555.939 540 511.167 584.772 511.167 640C511.167 695.228 555.939 740 611.167 740Z" fill="currentColor" />
-    <path d="M312 440C312 495.228 356.772 540 412 540H512V340H412C356.772 340 312 384.772 312 440Z" fill="currentColor" />
-    <path d="M312 640C312 695.228 356.772 740 412 740H512V540H412C356.772 540 312 584.772 312 640Z" fill="currentColor" />
-  </svg>
-);
-
-const ServerIcon = Database;
-
-// 样式映射表
-const getTechStyle = (techName: string) => {
-  const styles: Record<string, { icon: any; color: string; border: string }> = {
-    // Languages & Frameworks
-    "Next.js": { icon: Box, color: "text-white", border: "border-white/20" },
-    "Next.js 15": { icon: Box, color: "text-white", border: "border-white/20" },
-    "React": { icon: Code2, color: "text-blue-400", border: "border-blue-500/20" },
-    "Tailwind v4": { icon: Code2, color: "text-sky-400", border: "border-sky-500/20" },
-    "TypeScript": { icon: Code2, color: "text-blue-400", border: "border-blue-500/20" },
-    "Node.js": { icon: ServerIcon, color: "text-green-400", border: "border-green-500/20" },
-    
-    // Database & Backend
-    "PostgreSQL": { icon: Database, color: "text-blue-300", border: "border-blue-400/20" },
-    "MongoDB": { icon: Database, color: "text-green-500", border: "border-green-500/20" },
-    "Docker": { icon: Box, color: "text-blue-500", border: "border-blue-500/20" },
-    
-    // Tools & Automation
-    "Puppeteer": { icon: Bot, color: "text-emerald-400", border: "border-emerald-500/20" },
-    "Ops Automation": { icon: Terminal, color: "text-orange-400", border: "border-orange-500/20" },
-    "Cursor": { icon: Zap, color: "text-white", border: "border-white/20" },
-    "Figma to Code": { icon: FigmaIcon, color: "text-rose-400", border: "border-rose-500/20" },
-    "Vibe Coding": { icon: Zap, color: "text-yellow-400", border: "border-yellow-500/20" },
-    "Rapid Prototyping": { icon: Layout, color: "text-indigo-400", border: "border-indigo-500/20" },
-
-    // Business & Web3
-    "GTM Strategy": { icon: TrendingUp, color: "text-purple-400", border: "border-purple-500/20" },
-    "ROI-First": { icon: Briefcase, color: "text-yellow-400", border: "border-yellow-500/20" },
-    "System Design": { icon: Layout, color: "text-pink-400", border: "border-pink-500/20" },
-    "Tokenomics": { icon: Globe, color: "text-amber-400", border: "border-amber-500/20" },
-    "Fintech": { icon: TrendingUp, color: "text-green-400", border: "border-green-500/20" },
-    "Avalanche": { icon: Layers, color: "text-red-400", border: "border-red-500/20" },
-    "Polygon": { icon: Layers, color: "text-purple-400", border: "border-purple-500/20" },
-    "SocialFi": { icon: Globe, color: "text-sky-400", border: "border-sky-500/20" },
-  };
-
-  return styles[techName] || { icon: Cpu, color: "text-slate-400", border: "border-slate-500/20" };
-};
-
-export function TechBadge({ name }: { name: string }) {
-  const style = getTechStyle(name);
-  const Icon = style.icon;
-
-  return (
-    <div
-      className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border bg-white/5 backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:bg-white/10 hover:border-white/20 cursor-default",
-        style.color,
-        style.border
-      )}
-    >
-      <Icon size={12} className="opacity-70" />
-      <span className="opacity-90">{name}</span>
-    </div>
-  );
-}
-</file>
-
-<file path="src/lib/market.ts">
-// src/lib/market.ts
-import yahooFinanceModule from "yahoo-finance2";
-
-/**
- * 兼容性处理：
- * 针对 Next.js 15 / Turbopack 的 ESM 解析逻辑。
- * 确保无论库被识别为 default 导出还是直接导出，都能正确获取到构造函数。
- */
-const YahooFinanceClass =
-  (yahooFinanceModule as any).default || yahooFinanceModule;
-const yahooFinance = new YahooFinanceClass();
-
-export interface MarketAsset {
-  symbol: string;
-  name: string;
-  price: number;
-  changePercent: number;
-  isUp: boolean;
-}
-
-// 定义你需要的资产 Ticker
-const TICKERS = [
-  { symbol: "BTC-USD", name: "BTC" },
-  { symbol: "ETH-USD", name: "ETH" },
-  { symbol: "GC=F", name: "GOLD" }, // 黄金期货
-  { symbol: "CL=F", name: "OIL" }, // WTI 原油期货
-  { symbol: "DX-Y.NYB", name: "DXY" }, // 美元指数
-  { symbol: "^VIX", name: "VIX" }, // 恐慌指数
-  { symbol: "^TNX", name: "US10Y" }, // 十年期美债收益率
-];
-
-/**
- * 从雅虎财经抓取实时行情
- * 配合 Next.js 的 ISR (revalidate) 功能，可以实现高性能的静态缓存更新
- */
-export async function getMarketData(): Promise<MarketAsset[]> {
-  try {
-    // 并发请求所有资产的数据
-    const quotes = await Promise.all(
-      TICKERS.map((t) => yahooFinance.quote(t.symbol)),
-    );
-
-    return quotes.map((quote, index) => {
-      const changePercent = quote.regularMarketChangePercent || 0;
-      return {
-        symbol: quote.symbol,
-        name: TICKERS[index].name,
-        price: quote.regularMarketPrice || 0,
-        changePercent: changePercent,
-        isUp: changePercent >= 0,
-      };
-    });
-  } catch (error) {
-    // 这里的错误捕获非常重要，防止外部 API 波动导致你的 Portfolio 整个白屏
-    console.error("Failed to fetch market data from Yahoo Finance:", error);
-    return [];
-  }
-}
-</file>
-
-<file path="src/lib/utils.ts">
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-</file>
-
-<file path="eslint.config.mjs">
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
-
-const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
-  ]),
-]);
-
-export default eslintConfig;
-</file>
-
-<file path="next.config.ts">
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-};
-
-export default nextConfig;
-</file>
-
-<file path="postcss.config.mjs">
-const config = {
-  plugins: {
-    "@tailwindcss/postcss": {},
-  },
-};
-
-export default config;
-</file>
-
-<file path="src/app/portfolio/[slug]/page.tsx">
-import { getPostBySlug, getAllSlugs } from "@/lib/mdx";
-import { Container } from "@/components/ui/Container";
-import { notFound } from "next/navigation";
-import { MDXRemote } from "next-mdx-remote/rsc";
-import { ArrowLeft, Calendar, User } from "lucide-react";
-import Link from "next/link";
-import remarkGfm from "remark-gfm";
-import rehypePrettyCode from "rehype-pretty-code";
-
-const CustomLink = (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
-  const href = props.href;
-  const isInternal = href && (href.startsWith("/") || href.startsWith("#"));
-
-  if (isInternal) {
-    return (
-      <Link
-        href={href}
-        className="text-primary hover:underline underline-offset-4"
-        {...props}
-      >
-        {props.children}
-      </Link>
-    );
-  }
-
-  return (
-    <a
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-primary hover:underline underline-offset-4 cursor-pointer"
-      {...props}
-    >
-      {props.children}
-    </a>
-  );
-};
-
-const components = {
-  a: CustomLink,
-};
-
-const prettyCodeOptions = {
-  theme: "github-dark",
-  keepBackground: false,
-  defaultLang: "plaintext",
-};
-
-export async function generateStaticParams() {
-  const slugs = getAllSlugs("portfolio");
-  return slugs.map((slug) => ({ slug }));
-}
-
-export default async function ProjectPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-  const post = getPostBySlug("portfolio", slug);
-
-  if (!post) {
-    notFound();
-  }
-
-  return (
-    <Container className="py-16 md:py-24">
-      <div className="max-w-3xl mx-auto">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm text-muted hover:text-primary transition-colors mb-12 group"
-        >
-          <ArrowLeft
-            size={16}
-            className="transition-transform group-hover:-translate-x-1"
-          />
-          Back to Home
-        </Link>
-
-        <article>
-          <header className="mb-12">
-            <div className="flex flex-wrap gap-2 mb-6">
-              {post.metadata.tags?.map((tag: string) => (
-                <span
-                  key={tag}
-                  className="px-2.5 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-medium border border-primary/20"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            <h1 className="text-4xl md:text-5xl font-extrabold text-foreground mb-8 tracking-tight leading-[1.2]">
-              {post.metadata.title}
-            </h1>
-
-            <div className="flex items-center gap-6 text-muted text-sm border-y border-border/40 py-4">
-              <div className="flex items-center gap-2">
-                <Calendar size={14} className="opacity-70" />
-                {post.metadata.date}
-              </div>
-              <div className="flex items-center gap-2">
-                <User size={14} className="opacity-70" />
-                0xShoyu
-              </div>
-            </div>
-          </header>
-
-          <div className="prose prose-sky dark:prose-invert max-w-none">
-            <MDXRemote
-              source={post.content}
-              components={components}
-              options={{
-                mdxOptions: {
-                  remarkPlugins: [remarkGfm],
-                  rehypePlugins: [[rehypePrettyCode, prettyCodeOptions]],
-                },
-              }}
-            />
-          </div>
-
-          <div className="mt-20 pt-12 border-t border-border/40 text-center">
-            <p className="text-muted text-sm italic">
-              Thanks for reading. Feel free to reach out if you have any
-              questions about this project.
-            </p>
-          </div>
-        </article>
-      </div>
-    </Container>
-  );
-}
-</file>
-
-<file path="src/components/ui/Card.tsx">
-"use client";
-
-import { cn } from "@/lib/utils";
-import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
-import { MouseEvent } from "react";
-
-export function Card({
-  className,
-  children,
-}: {
-  className?: string;
-  children: React.ReactNode;
-}) {
-  let mouseX = useMotionValue(0);
-  let mouseY = useMotionValue(0);
-
-  function handleMouseMove({ currentTarget, clientX, clientY }: MouseEvent) {
-    let { left, top } = currentTarget.getBoundingClientRect();
-    mouseX.set(clientX - left);
-    mouseY.set(clientY - top);
-  }
-
-  return (
-    <div
-      onMouseMove={handleMouseMove}
-      className={cn(
-        "group relative flex flex-col rounded-xl border border-border/50 bg-card/40 p-8 overflow-hidden", // 🔴 增加 overflow-hidden
-        className,
-      )}
-    >
-      <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none z-0"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-        }}
-      />
-
-      <motion.div
-        className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-100 z-10"
-        style={{
-          background: useMotionTemplate`
-            radial-gradient(
-              650px circle at ${mouseX}px ${mouseY}px,
-              rgba(56, 189, 248, 0.1),
-              transparent 80%
-            )
-          `,
-        }}
-      />
-
-      <div className="relative z-20 flex flex-col justify-between h-full">
-        {children}
-      </div>
-    </div>
-  );
-}
-</file>
-
-<file path="src/lib/mdx.ts">
-// src/lib/mdx.ts
-import fs from "fs";
-import path from "path";
-import matter from "gray-matter";
-
-export type PostMetadata = {
-  title: string;
-  date: string;
-  description: string;
-  slug: string;
-  tags?: string[];
-};
-
-export type Post = {
-  metadata: PostMetadata;
-  content: string;
-};
-
-const contentDirectory = path.join(process.cwd(), "content");
-
-function getMDXFiles(dir: string) {
-  const fullPath = path.join(contentDirectory, dir);
-  if (!fs.existsSync(fullPath)) return [];
-  return fs.readdirSync(fullPath).filter((file) => path.extname(file) === ".mdx");
-}
-
-function readMDXFile(filePath: string) {
-  const rawContent = fs.readFileSync(filePath, "utf-8");
-  return matter(rawContent);
-}
-
-export function getMDXData(dir: string): Post[] {
-  const mdxFiles = getMDXFiles(dir);
-  const fullPath = path.join(contentDirectory, dir);
-
-  return mdxFiles.map((file) => {
-    const { data, content } = readMDXFile(path.join(fullPath, file));
-
-    return {
-      metadata: {
-        title: data.title,
-        date: data.date,
-        description: data.description || data.summary,
-        tags: data.tags || [],
-        slug: file.replace(".mdx", ""),
-      } as PostMetadata,
-      content,
-    };
-  });
-}
-
-export function getPostBySlug(dir: string, slug: string): Post | null {
-  const filePath = path.join(contentDirectory, dir, `${slug}.mdx`);
-
-  if (!fs.existsSync(filePath)) {
-    return null;
-  }
-
-  const { data, content } = readMDXFile(filePath);
-
-  return {
-    metadata: {
-      title: data.title,
-      date: data.date,
-      description: data.description || data.summary,
-      tags: data.tags || [],
-      slug: slug,
-    } as PostMetadata,
-    content,
-  };
-}
-
-export function getAllSlugs(dir: string) {
-  const mdxFiles = getMDXFiles(dir);
-  return mdxFiles.map((file) => file.replace(".mdx", ""));
-}
-
-export function getSortedPosts(posts: Post[]) {
-  return posts.sort((a, b) => {
-    if (new Date(a.metadata.date) > new Date(b.metadata.date)) {
-      return -1;
-    }
-    return 1;
-  });
-}
-</file>
-
-<file path=".gitignore">
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env
-.env*.local
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-</file>
-
-<file path="public/threejs-preview.html">
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title id="pageTitleTag">Three.js Model Previewer</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<style>
-  :root {
-    --bg: #0b0f16;
-    --panel: #11161f;
-    --panel-alt: #151b26;
-    --border: #232b38;
-    --text: #c8d2de;
-    --text-dim: #6b7688;
-    --accent: #00e5ff;
-    --accent-dim: #0a4a54;
-    --error: #ff5c5c;
-  }
-  * { box-sizing: border-box; }
-  html, body {
-    margin: 0; padding: 0; height: 100%;
-    background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    overflow: hidden;
-  }
-  #app {
-    position: fixed; inset: 0;
-    display: flex; flex-direction: column;
-    height: 100%; height: 100dvh;
-  }
-
-  header {
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-    row-gap: 8px; column-gap: 10px;
-    padding: 10px 14px; background: var(--panel);
-    border-bottom: 1px solid var(--border);
-    flex: 0 0 auto;
-  }
-  header h1 {
-    font-size: 14px; font-weight: 600; margin: 0; color: var(--text);
-    letter-spacing: 0.02em;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    flex: 1 1 auto; min-width: 60px;
-  }
-  header .controls {
-    display: flex; align-items: center; flex-wrap: wrap;
-    gap: 8px; flex: 0 0 auto; justify-content: flex-end;
-  }
-  header label {
-    display: flex; align-items: center; gap: 5px;
-    font-size: 12px; color: var(--text-dim); user-select: none;
-  }
-  #runBtn {
-    background: var(--accent-dim); color: var(--accent);
-    border: 1px solid var(--accent); border-radius: 5px;
-    padding: 7px 16px; font-size: 13px; font-weight: 600;
-    cursor: pointer; letter-spacing: 0.02em;
-    transition: background 0.15s;
-  }
-  #runBtn:active { background: var(--accent); color: #06181b; }
-  #clearBtn {
-    background: transparent; color: var(--text-dim);
-    border: 1px solid var(--border); border-radius: 5px;
-    padding: 7px 14px; font-size: 13px; font-weight: 600;
-    cursor: pointer; letter-spacing: 0.02em;
-    transition: background 0.15s, color 0.15s;
-  }
-  #clearBtn:active { background: var(--panel-alt); color: var(--text); }
-  #langSelect {
-    background: var(--panel-alt); color: var(--text);
-    border: 1px solid var(--border); border-radius: 5px;
-    padding: 6px 8px; font-size: 12px; cursor: pointer;
-  }
-
-  main {
-    flex: 1 1 auto; display: flex; min-height: 0;
-  }
-  .pane { position: relative; min-width: 0; min-height: 0; }
-  #codePane { flex: 0 0 44%; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-  #previewPane { flex: 1 1 auto; background: var(--bg); }
-
-  #codeHint {
-    font-size: 11px; color: var(--text-dim); padding: 8px 12px;
-    background: var(--panel-alt); border-bottom: 1px solid var(--border);
-    flex: 0 0 auto; line-height: 1.5;
-  }
-  #codeHint code { color: var(--accent); }
-
-  #codeEditor {
-    flex: 1 1 auto; width: 100%; height: 100%; resize: none; border: none;
-    outline: none; background: var(--bg); color: var(--text);
-    font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
-    font-size: 13px; line-height: 1.6; padding: 12px; tab-size: 2;
-  }
-
-  #canvasHolder { position: absolute; inset: 0; touch-action: none; }
-  canvas { display: block; width: 100%; height: 100%; }
-
-  #stats {
-    position: absolute; top: 10px; left: 10px;
-    font-family: monospace; font-size: 11px; color: var(--text-dim);
-    background: rgba(11,15,22,0.7); padding: 6px 10px; border-radius: 4px;
-    border: 1px solid var(--border); pointer-events: none;
-  }
-  #stats span { color: var(--accent); }
-
-  #errorBox {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    background: rgba(40,10,10,0.92); color: var(--error);
-    font-family: monospace; font-size: 12px; padding: 10px 12px;
-    border-top: 1px solid #7a2020; display: none; white-space: pre-wrap;
-    max-height: 40%; overflow-y: auto;
-  }
-
-  #mobileTabs { display: none; }
-
-  @media (max-width: 820px) {
-    header { padding: 8px 12px; }
-    header h1 { font-size: 13px; }
-    #langSelect { padding: 5px 6px; font-size: 11px; }
-    #runBtn, #clearBtn { padding: 6px 12px; font-size: 12px; }
-    header label { font-size: 11px; }
-
-    #mobileTabs {
-      display: flex; flex: 0 0 auto;
-      background: var(--panel); border-bottom: 1px solid var(--border);
-    }
-    #mobileTabs .tabBtn {
-      flex: 1 1 50%; background: none; border: none; color: var(--text-dim);
-      font-size: 13px; font-weight: 600; padding: 10px 0;
-      border-bottom: 2px solid transparent;
-    }
-    #mobileTabs .tabBtn.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-    main { flex-direction: column; position: relative; }
-    #codePane, #previewPane {
-      position: absolute; inset: 0; flex: none;
-      border: none !important;
-    }
-    #codePane.tabHidden, #previewPane.tabHidden { display: none; }
-  }
-</style>
-</head>
-<body>
-<div id="app">
-  <header>
-    <h1 id="pageTitle">🚀 Three.js Model Previewer</h1>
-    <div class="controls">
-      <select id="langSelect">
-        <option value="en">EN</option>
-        <option value="zh">中文</option>
-        <option value="ja">日本語</option>
-      </select>
-      <label><input type="checkbox" id="wireframeToggle" /> <span id="wireframeLabel">Wireframe</span></label>
-      <button id="clearBtn">Clear</button>
-      <button id="runBtn">▶ Run</button>
-    </div>
-  </header>
-  <div id="mobileTabs">
-    <button class="tabBtn active" data-tab="preview">🎮 <span id="tabPreviewLabel">Preview</span></button>
-    <button class="tabBtn" data-tab="code">💻 <span id="tabCodeLabel">Code</span></button>
-  </div>
-  <main>
-    <div id="codePane" class="pane tabHidden">
-      <div id="codeHint">
-        Write a <code>function buildModel(THREE) { ... return group; }</code> — return a Mesh or Group. Camera, lighting, rotation and auto-fit are handled for you. (⌘/Ctrl+Enter to run)
-      </div>
-      <textarea id="codeEditor" spellcheck="false"></textarea>
-    </div>
-    <div id="previewPane" class="pane">
-      <div id="canvasHolder"></div>
-      <div id="stats"><span id="triLabel">Triangles</span>: <span id="triCount">0</span> | <span id="vertLabel">Vertices</span>: <span id="vertCount">0</span></div>
-      <div id="errorBox"></div>
-    </div>
-  </main>
-</div>
-
-<script>
-function makeDefaultCode(comments) {
-  return `function buildModel(THREE) {
-  const HEIGHTS = { LEG: 0.4, TORSO: 0.5, HEAD: 0.3, JETPACK: 0.45 };
-  const group = new THREE.Group();
-
-  const suitMat = new THREE.MeshStandardMaterial({ color: 0xd8d8d8, roughness: 0.7 });
-  const visorMat = new THREE.MeshStandardMaterial({ color: 0x1a2a33, roughness: 0.3, metalness: 0.4 });
-  const jetpackMat = new THREE.MeshStandardMaterial({ color: 0x333844, roughness: 0.6 });
-  const thrusterMat = new THREE.MeshStandardMaterial({ color: 0x00e5ff, emissive: 0x00e5ff, emissiveIntensity: 1.2 });
-
-  ${comments.legs}
-  const legs = new THREE.Mesh(new THREE.BoxGeometry(0.32, HEIGHTS.LEG, 0.22), suitMat);
-  legs.position.y = HEIGHTS.LEG / 2;
-  group.add(legs);
-
-  ${comments.torso}
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.36, HEIGHTS.TORSO, 0.26), suitMat);
-  torso.position.y = HEIGHTS.LEG + HEIGHTS.TORSO / 2;
-  group.add(torso);
-
-  ${comments.head}
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.28, HEIGHTS.HEAD, 0.28), suitMat);
-  head.position.y = HEIGHTS.LEG + HEIGHTS.TORSO + HEIGHTS.HEAD / 2;
-  group.add(head);
-
-  ${comments.visor}
-  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.14, 0.03), visorMat);
-  visor.position.set(0, HEIGHTS.LEG + HEIGHTS.TORSO + HEIGHTS.HEAD / 2, 0.14);
-  group.add(visor);
-
-  ${comments.jetpack}
-  const jetpack = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, HEIGHTS.JETPACK, 8), jetpackMat);
-  jetpack.position.set(0, HEIGHTS.LEG + HEIGHTS.TORSO / 2 + 0.05, -0.19);
-  group.add(jetpack);
-
-  ${comments.nozzle}
-  const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.08, 8), thrusterMat);
-  nozzle.position.set(0, HEIGHTS.LEG, -0.19);
-  group.add(nozzle);
-
-  return group;
-}`;
-}
-
-const DEFAULT_CODE = {
-  en: makeDefaultCode({
-    legs: '// legs',
-    torso: '// torso',
-    head: '// head',
-    visor: '// helmet visor',
-    jetpack: '// jetpack body',
-    nozzle: '// nozzle (cyan glow = active state)'
-  }),
-  zh: makeDefaultCode({
-    legs: '// 腿',
-    torso: '// 躯干',
-    head: '// 头',
-    visor: '// 头盔面罩',
-    jetpack: '// 背后喷射器主体',
-    nozzle: '// 喷嘴（青色发光，对应 active 状态）'
-  }),
-  ja: makeDefaultCode({
-    legs: '// 脚',
-    torso: '// 胴体',
-    head: '// 頭',
-    visor: '// ヘルメットバイザー',
-    jetpack: '// ジェットパック本体',
-    nozzle: '// ノズル（シアン発光 = active 状態）'
-  })
-};
-
-const TRANSLATIONS = {
-  en: {
-    title: '🚀 Three.js Model Previewer',
-    wireframe: 'Wireframe',
-    run: '▶ Run',
-    clear: 'Clear',
-    tabPreview: 'Preview',
-    tabCode: 'Code',
-    hint: 'Write a <code>function buildModel(THREE) { ... return group; }</code> — return a Mesh or Group. Camera, lighting, rotation and auto-fit are handled for you. (⌘/Ctrl+Enter to run)',
-    triangles: 'Triangles',
-    vertices: 'Vertices',
-    errNotObject: 'buildModel(THREE) must return a THREE.Object3D (a Mesh or Group)',
-    errRender: 'Render error: '
-  },
-  zh: {
-    title: '🚀 Three.js 模型预览器',
-    wireframe: '线框',
-    run: '▶ 运行',
-    clear: '清空',
-    tabPreview: '预览',
-    tabCode: '代码',
-    hint: '写一个 <code>function buildModel(THREE) { ... return group; }</code>，返回一个 Mesh 或 Group 即可，摄像机/灯光/旋转由预览器自动处理。(⌘/Ctrl+Enter 运行)',
-    triangles: '三角面',
-    vertices: '顶点',
-    errNotObject: 'buildModel(THREE) 必须 return 一个 THREE.Object3D（Mesh 或 Group）',
-    errRender: '渲染错误: '
-  },
-  ja: {
-    title: '🚀 Three.js モデルプレビューア',
-    wireframe: 'ワイヤーフレーム',
-    run: '▶ 実行',
-    clear: 'クリア',
-    tabPreview: 'プレビュー',
-    tabCode: 'コード',
-    hint: '<code>function buildModel(THREE) { ... return group; }</code> を書いてください。Mesh か Group を return するだけで、カメラ・ライト・回転・自動フィットは自動処理されます。(⌘/Ctrl+Enter で実行)',
-    triangles: '三角形',
-    vertices: '頂点',
-    errNotObject: 'buildModel(THREE) は THREE.Object3D（Mesh または Group）を return する必要があります',
-    errRender: 'レンダリングエラー: '
-  }
-};
-
-let currentLang = 'en';
-
-function isDefaultCode(value) {
-  const trimmed = value.trim();
-  return Object.values(DEFAULT_CODE).some(c => c.trim() === trimmed);
-}
-
-function applyLanguage(lang) {
-  currentLang = lang;
-  const t = TRANSLATIONS[lang];
-  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : lang;
-  document.getElementById('pageTitleTag').textContent = t.title.replace('🚀 ', '');
-  document.getElementById('pageTitle').textContent = t.title;
-  document.getElementById('wireframeLabel').textContent = t.wireframe;
-  runBtn.textContent = t.run;
-  clearBtn.textContent = t.clear;
-  document.getElementById('codeHint').innerHTML = t.hint;
-  document.getElementById('triLabel').textContent = t.triangles;
-  document.getElementById('vertLabel').textContent = t.vertices;
-  document.getElementById('tabPreviewLabel').textContent = t.tabPreview;
-  document.getElementById('tabCodeLabel').textContent = t.tabCode;
-  // Swap the starter code to match, only if the user hasn't edited it yet
-  if (isDefaultCode(codeEditor.value)) {
-    codeEditor.value = DEFAULT_CODE[lang];
-  }
-}
-
-const codeEditor = document.getElementById('codeEditor');
-const runBtn = document.getElementById('runBtn');
-const clearBtn = document.getElementById('clearBtn');
-const errorBox = document.getElementById('errorBox');
-const triCountEl = document.getElementById('triCount');
-const vertCountEl = document.getElementById('vertCount');
-const wireframeToggle = document.getElementById('wireframeToggle');
-const canvasHolder = document.getElementById('canvasHolder');
-const langSelect = document.getElementById('langSelect');
-
-codeEditor.value = DEFAULT_CODE.en;
-langSelect.value = 'en';
-langSelect.addEventListener('change', () => applyLanguage(langSelect.value));
-
-// ---------- 移动端 Code/Preview 标签页切换 ----------
-const tabBtns = document.querySelectorAll('.tabBtn');
-const codePaneEl = document.getElementById('codePane');
-const previewPaneEl = document.getElementById('previewPane');
-tabBtns.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    tabBtns.forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    const tab = btn.dataset.tab;
-    codePaneEl.classList.toggle('tabHidden', tab !== 'code');
-    previewPaneEl.classList.toggle('tabHidden', tab !== 'preview');
-    if (tab === 'preview') {
-      requestAnimationFrame(onResize);
-    }
-  });
-});
-
-// Tab 键插入空格 + Cmd/Ctrl+Enter 运行
-codeEditor.addEventListener('keydown', (e) => {
-  if (e.key === 'Tab') {
-    e.preventDefault();
-    const start = codeEditor.selectionStart, end = codeEditor.selectionEnd;
-    codeEditor.value = codeEditor.value.slice(0, start) + '  ' + codeEditor.value.slice(end);
-    codeEditor.selectionStart = codeEditor.selectionEnd = start + 2;
-  } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-    e.preventDefault();
-    runUserCode();
-  }
-});
-runBtn.addEventListener('click', runUserCode);
-clearBtn.addEventListener('click', () => {
-  codeEditor.value = '';
-  codeEditor.focus();
-  clearModel();
-  triCountEl.textContent = '0';
-  vertCountEl.textContent = '0';
-  clearError();
-});
-
-// ---------- Three.js 场景搭建 ----------
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0b0f16);
-
-const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-canvasHolder.appendChild(renderer.domElement);
-
-scene.add(new THREE.HemisphereLight(0x8fa3bf, 0x0e131b, 0.7));
-const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
-keyLight.position.set(3, 5, 4);
-scene.add(keyLight);
-const fillLight = new THREE.DirectionalLight(0x4488aa, 0.25);
-fillLight.position.set(-4, 1, -3);
-scene.add(fillLight);
-
-const grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
-scene.add(grid);
-
-const modelGroup = new THREE.Group();
-scene.add(modelGroup);
-
-// ---------- 摄像机控制（拖拽转身 + 上下俯仰 + 滚轮/双指缩放）----------
-let elevation = 0.35;
-let camDistance = 3, minDist = 0.5, maxDist = 20;
-const lookTarget = new THREE.Vector3(0, 0.4, 0);
-
-function updateCamera() {
-  const h = camDistance * Math.cos(elevation);
-  const y = camDistance * Math.sin(elevation);
-  camera.position.set(lookTarget.x, lookTarget.y + y, lookTarget.z + h);
-  camera.lookAt(lookTarget);
-}
-
-const activePointers = new Map();
-let dragging = false, lastX = 0, lastY = 0;
-let pinchStartDist = null, pinchStartCamDist = null;
-
-function pointerDist() {
-  const pts = Array.from(activePointers.values());
-  return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-}
-function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-
-canvasHolder.addEventListener('pointerdown', (e) => {
-  canvasHolder.setPointerCapture(e.pointerId);
-  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (activePointers.size === 1) {
-    dragging = true; lastX = e.clientX; lastY = e.clientY;
-  } else if (activePointers.size === 2) {
-    dragging = false;
-    pinchStartDist = pointerDist();
-    pinchStartCamDist = camDistance;
-  }
-});
-canvasHolder.addEventListener('pointermove', (e) => {
-  if (!activePointers.has(e.pointerId)) return;
-  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (activePointers.size === 2) {
-    const d = pointerDist();
-    camDistance = clamp(pinchStartCamDist * (pinchStartDist / d), minDist, maxDist);
-    return;
-  }
-  if (dragging && activePointers.size === 1) {
-    const dx = e.clientX - lastX, dy = e.clientY - lastY;
-    lastX = e.clientX; lastY = e.clientY;
-    modelGroup.rotation.y += dx * 0.008;
-    elevation = clamp(elevation + dy * 0.008, -1.4, 1.4);
-  }
-});
-function endPointer(e) {
-  activePointers.delete(e.pointerId);
-  if (activePointers.size === 0) dragging = false;
-  else if (activePointers.size === 1) {
-    dragging = true;
-    const [p] = activePointers.values();
-    lastX = p.x; lastY = p.y;
-  }
-}
-canvasHolder.addEventListener('pointerup', endPointer);
-canvasHolder.addEventListener('pointercancel', endPointer);
-canvasHolder.addEventListener('wheel', (e) => {
-  e.preventDefault();
-  camDistance = clamp(camDistance + e.deltaY * 0.0015 * camDistance, minDist, maxDist);
-}, { passive: false });
-
-// ---------- 运行用户代码 ----------
-function clearModel() {
-  while (modelGroup.children.length) {
-    const obj = modelGroup.children.pop();
-    obj.traverse((o) => {
-      if (o.geometry) o.geometry.dispose();
-      if (o.material) {
-        (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
-      }
-    });
-  }
-}
-
-function fitCameraToObject(object) {
-  const box = new THREE.Box3().setFromObject(object);
-  if (box.isEmpty()) { camDistance = 3; lookTarget.set(0, 0.4, 0); return; }
-  const size = new THREE.Vector3(); box.getSize(size);
-  const center = new THREE.Vector3(); box.getCenter(center);
-  const maxDim = Math.max(size.x, size.y, size.z) || 1;
-  const fitDist = (maxDim / (2 * Math.tan((camera.fov * Math.PI / 180) / 2))) * 1.8;
-  camDistance = fitDist;
-  minDist = fitDist * 0.15;
-  maxDist = fitDist * 8;
-  lookTarget.copy(center);
-}
-
-function updateStats(object) {
-  let tris = 0, verts = 0;
-  object.traverse((o) => {
-    if (o.isMesh && o.geometry) {
-      const g = o.geometry;
-      const posCount = g.attributes.position ? g.attributes.position.count : 0;
-      verts += posCount;
-      tris += g.index ? g.index.count / 3 : posCount / 3;
-    }
-  });
-  triCountEl.textContent = Math.round(tris);
-  vertCountEl.textContent = verts;
-}
-
-function applyWireframe() {
-  modelGroup.traverse((o) => {
-    if (o.isMesh && o.material) {
-      (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
-        m.wireframe = wireframeToggle.checked;
-      });
-    }
-  });
-}
-wireframeToggle.addEventListener('change', applyWireframe);
-
-function showError(msg) {
-  errorBox.textContent = msg;
-  errorBox.style.display = 'block';
-}
-function clearError() {
-  errorBox.style.display = 'none';
-  errorBox.textContent = '';
-}
-
-function runUserCode() {
-  try {
-    clearModel();
-    const code = codeEditor.value;
-    const fn = new Function('THREE', code + '\n;return buildModel(THREE);');
-    const result = fn(THREE);
-    if (!result || !(result instanceof THREE.Object3D)) {
-      throw new Error(TRANSLATIONS[currentLang].errNotObject);
-    }
-    modelGroup.add(result);
-    applyWireframe();
-    fitCameraToObject(result);
-    updateStats(result);
-    clearError();
-  } catch (err) {
-    showError(err.message || String(err));
-  }
-}
-
-// ---------- 尺寸自适应 ----------
-function onResize() {
-  const w = canvasHolder.clientWidth, h = canvasHolder.clientHeight;
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
-}
-new ResizeObserver(onResize).observe(canvasHolder);
-
-// ---------- 渲染循环 ----------
-function animate() {
-  requestAnimationFrame(animate);
-  if (previewPaneEl.classList.contains('tabHidden')) return;
-  updateCamera();
-  try {
-    renderer.render(scene, camera);
-  } catch (err) {
-    showError(TRANSLATIONS[currentLang].errRender + (err.message || String(err)));
-  }
-}
-
-onResize();
-runUserCode();
-animate();
-</script>
-</body>
-</html>
-</file>
-
-<file path="src/components/home/FeatureGrid.tsx">
-"use client";
-
-import { Card } from "@/components/ui/Card";
-import { motion } from "framer-motion";
-import { Code2, Briefcase, Zap, Globe } from "lucide-react";
-import { TechBadge } from "@/components/ui/TechBadge";
-import { CardIcon } from "@/components/ui/CardIcon";
-
-const features = [
-  {
-    title: "Full-Stack Product Engineering",
-    description:
-      "Architecting production-grade applications with Next.js, Node.js, and Puppeteer.",
-    tech: ["Next.js", "TypeScript", "Node.js", "MongoDB", "Puppeteer"],
-    icon: Code2,
-    color: "text-blue-400",
-    className: "md:col-span-2",
-  },
-  {
-    title: "Strategic Mindset",
-    description:
-      "8+ years of leadership as a Ops Executive. I write code with ROI, GTM strategy, and scalability in mind",
-    tech: ["Ops Automation", "GTM Strategy", "ROI-First"],
-    icon: Briefcase,
-    color: "text-yellow-400",
-    className: "md:col-span-1",
-  },
-  {
-    title: "Web3 Veteran",
-    description:
-      "Deep roots since 2017. A SocialFi domain expert who managed technical deployments for L1 giants.",
-    tech: ["Avalanche", "Polygon", "SocialFi", "Tokenomics"],
-    icon: Globe,
-    color: "text-sky-400",
-    className: "md:col-span-1",
-  },
-  {
-    title: "AI-Augmented Delivery",
-    description:
-      "Leveraging AI workflows to transition from Figma prototypes to shipable code at 10x startup speed.",
-    tech: ["Figma to Code", "Vibe Coding", "Rapid Prototyping"],
-    icon: Zap,
-    color: "text-purple-400",
-    className: "md:col-span-2",
-  },
-];
-
-export function FeatureGrid() {
-  return (
-    <section className="pb-32 relative">
-      <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
-
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {features.map((feature, index) => (
-          <motion.div
-            key={feature.title}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: index * 0.1 }}
-            className={feature.className}
-          >
-            <Card className="h-full flex flex-col justify-between group hover:border-white/10 transition-colors duration-500">
-              <div>
-                <CardIcon icon={feature.icon} color={feature.color} />
-
-                <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">
-                  {feature.title}
-                </h3>
-                <p className="text-muted leading-relaxed font-light text-sm mb-6">
-                  {feature.description}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2.5 mt-auto">
-                {feature.tech.map((t) => (
-                  <TechBadge key={t} name={t} />
-                ))}
-              </div>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-    </section>
-  );
-}
-</file>
-
-<file path="src/components/home/Hero.tsx">
-"use client";
-
-import { motion } from "framer-motion";
-import { ArrowRight, FileText, Terminal } from "lucide-react";
-import Link from "next/link";
-import { CodeWindow } from "./CodeWindow";
-
-export function Hero() {
-  return (
-    <section className="relative flex flex-col items-center justify-center pt-12 pb-20 md:pt-20 md:pb-32 overflow-visible">
-      <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl pointer-events-none opacity-50" />
-      <div className="absolute top-1/2 right-0 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl pointer-events-none opacity-50" />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center w-full">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="relative z-10 flex flex-col gap-y-6 md:gap-y-8"
-        >
-          {/* Badge */}
-          <div>
-            <div className="inline-flex items-center overflow-hidden rounded-full border border-amber-500/30 bg-amber-500/10 py-1.5 px-4 backdrop-blur-sm">
-              <span className="relative flex h-2 w-2 mr-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
-              </span>
-              <span className="text-[10px] sm:text-xs font-bold text-amber-300 tracking-[0.15em] uppercase">
-                Available for New Projects
-              </span>
-            </div>
-          </div>
-
-          {/* H1 */}
-          <h1 className="flex flex-col gap-y-2 text-left">
-            <span className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
-              Product Engineer.
-            </span>
-            <span className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent leading-[1.2]">
-              Focused on System Design & Delivery.
-            </span>
-          </h1>
-
-          {/* Intro Paragraph */}
-          <div className="max-w-xl">
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-normal">
-              I am{" "}
-              <strong className="text-foreground font-semibold">0xShoyu</strong>
-              .
-              <br className="hidden md:block" />I translate{" "}
-              <span className="text-rose-300 font-medium">
-                abstract concepts
-              </span>{" "}
-              into{" "}
-              <strong className="text-amber-300 font-medium">
-                high-fidelity interfaces
-              </strong>
-              , and finally into{" "}
-              <strong className="text-primary font-semibold">
-                production-ready code
-              </strong>
-              .
-            </p>
-          </div>
-
-          {/* Buttons */}
-          <div className="flex flex-wrap gap-4 pt-2">
-            <Link
-              href="/#portfolio"
-              className="group relative inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0"
-            >
-              <Terminal size={20} />
-              View Portfolio
-              <ArrowRight
-                size={18}
-                className="transition-transform group-hover:translate-x-1"
-              />
-            </Link>
-
-            <Link
-              href="/docs"
-              className="group inline-flex items-center gap-2 rounded-xl border border-border bg-background/50 px-6 py-3.5 text-base font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-primary hover:border-primary/50"
-            >
-              <FileText size={20} />
-              Read Docs
-            </Link>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-          className="relative flex justify-center lg:justify-end w-full pl-0 lg:pl-10"
-        >
-          <CodeWindow />
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-</file>
-
-<file path="src/components/layout/MarketTicker.tsx">
-// src/components/layout/MarketTicker.tsx
-import { getMarketData } from "@/lib/market";
-import { TrendingDown, TrendingUp } from "lucide-react";
-
-export async function MarketTicker() {
-  const data = await getMarketData();
-
-  if (!data || data.length === 0) return null;
-
-  // 将数据复制一份以实现无缝循环滚动
-  const displayData = [...data, ...data];
-
-  return (
-    <div className="w-full bg-black/80 border-b border-white/5 text-[11px] font-mono overflow-hidden flex items-center h-8 z-50 sticky top-0">
-      <div className="flex animate-marquee whitespace-nowrap">
-        {displayData.map((asset, i) => (
-          <div
-            key={`${asset.symbol}-${i}`}
-            className="flex items-center gap-2 px-6 border-r border-white/10 last:border-none"
-          >
-            <span className="text-muted-foreground font-semibold">
-              {asset.name}
-            </span>
-            <span className="text-foreground">
-              {/* 根据资产类型决定小数位数 */}
-              {asset.price > 1000
-                ? asset.price.toLocaleString("en-US", {
-                    maximumFractionDigits: 0,
-                  })
-                : asset.price.toFixed(2)}
-            </span>
-            <span
-              className={`flex items-center ${
-                asset.isUp ? "text-emerald-400" : "text-rose-400"
-              }`}
-            >
-              {asset.isUp ? (
-                <TrendingUp size={12} className="mr-0.5" />
-              ) : (
-                <TrendingDown size={12} className="mr-0.5" />
-              )}
-              {Math.abs(asset.changePercent).toFixed(2)}%
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-</file>
-
-<file path="src/app/page.tsx">
-import { Container } from "@/components/ui/Container";
-import { Hero } from "@/components/home/Hero";
-import { FeatureGrid } from "@/components/home/FeatureGrid";
-import { PortfolioSection } from "@/components/home/PortfolioSection";
-
-export default function Home() {
-  return (
-    <Container>
-      {/* 1. Hero */}
-      <Hero />
-
-      {/* 2. Bento Grid */}
-      <FeatureGrid />
-
-      {/* 3. Portfolio */}
-      <PortfolioSection />
-
-      {/* 4. Footer Placeholder */}
-      <div className="py-24 border-t border-border/40 mt-12 text-center">
-        <p className="text-muted text-sm">
-          © 2026 0xShoyu. Built with Next.js & Coffee.
-        </p>
-      </div>
-    </Container>
-  );
-}
-</file>
-
-<file path="src/app/layout.tsx">
-import type { Metadata } from "next";
-import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
-import { MarketTicker } from "@/components/layout/MarketTicker";
-
-export const revalidate = 60;
-
-export const metadata: Metadata = {
-  title: "0xShoyu | Product Engineer",
-  description: "Former COO turned Full-Stack Product Engineer.",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="en" className="dark">
-      <body className="bg-background text-foreground antialiased">
-        <MarketTicker />
-        <Navbar />
-        <main>{children}</main>
-      </body>
-    </html>
-  );
-}
-</file>
-
 <file path="src/components/home/PortfolioSection.tsx">
 "use client";
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Github, Cpu, Layout, FileText } from "lucide-react";
+import { ArrowRight, Github, Cpu, Layout, Rocket } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import { TechBadge } from "@/components/ui/TechBadge";
@@ -4504,18 +2891,18 @@ const projects = [
     size: "small",
   },
   {
-    id: "star-miner",
-    title: "Star Miner Protocol",
-    subtitle: "Game Design Document (GDD)",
-    description:
-      "System architecture for a decentralized resource management game, featuring complex tokenomics and simulated economy.",
-    tags: ["System Design", "Tokenomics"],
-    link: "/docs/star-miner-gdd",
-    github: null,
-    icon: FileText,
-    color: "text-amber-400",
-    size: "small",
-  },
+  id: "asteroid-miner",
+  title: "Asteroid Miner",
+  subtitle: "Survival-Factory Hybrid, Solo-Built",
+  description:
+    "A multi-physics asteroid mining survival game — pneumatic logistics, mobile railway mining, and an AI-augmented dev workflow.",
+  tags: ["TypeScript", "React", "Vite", "AI-Augmented"],
+  link: "/portfolio/asteroid-miner",
+  github: null,
+  icon: Rocket,
+  color: "text-amber-400",
+  size: "small",
+},
 ];
 
 export function PortfolioSection() {
@@ -4624,7 +3011,7 @@ import { useState } from "react";
 
 const navItems = [
   { name: "Portfolio", href: "/#portfolio" },
-  { name: "Docs", href: "/docs" },
+  { name: "Tools", href: "/#tools" },
   { name: "Blog", href: "/blog" },
 ];
 
@@ -4714,231 +3101,6 @@ export function Navbar() {
       )}
     </header>
   );
-}
-</file>
-
-<file path="src/app/globals.css">
-/* src/app/globals.css */
-@import "tailwindcss";
-@plugin "@tailwindcss/typography";
-
-/* =========================================
-   1. MODERN CSS RESET
-   Based on Josh W. Comeau's reset principles.
-   ========================================= */
-
-/* Use border-box for everything to make sizing predictable */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-/* Ensure full height and smooth scrolling behavior */
-html,
-body {
-  min-height: 100%;
-  scroll-behavior: smooth;
-  overflow-x: clip;
-}
-
-/* Treat media as block-level to avoid alignment issues */
-img,
-picture,
-video,
-canvas,
-svg {
-  display: block;
-  max-width: 100%;
-}
-
-/* Inherit fonts for form controls */
-input,
-button,
-textarea,
-select {
-  font: inherit;
-}
-
-/* Prevent text overflow from breaking layouts */
-p,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  overflow-wrap: break-word;
-}
-
-/* Create a root stacking context (useful for Next.js/React) */
-#root,
-#__next {
-  isolation: isolate;
-}
-
-/* =========================================
-   2. THEME CONFIGURATION (Tailwind v4)
-   ========================================= */
-@theme {
-  --color-background: #082f49; /* Sky 950 */
-  --color-foreground: #f0f9ff; /* Sky 50 */
-
-  --color-primary: #38bdf8; /* Sky 400 */
-  --color-primary-foreground: #082f49; /* Sky 950 */
-
-  --color-card: rgba(12, 74, 110, 0.5); /* Sky 900 (Transparent) */
-  --color-card-foreground: #f0f9ff;
-
-  --color-border: rgba(56, 189, 248, 0.2); /* Sky 400 (Low Opacity) */
-  --color-muted: #94a3b8; /* Slate 400 */
-}
-
-/* =========================================
-   3. BASE STYLES
-   ========================================= */
-body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.5;
-}
-
-/* =========================================
-   4. TYPOGRAPHY OVERRIDES (Prose)
-   Map Tailwind Typography to our theme variables.
-   ========================================= */
-.prose {
-  --tw-prose-body: var(--color-foreground);
-  --tw-prose-headings: var(--color-foreground);
-  --tw-prose-lead: var(--color-muted);
-  --tw-prose-links: var(--color-primary);
-  --tw-prose-bold: var(--color-foreground);
-  --tw-prose-counters: var(--color-muted);
-  --tw-prose-bullets: var(--color-muted);
-  --tw-prose-hr: var(--color-border);
-  --tw-prose-quotes: var(--color-foreground);
-  --tw-prose-quote-borders: var(--color-border);
-  --tw-prose-captions: var(--color-muted);
-  --tw-prose-code: var(--color-primary);
-  --tw-prose-pre-code: var(--color-foreground);
-  --tw-prose-pre-bg: var(--color-card);
-  --tw-prose-th-borders: var(--color-border);
-  --tw-prose-td-borders: var(--color-border);
-
-  /* Optional: Limit width for better readability */
-  max-width: 65ch;
-}
-
-/* =========================================
-   5. TABLE CUSTOMIZATION (Apple Style)
-   ========================================= */
-.prose table {
-  font-size: 0.875rem; /* text-sm */
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem; /* rounded-xl */
-  overflow: hidden;
-  margin-top: 2rem;
-  margin-bottom: 2rem;
-  background-color: var(--color-card);
-}
-
-.prose thead {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.prose thead th {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-border);
-  font-weight: 600;
-  text-align: left;
-  color: var(--color-foreground);
-}
-
-.prose tbody td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-muted);
-}
-
-.prose tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.prose tbody strong {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-/* =========================================
-   6. CODE BLOCK STYLING (Rehype Pretty Code)
-   让代码块看起来像精致的编辑器窗口
-   ========================================= */
-
-.prose pre {
-  @apply bg-black/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden;
-  padding: 1.25rem; /* p-5 */
-  margin-top: 2rem;
-  margin-bottom: 2rem;
-  line-height: 1.7;
-}
-
-.prose code {
-  @apply font-mono text-sm;
-  &::before {
-    content: "" !important;
-  }
-  &::after {
-    content: "" !important;
-  }
-}
-
-.prose :not(pre) > code {
-  @apply bg-primary/10 text-primary px-1.5 py-0.5 rounded-md border border-primary/20 text-[0.85em] font-medium;
-}
-
-.prose pre > code {
-  background-color: transparent !important;
-  display: grid;
-}
-
-.prose pre::-webkit-scrollbar {
-  height: 8px;
-}
-.prose pre::-webkit-scrollbar-track {
-  background: transparent;
-}
-.prose pre::-webkit-scrollbar-thumb {
-  @apply bg-white/10 rounded-full;
-}
-.prose pre::-webkit-scrollbar-thumb:hover {
-  @apply bg-white/20;
-}
-
-/* =========================================
-   7. ANIMATIONS
-   ========================================= */
-@theme {
-  --animate-marquee: marquee 30s linear infinite;
-}
-
-@keyframes marquee {
-  0% {
-    transform: translateX(0%);
-  }
-  100% {
-    /* 因为我们复制了一份数据，所以移动 -50% 刚好完美衔接 */
-    transform: translateX(-50%);
-  }
-}
-
-/* 鼠标悬停时暂停滚动，提升用户体验 */
-.animate-marquee:hover {
-  animation-play-state: paused;
 }
 </file>
 
