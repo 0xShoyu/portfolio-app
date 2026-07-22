@@ -14,7 +14,7 @@ Respond ONLY with JSON in this exact shape, nothing else:
 
 export async function POST(req: NextRequest) {
   try {
-    const { description, screenshot } = await req.json();
+    const { description, screenshot, apiKey } = await req.json();
     const ai = new GoogleGenAI({ apiKey: apiKey || process.env.GEMINI_API_KEY });
     if (!description || !screenshot) {
       return NextResponse.json({ error: 'Missing description or screenshot' }, { status: 400 });
