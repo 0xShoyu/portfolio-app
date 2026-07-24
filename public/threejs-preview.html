@@ -1,262 +1,526 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title id="pageTitleTag">Three.js Model Previewer</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<style>
-  :root {
-    --bg: #0b0f16;
-    --panel: #11161f;
-    --panel-alt: #151b26;
-    --border: #232b38;
-    --text: #c8d2de;
-    --text-dim: #6b7688;
-    --accent: #00e5ff;
-    --accent-dim: #0a4a54;
-    --error: #ff5c5c;
-  }
-  * { box-sizing: border-box; }
-  html, body {
-    margin: 0; padding: 0; height: 100%;
-    background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    overflow: hidden;
-  }
-  #app {
-    position: fixed; inset: 0;
-    display: flex; flex-direction: column;
-    height: 100%; height: 100dvh;
-  }
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title id="pageTitleTag">Three.js Model Previewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+      :root {
+        --bg: #0b0f16;
+        --panel: #11161f;
+        --panel-alt: #151b26;
+        --border: #232b38;
+        --text: #c8d2de;
+        --text-dim: #6b7688;
+        --accent: #00e5ff;
+        --accent-dim: #0a4a54;
+        --error: #ff5c5c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        overflow: hidden;
+      }
+      #app {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        height: 100dvh;
+      }
 
-  header {
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-    row-gap: 8px; column-gap: 10px;
-    padding: 10px 14px; background: var(--panel);
-    border-bottom: 1px solid var(--border);
-    flex: 0 0 auto;
-  }
-  header h1 {
-    font-size: 14px; font-weight: 600; margin: 0; color: var(--text);
-    letter-spacing: 0.02em;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    flex: 1 1 auto; min-width: 60px;
-  }
-  header .controls {
-    display: flex; align-items: center; flex-wrap: wrap;
-    gap: 8px; flex: 0 0 auto; justify-content: flex-end;
-  }
-  header label {
-    display: flex; align-items: center; gap: 5px;
-    font-size: 12px; color: var(--text-dim); user-select: none;
-  }
-  #runBtn {
-    background: var(--accent-dim); color: var(--accent);
-    border: 1px solid var(--accent); border-radius: 5px;
-    padding: 7px 16px; font-size: 13px; font-weight: 600;
-    cursor: pointer; letter-spacing: 0.02em;
-    transition: background 0.15s;
-  }
-  #runBtn:active { background: var(--accent); color: #06181b; }
-  #clearBtn {
-    background: transparent; color: var(--text-dim);
-    border: 1px solid var(--border); border-radius: 5px;
-    padding: 7px 14px; font-size: 13px; font-weight: 600;
-    cursor: pointer; letter-spacing: 0.02em;
-    transition: background 0.15s, color 0.15s;
-  }
-  #clearBtn:active { background: var(--panel-alt); color: var(--text); }
-  #langSelect {
-    background: var(--panel-alt); color: var(--text);
-    border: 1px solid var(--border); border-radius: 5px;
-    padding: 6px 8px; font-size: 12px; cursor: pointer;
-  }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        row-gap: 8px;
+        column-gap: 10px;
+        padding: 10px 14px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--border);
+        flex: 0 0 auto;
+      }
+      header h1 {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0;
+        color: var(--text);
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1 1 auto;
+        min-width: 60px;
+      }
+      header .controls {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        flex: 0 0 auto;
+        justify-content: flex-end;
+      }
+      header label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        color: var(--text-dim);
+        user-select: none;
+      }
+      #runBtn {
+        background: var(--accent-dim);
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        border-radius: 5px;
+        padding: 7px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        letter-spacing: 0.02em;
+        transition: background 0.15s;
+      }
+      #runBtn:active {
+        background: var(--accent);
+        color: #06181b;
+      }
+      #clearBtn {
+        background: transparent;
+        color: var(--text-dim);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 7px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        letter-spacing: 0.02em;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      #clearBtn:active {
+        background: var(--panel-alt);
+        color: var(--text);
+      }
+      #langSelect {
+        background: var(--panel-alt);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 6px 8px;
+        font-size: 12px;
+        cursor: pointer;
+      }
 
-  #keyRow {
-    display: flex; align-items: center; gap: 8px; padding: 6px 12px 0 12px;
-    background: var(--panel-alt); flex: 0 0 auto;
-  }
-  #keyRow label { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
-  #apiKeyInput {
-    flex: 1 1 auto; background: var(--bg); color: var(--text);
-    border: 1px solid var(--border); border-radius: 5px;
-    padding: 6px 10px; font-size: 12px; outline: none; font-family: monospace;
-  }
-  #apiKeyInput:focus { border-color: var(--accent); }
-  #keyHint { font-size: 10px; color: var(--text-dim); padding: 4px 12px 2px 12px; background: var(--panel-alt); }
+      #keyRow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px 0 12px;
+        background: var(--panel-alt);
+        flex: 0 0 auto;
+      }
+      #keyRow label {
+        font-size: 11px;
+        color: var(--text-dim);
+        white-space: nowrap;
+      }
+      #apiKeyInput {
+        flex: 1 1 auto;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 6px 10px;
+        font-size: 12px;
+        outline: none;
+        font-family: monospace;
+      }
+      #apiKeyInput:focus {
+        border-color: var(--accent);
+      }
+      #modelSelect {
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 6px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        flex: 0 0 auto;
+      }
+      #keyHint {
+        font-size: 10px;
+        color: var(--text-dim);
+        padding: 4px 12px 2px 12px;
+        background: var(--panel-alt);
+      }
 
-  #genRow {
-    display: flex; gap: 8px; padding: 8px 12px;
-    background: var(--panel-alt); border-bottom: 1px solid var(--border);
-    flex: 0 0 auto;
-  }
-  #descInput {
-    flex: 1 1 auto; background: var(--bg); color: var(--text);
-    border: 1px solid var(--border); border-radius: 5px;
-    padding: 7px 10px; font-size: 13px; outline: none;
-  }
-  #descInput:focus { border-color: var(--accent); }
-  #genBtn {
-    background: var(--accent-dim); color: var(--accent);
-    border: 1px solid var(--accent); border-radius: 5px;
-    padding: 7px 14px; font-size: 13px; font-weight: 600;
-    cursor: pointer; white-space: nowrap;
-  }
-  #genBtn:disabled { opacity: 0.5; cursor: default; }
+      #genRow {
+        display: flex;
+        gap: 8px;
+        padding: 8px 12px;
+        background: var(--panel-alt);
+        border-bottom: 1px solid var(--border);
+        flex: 0 0 auto;
+      }
+      #descInput {
+        flex: 1 1 auto;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 7px 10px;
+        font-size: 13px;
+        outline: none;
+      }
+      #descInput:focus {
+        border-color: var(--accent);
+      }
+      #genBtn {
+        background: var(--accent-dim);
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        border-radius: 5px;
+        padding: 7px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      #genBtn:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
 
-  #topOverlay {
-    position: absolute; top: 10px; left: 10px; right: 10px;
-    display: flex; flex-direction: column; gap: 6px;
-    pointer-events: none;
-  }
-  #topOverlay > * { pointer-events: auto; }
-  #reviewBar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  #reviewBtn, #regenBtn {
-    background: rgba(11,15,22,0.7); color: var(--text-dim);
-    border: 1px solid var(--border); border-radius: 4px;
-    padding: 5px 10px; font-size: 11px; cursor: pointer;
-  }
-  #reviewBtn:disabled { opacity: 0.4; cursor: default; }
-  #regenBtn { color: var(--accent); border-color: var(--accent-dim); display: none; }
-  #verdictBadge {
-    font-family: monospace; font-size: 11px; padding: 5px 8px;
-    border-radius: 4px; background: rgba(11,15,22,0.7);
-  }
-  #verdictBadge:empty { display: none; padding: 0; }
-  #verdictBadge.pass { color: #4ade80; border: 1px solid #2f6b46; }
-  #verdictBadge.refine { color: #fbbf24; border: 1px solid #7a5f1a; }
+      #topOverlay {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        pointer-events: none;
+      }
+      #topOverlay > * {
+        pointer-events: auto;
+      }
+      #reviewBar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      #reviewBtn,
+      #regenBtn {
+        background: rgba(11, 15, 22, 0.7);
+        color: var(--text-dim);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 5px 10px;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      #reviewBtn:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      #regenBtn {
+        color: var(--accent);
+        border-color: var(--accent-dim);
+        display: none;
+      }
+      #verdictBadge {
+        font-family: monospace;
+        font-size: 11px;
+        padding: 5px 8px;
+        border-radius: 4px;
+        background: rgba(11, 15, 22, 0.7);
+      }
+      #verdictBadge:empty {
+        display: none;
+        padding: 0;
+      }
+      #verdictBadge.pass {
+        color: #4ade80;
+        border: 1px solid #2f6b46;
+      }
+      #verdictBadge.refine {
+        color: #fbbf24;
+        border: 1px solid #7a5f1a;
+      }
 
-  #critiqueBox {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    background: rgba(8,32,38,0.94); color: #7dd3e8;
-    font-family: monospace; font-size: 12px; padding: 10px 12px;
-    border-top: 1px solid #145a68; display: none; white-space: pre-wrap;
-    max-height: 40%; overflow-y: auto;
-  }
+      #critiqueBox {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(8, 32, 38, 0.94);
+        color: #7dd3e8;
+        font-family: monospace;
+        font-size: 12px;
+        padding: 10px 12px;
+        border-top: 1px solid #145a68;
+        display: none;
+        white-space: pre-wrap;
+        max-height: 40%;
+        overflow-y: auto;
+      }
 
-  main {
-    flex: 1 1 auto; display: flex; min-height: 0;
-  }
-  .pane { position: relative; min-width: 0; min-height: 0; }
-  #codePane { flex: 0 0 44%; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-  #previewPane { flex: 1 1 auto; background: var(--bg); }
+      main {
+        flex: 1 1 auto;
+        display: flex;
+        min-height: 0;
+      }
+      .pane {
+        position: relative;
+        min-width: 0;
+        min-height: 0;
+      }
+      #codePane {
+        flex: 0 0 44%;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+      }
+      #previewPane {
+        flex: 1 1 auto;
+        background: var(--bg);
+      }
 
-  #codeHint {
-    font-size: 11px; color: var(--text-dim); padding: 8px 12px;
-    background: var(--panel-alt); border-bottom: 1px solid var(--border);
-    flex: 0 0 auto; line-height: 1.5;
-  }
-  #codeHint code { color: var(--accent); }
+      #codeHint {
+        font-size: 11px;
+        color: var(--text-dim);
+        padding: 8px 12px;
+        background: var(--panel-alt);
+        border-bottom: 1px solid var(--border);
+        flex: 0 0 auto;
+        line-height: 1.5;
+      }
+      #codeHint code {
+        color: var(--accent);
+      }
 
-  #codeEditor {
-    flex: 1 1 auto; width: 100%; height: 100%; resize: none; border: none;
-    outline: none; background: var(--bg); color: var(--text);
-    font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
-    font-size: 13px; line-height: 1.6; padding: 12px; tab-size: 2;
-  }
+      #codeEditor {
+        flex: 1 1 auto;
+        width: 100%;
+        height: 100%;
+        resize: none;
+        border: none;
+        outline: none;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        padding: 12px;
+        tab-size: 2;
+      }
 
-  #canvasHolder { position: absolute; inset: 0; touch-action: none; }
-  canvas { display: block; width: 100%; height: 100%; }
+      #canvasHolder {
+        position: absolute;
+        inset: 0;
+        touch-action: none;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
 
-  #stats {
-    font-family: monospace; font-size: 11px; color: var(--text-dim);
-    background: rgba(11,15,22,0.7); padding: 6px 10px; border-radius: 4px;
-    border: 1px solid var(--border);
-  }
-  #stats span { color: var(--accent); }
+      #stats {
+        font-family: monospace;
+        font-size: 11px;
+        color: var(--text-dim);
+        background: rgba(11, 15, 22, 0.7);
+        padding: 6px 10px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+      }
+      #stats span {
+        color: var(--accent);
+      }
 
-  #errorBox {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    background: rgba(40,10,10,0.92); color: var(--error);
-    font-family: monospace; font-size: 12px; padding: 10px 12px;
-    border-top: 1px solid #7a2020; display: none; white-space: pre-wrap;
-    max-height: 40%; overflow-y: auto;
-  }
+      #errorBox {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(40, 10, 10, 0.92);
+        color: var(--error);
+        font-family: monospace;
+        font-size: 12px;
+        padding: 10px 12px;
+        border-top: 1px solid #7a2020;
+        display: none;
+        white-space: pre-wrap;
+        max-height: 40%;
+        overflow-y: auto;
+      }
 
-  #mobileTabs { display: none; }
+      #mobileTabs {
+        display: none;
+      }
 
-  @media (max-width: 820px) {
-    header { padding: 8px 12px; }
-    header h1 { font-size: 13px; }
-    #langSelect { padding: 5px 6px; font-size: 11px; }
-    #runBtn, #clearBtn { padding: 6px 12px; font-size: 12px; }
-    header label { font-size: 11px; }
+      @media (max-width: 820px) {
+        header {
+          padding: 8px 12px;
+        }
+        header h1 {
+          font-size: 13px;
+        }
+        #langSelect {
+          padding: 5px 6px;
+          font-size: 11px;
+        }
+        #runBtn,
+        #clearBtn {
+          padding: 6px 12px;
+          font-size: 12px;
+        }
+        header label {
+          font-size: 11px;
+        }
 
-    #mobileTabs {
-      display: flex; flex: 0 0 auto;
-      background: var(--panel); border-bottom: 1px solid var(--border);
-    }
-    #mobileTabs .tabBtn {
-      flex: 1 1 50%; background: none; border: none; color: var(--text-dim);
-      font-size: 13px; font-weight: 600; padding: 10px 0;
-      border-bottom: 2px solid transparent;
-    }
-    #mobileTabs .tabBtn.active { color: var(--accent); border-bottom-color: var(--accent); }
+        #mobileTabs {
+          display: flex;
+          flex: 0 0 auto;
+          background: var(--panel);
+          border-bottom: 1px solid var(--border);
+        }
+        #mobileTabs .tabBtn {
+          flex: 1 1 50%;
+          background: none;
+          border: none;
+          color: var(--text-dim);
+          font-size: 13px;
+          font-weight: 600;
+          padding: 10px 0;
+          border-bottom: 2px solid transparent;
+        }
+        #mobileTabs .tabBtn.active {
+          color: var(--accent);
+          border-bottom-color: var(--accent);
+        }
 
-    main { flex-direction: column; position: relative; }
-    #codePane, #previewPane {
-      position: absolute; inset: 0; flex: none;
-      border: none !important;
-    }
-    #codePane.tabHidden, #previewPane.tabHidden { display: none; }
-  }
-</style>
-</head>
-<body>
-<div id="app">
-  <header>
-    <h1 id="pageTitle">🚀 Three.js Model Previewer</h1>
-    <div class="controls">
-      <select id="langSelect">
-        <option value="en">EN</option>
-        <option value="zh">中文</option>
-        <option value="ja">日本語</option>
-      </select>
-      <label><input type="checkbox" id="wireframeToggle" /> <span id="wireframeLabel">Wireframe</span></label>
-      <button id="clearBtn">Clear</button>
-      <button id="runBtn">▶ Run</button>
-    </div>
-  </header>
-  <div id="mobileTabs">
-    <button class="tabBtn active" data-tab="preview">🎮 <span id="tabPreviewLabel">Preview</span></button>
-    <button class="tabBtn" data-tab="code">💻 <span id="tabCodeLabel">Code</span></button>
-  </div>
-  <main>
-    <div id="codePane" class="pane tabHidden">
-      <div id="keyRow">
-        <label for="apiKeyInput">🔑</label>
-        <input id="apiKeyInput" type="password" placeholder="Gemini API key (session only, never saved)" autocomplete="off" />
-      </div>
-      <div id="keyHint">Only kept in memory for this tab — gone on refresh, never stored or sent anywhere but your own /api routes.</div>
-      <div id="genRow">
-        <input id="descInput" type="text" placeholder="Describe a model… e.g. a chibi astronaut with a jetpack" />
-        <button id="genBtn">✨ Generate</button>
-      </div>
-      <div id="codeHint">
-        Write a <code>function buildModel(THREE) { ... return group; }</code> — return a Mesh or Group. Camera, lighting, rotation and auto-fit are handled for you. (⌘/Ctrl+Enter to run)
-      </div>
-      <textarea id="codeEditor" spellcheck="false"></textarea>
-    </div>
-    <div id="previewPane" class="pane">
-      <div id="canvasHolder"></div>
-      <div id="topOverlay">
-        <div id="stats"><span id="triLabel">Triangles</span>: <span id="triCount">0</span> | <span id="vertLabel">Vertices</span>: <span id="vertCount">0</span></div>
-        <div id="reviewBar">
-          <button id="reviewBtn">🔍 Review</button>
-          <button id="regenBtn">↻ Regenerate</button>
-          <span id="verdictBadge"></span>
+        main {
+          flex-direction: column;
+          position: relative;
+        }
+        #codePane,
+        #previewPane {
+          position: absolute;
+          inset: 0;
+          flex: none;
+          border: none !important;
+        }
+        #codePane.tabHidden,
+        #previewPane.tabHidden {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1 id="pageTitle">🚀 Three.js Model Previewer</h1>
+        <div class="controls">
+          <select id="langSelect">
+            <option value="en">EN</option>
+            <option value="zh">中文</option>
+            <option value="ja">日本語</option>
+          </select>
+          <label
+            ><input type="checkbox" id="wireframeToggle" />
+            <span id="wireframeLabel">Wireframe</span></label
+          >
+          <button id="clearBtn">Clear</button>
+          <button id="runBtn">▶ Run</button>
         </div>
+      </header>
+      <div id="mobileTabs">
+        <button class="tabBtn active" data-tab="preview">
+          🎮 <span id="tabPreviewLabel">Preview</span>
+        </button>
+        <button class="tabBtn" data-tab="code">
+          💻 <span id="tabCodeLabel">Code</span>
+        </button>
       </div>
-      <div id="errorBox"></div>
-      <div id="critiqueBox"></div>
+      <main>
+        <div id="codePane" class="pane tabHidden">
+          <div id="keyRow">
+            <label for="apiKeyInput">🔑</label>
+            <input
+              id="apiKeyInput"
+              type="password"
+              placeholder="Gemini API key (session only, never saved)"
+              autocomplete="off"
+            />
+            <select id="modelSelect">
+              <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+              <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+            </select>
+          </div>
+          <div id="keyHint">
+            Only kept in memory for this tab — gone on refresh, never stored or
+            sent anywhere but your own /api routes.
+          </div>
+          <div id="genRow">
+            <input
+              id="descInput"
+              type="text"
+              placeholder="Describe a model… e.g. a chibi astronaut with a jetpack"
+            />
+            <button id="genBtn">✨ Generate</button>
+          </div>
+          <div id="codeHint">
+            Write a
+            <code>function buildModel(THREE) { ... return group; }</code> —
+            return a Mesh or Group. Camera, lighting, rotation and auto-fit are
+            handled for you. (⌘/Ctrl+Enter to run)
+          </div>
+          <textarea id="codeEditor" spellcheck="false"></textarea>
+        </div>
+        <div id="previewPane" class="pane">
+          <div id="canvasHolder"></div>
+          <div id="topOverlay">
+            <div id="stats">
+              <span id="triLabel">Triangles</span>:
+              <span id="triCount">0</span> |
+              <span id="vertLabel">Vertices</span>:
+              <span id="vertCount">0</span>
+            </div>
+            <div id="reviewBar">
+              <button id="reviewBtn">🔍 Review</button>
+              <button id="regenBtn">↻ Regenerate</button>
+              <span id="verdictBadge"></span>
+            </div>
+          </div>
+          <div id="errorBox"></div>
+          <div id="critiqueBox"></div>
+        </div>
+      </main>
     </div>
-  </main>
-</div>
 
-<script>
-function makeDefaultCode(comments) {
-  return `function buildModel(THREE) {
+    <script>
+      function makeDefaultCode(comments) {
+        return `function buildModel(THREE) {
   const HEIGHTS = { LEG: 0.4, TORSO: 0.5, HEAD: 0.3, JETPACK: 0.45 };
   const group = new THREE.Group();
 
@@ -297,470 +561,554 @@ function makeDefaultCode(comments) {
 
   return group;
 }`;
-}
-
-const DEFAULT_CODE = {
-  en: makeDefaultCode({
-    legs: '// legs',
-    torso: '// torso',
-    head: '// head',
-    visor: '// helmet visor',
-    jetpack: '// jetpack body',
-    nozzle: '// nozzle (cyan glow = active state)'
-  }),
-  zh: makeDefaultCode({
-    legs: '// 腿',
-    torso: '// 躯干',
-    head: '// 头',
-    visor: '// 头盔面罩',
-    jetpack: '// 背后喷射器主体',
-    nozzle: '// 喷嘴（青色发光，对应 active 状态）'
-  }),
-  ja: makeDefaultCode({
-    legs: '// 脚',
-    torso: '// 胴体',
-    head: '// 頭',
-    visor: '// ヘルメットバイザー',
-    jetpack: '// ジェットパック本体',
-    nozzle: '// ノズル（シアン発光 = active 状態）'
-  })
-};
-
-const TRANSLATIONS = {
-  en: {
-    title: '🚀 Three.js Model Previewer',
-    wireframe: 'Wireframe',
-    run: '▶ Run',
-    clear: 'Clear',
-    tabPreview: 'Preview',
-    tabCode: 'Code',
-    hint: 'Write a <code>function buildModel(THREE) { ... return group; }</code> — return a Mesh or Group. Camera, lighting, rotation and auto-fit are handled for you. (⌘/Ctrl+Enter to run)',
-    triangles: 'Triangles',
-    vertices: 'Vertices',
-    errNotObject: 'buildModel(THREE) must return a THREE.Object3D (a Mesh or Group)',
-    errRender: 'Render error: ',
-    descPlaceholder: 'Describe a model… e.g. a chibi astronaut with a jetpack',
-    generate: '✨ Generate',
-    review: '🔍 Review',
-    regenerate: '↻ Regenerate',
-    keyPlaceholder: 'Gemini API key (session only, never saved)',
-    keyHint: 'Only kept in memory for this tab — gone on refresh, never stored or sent anywhere but your own /api routes.'
-  },
-  zh: {
-    title: '🚀 Three.js 模型预览器',
-    wireframe: '线框',
-    run: '▶ 运行',
-    clear: '清空',
-    tabPreview: '预览',
-    tabCode: '代码',
-    hint: '写一个 <code>function buildModel(THREE) { ... return group; }</code>，返回一个 Mesh 或 Group 即可，摄像机/灯光/旋转由预览器自动处理。(⌘/Ctrl+Enter 运行)',
-    triangles: '三角面',
-    vertices: '顶点',
-    errNotObject: 'buildModel(THREE) 必须 return 一个 THREE.Object3D（Mesh 或 Group）',
-    errRender: '渲染错误: ',
-    descPlaceholder: '描述一个模型…比如"背着喷射背包的圆滚滚宇航员"',
-    generate: '✨ 生成',
-    review: '🔍 评审',
-    regenerate: '↻ 重新生成',
-    keyPlaceholder: 'Gemini API key（只在本次会话有效，不会保存）',
-    keyHint: '只存在这个标签页的内存里——刷新就没了，不会被保存，也只会发给你自己的 /api 接口。'
-  },
-  ja: {
-    title: '🚀 Three.js モデルプレビューア',
-    wireframe: 'ワイヤーフレーム',
-    run: '▶ 実行',
-    clear: 'クリア',
-    tabPreview: 'プレビュー',
-    tabCode: 'コード',
-    hint: '<code>function buildModel(THREE) { ... return group; }</code> を書いてください。Mesh か Group を return するだけで、カメラ・ライト・回転・自動フィットは自動処理されます。(⌘/Ctrl+Enter で実行)',
-    triangles: '三角形',
-    vertices: '頂点',
-    errNotObject: 'buildModel(THREE) は THREE.Object3D（Mesh または Group）を return する必要があります',
-    errRender: 'レンダリングエラー: ',
-    descPlaceholder: 'モデルを説明…例：ジェットパックを背負ったちびキャラの宇宙飛行士',
-    generate: '✨ 生成',
-    review: '🔍 レビュー',
-    regenerate: '↻ 再生成',
-    keyPlaceholder: 'Gemini APIキー（このセッションのみ、保存されません）',
-    keyHint: 'このタブのメモリ内にのみ保持されます。リロードすると消え、自分の /api ルート以外には送信されません。'
-  }
-};
-
-let currentLang = 'en';
-
-function isDefaultCode(value) {
-  const trimmed = value.trim();
-  return Object.values(DEFAULT_CODE).some(c => c.trim() === trimmed);
-}
-
-function applyLanguage(lang) {
-  currentLang = lang;
-  const t = TRANSLATIONS[lang];
-  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : lang;
-  document.getElementById('pageTitleTag').textContent = t.title.replace('🚀 ', '');
-  document.getElementById('pageTitle').textContent = t.title;
-  document.getElementById('wireframeLabel').textContent = t.wireframe;
-  runBtn.textContent = t.run;
-  clearBtn.textContent = t.clear;
-  document.getElementById('codeHint').innerHTML = t.hint;
-  document.getElementById('triLabel').textContent = t.triangles;
-  document.getElementById('vertLabel').textContent = t.vertices;
-  document.getElementById('tabPreviewLabel').textContent = t.tabPreview;
-  document.getElementById('tabCodeLabel').textContent = t.tabCode;
-  descInput.placeholder = t.descPlaceholder;
-  genBtn.textContent = t.generate;
-  reviewBtn.textContent = t.review;
-  regenBtn.textContent = t.regenerate;
-  apiKeyInput.placeholder = t.keyPlaceholder;
-  document.getElementById('keyHint').textContent = t.keyHint;
-  // Swap the starter code to match, only if the user hasn't edited it yet
-  if (isDefaultCode(codeEditor.value)) {
-    codeEditor.value = DEFAULT_CODE[lang];
-  }
-}
-
-const codeEditor = document.getElementById('codeEditor');
-const runBtn = document.getElementById('runBtn');
-const clearBtn = document.getElementById('clearBtn');
-const errorBox = document.getElementById('errorBox');
-const triCountEl = document.getElementById('triCount');
-const vertCountEl = document.getElementById('vertCount');
-const wireframeToggle = document.getElementById('wireframeToggle');
-const canvasHolder = document.getElementById('canvasHolder');
-const langSelect = document.getElementById('langSelect');
-
-codeEditor.value = DEFAULT_CODE.en;
-langSelect.value = 'en';
-langSelect.addEventListener('change', () => applyLanguage(langSelect.value));
-
-// ---------- 移动端 Code/Preview 标签页切换 ----------
-const tabBtns = document.querySelectorAll('.tabBtn');
-const codePaneEl = document.getElementById('codePane');
-const previewPaneEl = document.getElementById('previewPane');
-tabBtns.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    tabBtns.forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    const tab = btn.dataset.tab;
-    codePaneEl.classList.toggle('tabHidden', tab !== 'code');
-    previewPaneEl.classList.toggle('tabHidden', tab !== 'preview');
-    if (tab === 'preview') {
-      requestAnimationFrame(onResize);
-    }
-  });
-});
-
-// Tab 键插入空格 + Cmd/Ctrl+Enter 运行
-codeEditor.addEventListener('keydown', (e) => {
-  if (e.key === 'Tab') {
-    e.preventDefault();
-    const start = codeEditor.selectionStart, end = codeEditor.selectionEnd;
-    codeEditor.value = codeEditor.value.slice(0, start) + '  ' + codeEditor.value.slice(end);
-    codeEditor.selectionStart = codeEditor.selectionEnd = start + 2;
-  } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-    e.preventDefault();
-    runUserCode();
-  }
-});
-runBtn.addEventListener('click', runUserCode);
-clearBtn.addEventListener('click', () => {
-  codeEditor.value = '';
-  codeEditor.focus();
-  clearModel();
-  triCountEl.textContent = '0';
-  vertCountEl.textContent = '0';
-  clearError();
-});
-
-// ---------- AI 生成 + 视觉反馈自我修正 ----------
-const descInput = document.getElementById('descInput');
-const apiKeyInput = document.getElementById('apiKeyInput');
-const genBtn = document.getElementById('genBtn');
-const reviewBtn = document.getElementById('reviewBtn');
-const regenBtn = document.getElementById('regenBtn');
-const verdictBadge = document.getElementById('verdictBadge');
-const critiqueBox = document.getElementById('critiqueBox');
-
-let lastCritique = '';
-
-function resetReviewUI() {
-  verdictBadge.textContent = '';
-  verdictBadge.className = '';
-  critiqueBox.style.display = 'none';
-  regenBtn.style.display = 'none';
-}
-
-async function generateFromDescription(useFeedback) {
-  const description = descInput.value.trim();
-  if (!description) {
-    showError('Enter a description first.');
-    return;
-  }
-  genBtn.disabled = true;
-  const originalLabel = genBtn.textContent;
-  genBtn.textContent = '⏳ …';
-  clearError();
-  resetReviewUI();
-  try {
-    const body = useFeedback
-      ? { description, previousCode: codeEditor.value, feedback: lastCritique, apiKey: apiKeyInput.value.trim() || undefined }
-      : { description, apiKey: apiKeyInput.value.trim() || undefined };
-    const res = await fetch('/api/generate-model', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    codeEditor.value = data.code;
-    runUserCode();
-  } catch (err) {
-    showError('Generate failed: ' + (err.message || String(err)));
-  } finally {
-    genBtn.disabled = false;
-    genBtn.textContent = originalLabel;
-  }
-}
-
-async function reviewCurrentRender() {
-  const description = descInput.value.trim();
-  if (!description) {
-    showError('Enter a description above first, so Review knows what to check against.');
-    return;
-  }
-  reviewBtn.disabled = true;
-  const originalLabel = reviewBtn.textContent;
-  reviewBtn.textContent = '⏳ …';
-  try {
-    renderer.render(scene, camera); // 确保画面是最新的
-    const screenshot = renderer.domElement.toDataURL('image/png');
-    const res = await fetch('/api/review-model', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description, screenshot, apiKey: apiKeyInput.value.trim() || undefined }),
-    });
-    const verdict = await res.json();
-    if (verdict.error) throw new Error(verdict.error);
-
-    const pct = Math.round((verdict.score || 0) * 100);
-    verdictBadge.textContent = `${verdict.decision} (${pct}%)`;
-    verdictBadge.className = verdict.decision === 'continue' ? 'pass' : 'refine';
-
-    if (verdict.decision === 'refine' && verdict.critique) {
-      lastCritique = verdict.critique;
-      critiqueBox.textContent = '💬 ' + verdict.critique;
-      critiqueBox.style.display = 'block';
-      regenBtn.style.display = 'inline-block';
-    } else {
-      critiqueBox.style.display = 'none';
-      regenBtn.style.display = 'none';
-    }
-  } catch (err) {
-    showError('Review failed: ' + (err.message || String(err)));
-  } finally {
-    reviewBtn.disabled = false;
-    reviewBtn.textContent = originalLabel;
-  }
-}
-
-genBtn.addEventListener('click', () => generateFromDescription(false));
-descInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') generateFromDescription(false);
-});
-reviewBtn.addEventListener('click', reviewCurrentRender);
-regenBtn.addEventListener('click', () => generateFromDescription(true));
-
-// ---------- Three.js 场景搭建 ----------
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0b0f16);
-
-const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-canvasHolder.appendChild(renderer.domElement);
-
-scene.add(new THREE.HemisphereLight(0x8fa3bf, 0x0e131b, 0.7));
-const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
-keyLight.position.set(3, 5, 4);
-scene.add(keyLight);
-const fillLight = new THREE.DirectionalLight(0x4488aa, 0.25);
-fillLight.position.set(-4, 1, -3);
-scene.add(fillLight);
-
-const grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
-scene.add(grid);
-
-const modelGroup = new THREE.Group();
-scene.add(modelGroup);
-
-// ---------- 摄像机控制（拖拽转身 + 上下俯仰 + 滚轮/双指缩放）----------
-let elevation = 0.35;
-let camDistance = 3, minDist = 0.5, maxDist = 20;
-const lookTarget = new THREE.Vector3(0, 0.4, 0);
-
-function updateCamera() {
-  const h = camDistance * Math.cos(elevation);
-  const y = camDistance * Math.sin(elevation);
-  camera.position.set(lookTarget.x, lookTarget.y + y, lookTarget.z + h);
-  camera.lookAt(lookTarget);
-}
-
-const activePointers = new Map();
-let dragging = false, lastX = 0, lastY = 0;
-let pinchStartDist = null, pinchStartCamDist = null;
-
-function pointerDist() {
-  const pts = Array.from(activePointers.values());
-  return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-}
-function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-
-canvasHolder.addEventListener('pointerdown', (e) => {
-  canvasHolder.setPointerCapture(e.pointerId);
-  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (activePointers.size === 1) {
-    dragging = true; lastX = e.clientX; lastY = e.clientY;
-  } else if (activePointers.size === 2) {
-    dragging = false;
-    pinchStartDist = pointerDist();
-    pinchStartCamDist = camDistance;
-  }
-});
-canvasHolder.addEventListener('pointermove', (e) => {
-  if (!activePointers.has(e.pointerId)) return;
-  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (activePointers.size === 2) {
-    const d = pointerDist();
-    camDistance = clamp(pinchStartCamDist * (pinchStartDist / d), minDist, maxDist);
-    return;
-  }
-  if (dragging && activePointers.size === 1) {
-    const dx = e.clientX - lastX, dy = e.clientY - lastY;
-    lastX = e.clientX; lastY = e.clientY;
-    modelGroup.rotation.y += dx * 0.008;
-    elevation = clamp(elevation + dy * 0.008, -1.4, 1.4);
-  }
-});
-function endPointer(e) {
-  activePointers.delete(e.pointerId);
-  if (activePointers.size === 0) dragging = false;
-  else if (activePointers.size === 1) {
-    dragging = true;
-    const [p] = activePointers.values();
-    lastX = p.x; lastY = p.y;
-  }
-}
-canvasHolder.addEventListener('pointerup', endPointer);
-canvasHolder.addEventListener('pointercancel', endPointer);
-canvasHolder.addEventListener('wheel', (e) => {
-  e.preventDefault();
-  camDistance = clamp(camDistance + e.deltaY * 0.0015 * camDistance, minDist, maxDist);
-}, { passive: false });
-
-// ---------- 运行用户代码 ----------
-function clearModel() {
-  while (modelGroup.children.length) {
-    const obj = modelGroup.children.pop();
-    obj.traverse((o) => {
-      if (o.geometry) o.geometry.dispose();
-      if (o.material) {
-        (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
       }
-    });
-  }
-}
 
-function fitCameraToObject(object) {
-  const box = new THREE.Box3().setFromObject(object);
-  if (box.isEmpty()) { camDistance = 3; lookTarget.set(0, 0.4, 0); return; }
-  const size = new THREE.Vector3(); box.getSize(size);
-  const center = new THREE.Vector3(); box.getCenter(center);
-  const maxDim = Math.max(size.x, size.y, size.z) || 1;
-  const fitDist = (maxDim / (2 * Math.tan((camera.fov * Math.PI / 180) / 2))) * 1.8;
-  camDistance = fitDist;
-  minDist = fitDist * 0.15;
-  maxDist = fitDist * 8;
-  lookTarget.copy(center);
-}
+      const DEFAULT_CODE = {
+        en: makeDefaultCode({
+          legs: "// legs",
+          torso: "// torso",
+          head: "// head",
+          visor: "// helmet visor",
+          jetpack: "// jetpack body",
+          nozzle: "// nozzle (cyan glow = active state)",
+        }),
+        zh: makeDefaultCode({
+          legs: "// 腿",
+          torso: "// 躯干",
+          head: "// 头",
+          visor: "// 头盔面罩",
+          jetpack: "// 背后喷射器主体",
+          nozzle: "// 喷嘴（青色发光，对应 active 状态）",
+        }),
+        ja: makeDefaultCode({
+          legs: "// 脚",
+          torso: "// 胴体",
+          head: "// 頭",
+          visor: "// ヘルメットバイザー",
+          jetpack: "// ジェットパック本体",
+          nozzle: "// ノズル（シアン発光 = active 状態）",
+        }),
+      };
 
-function updateStats(object) {
-  let tris = 0, verts = 0;
-  object.traverse((o) => {
-    if (o.isMesh && o.geometry) {
-      const g = o.geometry;
-      const posCount = g.attributes.position ? g.attributes.position.count : 0;
-      verts += posCount;
-      tris += g.index ? g.index.count / 3 : posCount / 3;
-    }
-  });
-  triCountEl.textContent = Math.round(tris);
-  vertCountEl.textContent = verts;
-}
+      const TRANSLATIONS = {
+        en: {
+          title: "🚀 Three.js Model Previewer",
+          wireframe: "Wireframe",
+          run: "▶ Run",
+          clear: "Clear",
+          tabPreview: "Preview",
+          tabCode: "Code",
+          hint: "Write a <code>function buildModel(THREE) { ... return group; }</code> — return a Mesh or Group. Camera, lighting, rotation and auto-fit are handled for you. (⌘/Ctrl+Enter to run)",
+          triangles: "Triangles",
+          vertices: "Vertices",
+          errNotObject:
+            "buildModel(THREE) must return a THREE.Object3D (a Mesh or Group)",
+          errRender: "Render error: ",
+          descPlaceholder:
+            "Describe a model… e.g. a chibi astronaut with a jetpack",
+          generate: "✨ Generate",
+          review: "🔍 Review",
+          regenerate: "↻ Regenerate",
+          keyPlaceholder: "Gemini API key (session only, never saved)",
+          keyHint:
+            "Only kept in memory for this tab — gone on refresh, never stored or sent anywhere but your own /api routes.",
+        },
+        zh: {
+          title: "🚀 Three.js 模型预览器",
+          wireframe: "线框",
+          run: "▶ 运行",
+          clear: "清空",
+          tabPreview: "预览",
+          tabCode: "代码",
+          hint: "写一个 <code>function buildModel(THREE) { ... return group; }</code>，返回一个 Mesh 或 Group 即可，摄像机/灯光/旋转由预览器自动处理。(⌘/Ctrl+Enter 运行)",
+          triangles: "三角面",
+          vertices: "顶点",
+          errNotObject:
+            "buildModel(THREE) 必须 return 一个 THREE.Object3D（Mesh 或 Group）",
+          errRender: "渲染错误: ",
+          descPlaceholder: '描述一个模型…比如"背着喷射背包的圆滚滚宇航员"',
+          generate: "✨ 生成",
+          review: "🔍 评审",
+          regenerate: "↻ 重新生成",
+          keyPlaceholder: "Gemini API key（只在本次会话有效，不会保存）",
+          keyHint:
+            "只存在这个标签页的内存里——刷新就没了，不会被保存，也只会发给你自己的 /api 接口。",
+        },
+        ja: {
+          title: "🚀 Three.js モデルプレビューア",
+          wireframe: "ワイヤーフレーム",
+          run: "▶ 実行",
+          clear: "クリア",
+          tabPreview: "プレビュー",
+          tabCode: "コード",
+          hint: "<code>function buildModel(THREE) { ... return group; }</code> を書いてください。Mesh か Group を return するだけで、カメラ・ライト・回転・自動フィットは自動処理されます。(⌘/Ctrl+Enter で実行)",
+          triangles: "三角形",
+          vertices: "頂点",
+          errNotObject:
+            "buildModel(THREE) は THREE.Object3D（Mesh または Group）を return する必要があります",
+          errRender: "レンダリングエラー: ",
+          descPlaceholder:
+            "モデルを説明…例：ジェットパックを背負ったちびキャラの宇宙飛行士",
+          generate: "✨ 生成",
+          review: "🔍 レビュー",
+          regenerate: "↻ 再生成",
+          keyPlaceholder:
+            "Gemini APIキー（このセッションのみ、保存されません）",
+          keyHint:
+            "このタブのメモリ内にのみ保持されます。リロードすると消え、自分の /api ルート以外には送信されません。",
+        },
+      };
 
-function applyWireframe() {
-  modelGroup.traverse((o) => {
-    if (o.isMesh && o.material) {
-      (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
-        m.wireframe = wireframeToggle.checked;
+      let currentLang = "en";
+
+      function isDefaultCode(value) {
+        const trimmed = value.trim();
+        return Object.values(DEFAULT_CODE).some((c) => c.trim() === trimmed);
+      }
+
+      function applyLanguage(lang) {
+        currentLang = lang;
+        const t = TRANSLATIONS[lang];
+        document.documentElement.lang = lang === "zh" ? "zh-CN" : lang;
+        document.getElementById("pageTitleTag").textContent = t.title.replace(
+          "🚀 ",
+          "",
+        );
+        document.getElementById("pageTitle").textContent = t.title;
+        document.getElementById("wireframeLabel").textContent = t.wireframe;
+        runBtn.textContent = t.run;
+        clearBtn.textContent = t.clear;
+        document.getElementById("codeHint").innerHTML = t.hint;
+        document.getElementById("triLabel").textContent = t.triangles;
+        document.getElementById("vertLabel").textContent = t.vertices;
+        document.getElementById("tabPreviewLabel").textContent = t.tabPreview;
+        document.getElementById("tabCodeLabel").textContent = t.tabCode;
+        descInput.placeholder = t.descPlaceholder;
+        genBtn.textContent = t.generate;
+        reviewBtn.textContent = t.review;
+        regenBtn.textContent = t.regenerate;
+        apiKeyInput.placeholder = t.keyPlaceholder;
+        document.getElementById("keyHint").textContent = t.keyHint;
+        // Swap the starter code to match, only if the user hasn't edited it yet
+        if (isDefaultCode(codeEditor.value)) {
+          codeEditor.value = DEFAULT_CODE[lang];
+        }
+      }
+
+      const codeEditor = document.getElementById("codeEditor");
+      const runBtn = document.getElementById("runBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const errorBox = document.getElementById("errorBox");
+      const triCountEl = document.getElementById("triCount");
+      const vertCountEl = document.getElementById("vertCount");
+      const wireframeToggle = document.getElementById("wireframeToggle");
+      const canvasHolder = document.getElementById("canvasHolder");
+      const langSelect = document.getElementById("langSelect");
+
+      codeEditor.value = DEFAULT_CODE.en;
+      langSelect.value = "en";
+      langSelect.addEventListener("change", () =>
+        applyLanguage(langSelect.value),
+      );
+
+      // ---------- 移动端 Code/Preview 标签页切换 ----------
+      const tabBtns = document.querySelectorAll(".tabBtn");
+      const codePaneEl = document.getElementById("codePane");
+      const previewPaneEl = document.getElementById("previewPane");
+      tabBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          tabBtns.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          const tab = btn.dataset.tab;
+          codePaneEl.classList.toggle("tabHidden", tab !== "code");
+          previewPaneEl.classList.toggle("tabHidden", tab !== "preview");
+          if (tab === "preview") {
+            requestAnimationFrame(onResize);
+          }
+        });
       });
-    }
-  });
-}
-wireframeToggle.addEventListener('change', applyWireframe);
 
-function showError(msg) {
-  errorBox.textContent = msg;
-  errorBox.style.display = 'block';
-}
-function clearError() {
-  errorBox.style.display = 'none';
-  errorBox.textContent = '';
-}
+      // Tab 键插入空格 + Cmd/Ctrl+Enter 运行
+      codeEditor.addEventListener("keydown", (e) => {
+        if (e.key === "Tab") {
+          e.preventDefault();
+          const start = codeEditor.selectionStart,
+            end = codeEditor.selectionEnd;
+          codeEditor.value =
+            codeEditor.value.slice(0, start) +
+            "  " +
+            codeEditor.value.slice(end);
+          codeEditor.selectionStart = codeEditor.selectionEnd = start + 2;
+        } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          e.preventDefault();
+          runUserCode();
+        }
+      });
+      runBtn.addEventListener("click", runUserCode);
+      clearBtn.addEventListener("click", () => {
+        codeEditor.value = "";
+        codeEditor.focus();
+        clearModel();
+        triCountEl.textContent = "0";
+        vertCountEl.textContent = "0";
+        clearError();
+      });
 
-function runUserCode() {
-  try {
-    clearModel();
-    const code = codeEditor.value;
-    const fn = new Function('THREE', code + '\n;return buildModel(THREE);');
-    const result = fn(THREE);
-    if (!result || !(result instanceof THREE.Object3D)) {
-      throw new Error(TRANSLATIONS[currentLang].errNotObject);
-    }
-    modelGroup.add(result);
-    applyWireframe();
-    fitCameraToObject(result);
-    updateStats(result);
-    clearError();
-  } catch (err) {
-    showError(err.message || String(err));
-  }
-}
+      // ---------- AI 生成 + 视觉反馈自我修正 ----------
+      const descInput = document.getElementById("descInput");
+      const apiKeyInput = document.getElementById("apiKeyInput");
+      const modelSelect = document.getElementById("modelSelect");
+      const genBtn = document.getElementById("genBtn");
+      const reviewBtn = document.getElementById("reviewBtn");
+      const regenBtn = document.getElementById("regenBtn");
+      const verdictBadge = document.getElementById("verdictBadge");
+      const critiqueBox = document.getElementById("critiqueBox");
 
-// ---------- 尺寸自适应 ----------
-function onResize() {
-  const w = canvasHolder.clientWidth, h = canvasHolder.clientHeight;
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
-}
-new ResizeObserver(onResize).observe(canvasHolder);
+      let lastCritique = "";
 
-// ---------- 渲染循环 ----------
-function animate() {
-  requestAnimationFrame(animate);
-  if (previewPaneEl.classList.contains('tabHidden')) return;
-  updateCamera();
-  try {
-    renderer.render(scene, camera);
-  } catch (err) {
-    showError(TRANSLATIONS[currentLang].errRender + (err.message || String(err)));
-  }
-}
+      function resetReviewUI() {
+        verdictBadge.textContent = "";
+        verdictBadge.className = "";
+        critiqueBox.style.display = "none";
+        regenBtn.style.display = "none";
+      }
 
-onResize();
-runUserCode();
-animate();
-</script>
-</body>
+      async function generateFromDescription(useFeedback) {
+        const description = descInput.value.trim();
+        if (!description) {
+          showError("Enter a description first.");
+          return;
+        }
+        genBtn.disabled = true;
+        const originalLabel = genBtn.textContent;
+        genBtn.textContent = "⏳ …";
+        clearError();
+        resetReviewUI();
+        try {
+          const body = useFeedback
+            ? {
+                description,
+                previousCode: codeEditor.value,
+                feedback: lastCritique,
+                apiKey: apiKeyInput.value.trim() || undefined,
+                model: modelSelect.value,
+              }
+            : {
+                description,
+                apiKey: apiKeyInput.value.trim() || undefined,
+                model: modelSelect.value,
+              };
+          const res = await fetch("/api/generate-model", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          codeEditor.value = data.code;
+          runUserCode();
+        } catch (err) {
+          showError("Generate failed: " + (err.message || String(err)));
+        } finally {
+          genBtn.disabled = false;
+          genBtn.textContent = originalLabel;
+        }
+      }
+
+      async function reviewCurrentRender() {
+        const description = descInput.value.trim();
+        if (!description) {
+          showError(
+            "Enter a description above first, so Review knows what to check against.",
+          );
+          return;
+        }
+        reviewBtn.disabled = true;
+        const originalLabel = reviewBtn.textContent;
+        reviewBtn.textContent = "⏳ …";
+        try {
+          renderer.render(scene, camera); // 确保画面是最新的
+          const screenshot = renderer.domElement.toDataURL("image/png");
+          const res = await fetch("/api/review-model", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              description,
+              screenshot,
+              apiKey: apiKeyInput.value.trim() || undefined,
+              model: modelSelect.value,
+            }),
+          });
+          const verdict = await res.json();
+          if (verdict.error) throw new Error(verdict.error);
+
+          const pct = Math.round((verdict.score || 0) * 100);
+          verdictBadge.textContent = `${verdict.decision} (${pct}%)`;
+          verdictBadge.className =
+            verdict.decision === "continue" ? "pass" : "refine";
+
+          if (verdict.decision === "refine" && verdict.critique) {
+            lastCritique = verdict.critique;
+            critiqueBox.textContent = "💬 " + verdict.critique;
+            critiqueBox.style.display = "block";
+            regenBtn.style.display = "inline-block";
+          } else {
+            critiqueBox.style.display = "none";
+            regenBtn.style.display = "none";
+          }
+        } catch (err) {
+          showError("Review failed: " + (err.message || String(err)));
+        } finally {
+          reviewBtn.disabled = false;
+          reviewBtn.textContent = originalLabel;
+        }
+      }
+
+      genBtn.addEventListener("click", () => generateFromDescription(false));
+      descInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") generateFromDescription(false);
+      });
+      reviewBtn.addEventListener("click", reviewCurrentRender);
+      regenBtn.addEventListener("click", () => generateFromDescription(true));
+
+      // ---------- Three.js 场景搭建 ----------
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0b0f16);
+
+      const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
+
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        preserveDrawingBuffer: true,
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      canvasHolder.appendChild(renderer.domElement);
+
+      scene.add(new THREE.HemisphereLight(0x8fa3bf, 0x0e131b, 0.7));
+      const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+      keyLight.position.set(3, 5, 4);
+      scene.add(keyLight);
+      const fillLight = new THREE.DirectionalLight(0x4488aa, 0.25);
+      fillLight.position.set(-4, 1, -3);
+      scene.add(fillLight);
+
+      const grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
+      scene.add(grid);
+
+      const modelGroup = new THREE.Group();
+      scene.add(modelGroup);
+
+      // ---------- 摄像机控制（拖拽转身 + 上下俯仰 + 滚轮/双指缩放）----------
+      let elevation = 0.35;
+      let camDistance = 3,
+        minDist = 0.5,
+        maxDist = 20;
+      const lookTarget = new THREE.Vector3(0, 0.4, 0);
+
+      function updateCamera() {
+        const h = camDistance * Math.cos(elevation);
+        const y = camDistance * Math.sin(elevation);
+        camera.position.set(lookTarget.x, lookTarget.y + y, lookTarget.z + h);
+        camera.lookAt(lookTarget);
+      }
+
+      const activePointers = new Map();
+      let dragging = false,
+        lastX = 0,
+        lastY = 0;
+      let pinchStartDist = null,
+        pinchStartCamDist = null;
+
+      function pointerDist() {
+        const pts = Array.from(activePointers.values());
+        return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      }
+      function clamp(v, a, b) {
+        return Math.max(a, Math.min(b, v));
+      }
+
+      canvasHolder.addEventListener("pointerdown", (e) => {
+        canvasHolder.setPointerCapture(e.pointerId);
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (activePointers.size === 1) {
+          dragging = true;
+          lastX = e.clientX;
+          lastY = e.clientY;
+        } else if (activePointers.size === 2) {
+          dragging = false;
+          pinchStartDist = pointerDist();
+          pinchStartCamDist = camDistance;
+        }
+      });
+      canvasHolder.addEventListener("pointermove", (e) => {
+        if (!activePointers.has(e.pointerId)) return;
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (activePointers.size === 2) {
+          const d = pointerDist();
+          camDistance = clamp(
+            pinchStartCamDist * (pinchStartDist / d),
+            minDist,
+            maxDist,
+          );
+          return;
+        }
+        if (dragging && activePointers.size === 1) {
+          const dx = e.clientX - lastX,
+            dy = e.clientY - lastY;
+          lastX = e.clientX;
+          lastY = e.clientY;
+          modelGroup.rotation.y += dx * 0.008;
+          elevation = clamp(elevation + dy * 0.008, -1.4, 1.4);
+        }
+      });
+      function endPointer(e) {
+        activePointers.delete(e.pointerId);
+        if (activePointers.size === 0) dragging = false;
+        else if (activePointers.size === 1) {
+          dragging = true;
+          const [p] = activePointers.values();
+          lastX = p.x;
+          lastY = p.y;
+        }
+      }
+      canvasHolder.addEventListener("pointerup", endPointer);
+      canvasHolder.addEventListener("pointercancel", endPointer);
+      canvasHolder.addEventListener(
+        "wheel",
+        (e) => {
+          e.preventDefault();
+          camDistance = clamp(
+            camDistance + e.deltaY * 0.0015 * camDistance,
+            minDist,
+            maxDist,
+          );
+        },
+        { passive: false },
+      );
+
+      // ---------- 运行用户代码 ----------
+      function clearModel() {
+        while (modelGroup.children.length) {
+          const obj = modelGroup.children.pop();
+          obj.traverse((o) => {
+            if (o.geometry) o.geometry.dispose();
+            if (o.material) {
+              (Array.isArray(o.material) ? o.material : [o.material]).forEach(
+                (m) => m.dispose(),
+              );
+            }
+          });
+        }
+      }
+
+      function fitCameraToObject(object) {
+        const box = new THREE.Box3().setFromObject(object);
+        if (box.isEmpty()) {
+          camDistance = 3;
+          lookTarget.set(0, 0.4, 0);
+          return;
+        }
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        const maxDim = Math.max(size.x, size.y, size.z) || 1;
+        const fitDist =
+          (maxDim / (2 * Math.tan((camera.fov * Math.PI) / 180 / 2))) * 1.8;
+        camDistance = fitDist;
+        minDist = fitDist * 0.15;
+        maxDist = fitDist * 8;
+        lookTarget.copy(center);
+      }
+
+      function updateStats(object) {
+        let tris = 0,
+          verts = 0;
+        object.traverse((o) => {
+          if (o.isMesh && o.geometry) {
+            const g = o.geometry;
+            const posCount = g.attributes.position
+              ? g.attributes.position.count
+              : 0;
+            verts += posCount;
+            tris += g.index ? g.index.count / 3 : posCount / 3;
+          }
+        });
+        triCountEl.textContent = Math.round(tris);
+        vertCountEl.textContent = verts;
+      }
+
+      function applyWireframe() {
+        modelGroup.traverse((o) => {
+          if (o.isMesh && o.material) {
+            (Array.isArray(o.material) ? o.material : [o.material]).forEach(
+              (m) => {
+                m.wireframe = wireframeToggle.checked;
+              },
+            );
+          }
+        });
+      }
+      wireframeToggle.addEventListener("change", applyWireframe);
+
+      function showError(msg) {
+        errorBox.textContent = msg;
+        errorBox.style.display = "block";
+      }
+      function clearError() {
+        errorBox.style.display = "none";
+        errorBox.textContent = "";
+      }
+
+      function runUserCode() {
+        try {
+          clearModel();
+          const code = codeEditor.value;
+          const fn = new Function(
+            "THREE",
+            code + "\n;return buildModel(THREE);",
+          );
+          const result = fn(THREE);
+          if (!result || !(result instanceof THREE.Object3D)) {
+            throw new Error(TRANSLATIONS[currentLang].errNotObject);
+          }
+          modelGroup.add(result);
+          applyWireframe();
+          fitCameraToObject(result);
+          updateStats(result);
+          clearError();
+        } catch (err) {
+          showError(err.message || String(err));
+        }
+      }
+
+      // ---------- 尺寸自适应 ----------
+      function onResize() {
+        const w = canvasHolder.clientWidth,
+          h = canvasHolder.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      }
+      new ResizeObserver(onResize).observe(canvasHolder);
+
+      // ---------- 渲染循环 ----------
+      function animate() {
+        requestAnimationFrame(animate);
+        if (previewPaneEl.classList.contains("tabHidden")) return;
+        updateCamera();
+        try {
+          renderer.render(scene, camera);
+        } catch (err) {
+          showError(
+            TRANSLATIONS[currentLang].errRender + (err.message || String(err)),
+          );
+        }
+      }
+
+      onResize();
+      runUserCode();
+      animate();
+    </script>
+  </body>
 </html>
