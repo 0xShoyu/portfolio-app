@@ -10,6 +10,9 @@ import {
   Sparkles,
   Loader2,
   Box,
+  CheckCircle2,
+  AlertCircle,
+  Wand2,
 } from "lucide-react";
 import {
   DEFAULT_CODE,
@@ -19,9 +22,6 @@ import {
   type Lang,
 } from "./modelGenerator.constants";
 
-// ==========================================
-// 1. Types & Interfaces
-// ==========================================
 interface Verdict {
   decision: "continue" | "refine";
   score: number;
@@ -34,8 +34,7 @@ interface Stats {
 }
 
 // ==========================================
-// 2. Custom Hook: Three.js Engine Logic
-// 核心逻辑分离：负责所有 Three.js 的初始化、渲染循环、相机控制和内存清理
+// 1. Custom Hook: Three.js Engine Logic
 // ==========================================
 function useThreeEngine(
   containerRef: React.RefObject<HTMLDivElement | null>,
@@ -55,7 +54,7 @@ function useThreeEngine(
           const mats = Array.isArray(o.material) ? o.material : [o.material];
           mats.forEach((m: any) => {
             m.dispose();
-            if (m.map) m.map.dispose(); // 防止贴图内存泄漏
+            if (m.map) m.map.dispose();
           });
         }
       });
@@ -87,12 +86,9 @@ function useThreeEngine(
         const result = fn(THREE);
 
         if (!result || !(result instanceof THREE.Object3D)) {
-          throw new Error(
-            "buildModel(THREE) must return a THREE.Object3D (Mesh or Group)",
-          );
+          throw new Error("buildModel(THREE) must return a THREE.Object3D");
         }
 
-        // 🌟 防呆设计：强制为所有生成的物体开启阴影接收与投射
         result.traverse((o: any) => {
           if (o instanceof THREE.Mesh) {
             o.castShadow = true;
@@ -103,7 +99,6 @@ function useThreeEngine(
         engine.modelGroup.add(result);
         applyWireframe(isWireframe);
 
-        // 计算包围盒并自动适配相机视角
         const box = new THREE.Box3().setFromObject(result);
         if (!box.isEmpty()) {
           const size = new THREE.Vector3();
@@ -120,7 +115,6 @@ function useThreeEngine(
           engine.lookTarget.copy(center);
         }
 
-        // 更新统计数据
         let tris = 0,
           verts = 0;
         result.traverse((o: any) => {
@@ -150,7 +144,6 @@ function useThreeEngine(
     return engine.renderer.domElement.toDataURL("image/png");
   }, []);
 
-  // 引擎初始化
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -165,17 +158,15 @@ function useThreeEngine(
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // 🌟 开启全局阴影映射 (Cozy 风格必备)
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
-    // 灯光系统
-    scene.add(new THREE.HemisphereLight(0x8fa3bf, 0x0e131b, 0.5)); // 降低环境光，增强阴影对比
+    scene.add(new THREE.HemisphereLight(0x8fa3bf, 0x0e131b, 0.5));
 
     const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
     keyLight.position.set(5, 8, 5);
-    keyLight.castShadow = true; // 🌟 开启主光阴影
+    keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 1024;
     keyLight.shadow.mapSize.height = 1024;
     keyLight.shadow.bias = -0.001;
@@ -185,24 +176,21 @@ function useThreeEngine(
     fillLight.position.set(-4, 1, -3);
     scene.add(fillLight);
 
-    // 地面系统
     const grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
     scene.add(grid);
 
-    // 🌟 阴影捕获层：放在网格下面，用来承接物体的阴影
     const shadowPlane = new THREE.Mesh(
       new THREE.PlaneGeometry(20, 20),
       new THREE.ShadowMaterial({ opacity: 0.6 }),
     );
     shadowPlane.rotation.x = -Math.PI / 2;
-    shadowPlane.position.y = -0.01; // 稍微下沉一点，避免和网格 Z-Fighting
+    shadowPlane.position.y = -0.01;
     shadowPlane.receiveShadow = true;
     scene.add(shadowPlane);
 
     const modelGroup = new THREE.Group();
     scene.add(modelGroup);
 
-    // 相机与控制状态
     const engineState = {
       scene,
       camera,
@@ -222,7 +210,6 @@ function useThreeEngine(
     };
     engineRef.current = engineState;
 
-    // 交互与渲染循环逻辑 (省略具体绑定，保持原有控制不变)
     function clamp(v: number, a: number, b: number) {
       return Math.max(a, Math.min(b, v));
     }
@@ -302,7 +289,6 @@ function useThreeEngine(
       );
       camera.lookAt(engineState.lookTarget);
 
-      // Auto-pan: 当没有交互时，模型自带缓慢自转，增加生命力
       if (!engineState.dragging) {
         engineState.rotY += 0.002;
       }
@@ -331,7 +317,7 @@ function useThreeEngine(
 }
 
 // ==========================================
-// 3. Sub-components (UI Separation)
+// 2. Sub-components (Unified UX)
 // ==========================================
 
 const Toolbar = ({
@@ -385,7 +371,8 @@ const Toolbar = ({
   </div>
 );
 
-const CodeEditorPanel = ({
+// 🌟 核心改进：统一的左侧指令与反馈控制塔 (Co-Pilot Hub)
+const ControlCoPilotPanel = ({
   t,
   code,
   setCode,
@@ -396,7 +383,15 @@ const CodeEditorPanel = ({
   description,
   setDescription,
   generating,
+  reviewing,
+  autoReview,
+  setAutoReview,
+  verdict,
+  feedbackInput,
+  setFeedbackInput,
   onGenerate,
+  onReview,
+  onRefine,
   onRun,
 }: any) => {
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -416,7 +411,8 @@ const CodeEditorPanel = ({
   };
 
   return (
-    <div className="flex flex-col border-b border-border/60 lg:w-[44%] lg:border-b-0 lg:border-r">
+    <div className="flex flex-col border-b border-border/60 lg:w-[46%] lg:border-b-0 lg:border-r bg-background/20">
+      {/* 🔑 API Key & Model Config */}
       <div className="flex flex-col gap-2.5 border-b border-border/60 bg-background/40 px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="text-xs">🔑</span>
@@ -440,98 +436,140 @@ const CodeEditorPanel = ({
             ))}
           </select>
         </div>
-        <p className="text-[10px] leading-snug text-muted">{t.keyHint}</p>
+      </div>
+
+      {/* 🚀 1. 提示词输入区 + 自动 Review 开关 */}
+      <div className="p-4 border-b border-border/60 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <Sparkles size={13} className="text-primary" /> Prompt / Prompt
+            Description
+          </label>
+          <label className="flex items-center gap-1.5 text-[11px] text-muted cursor-pointer hover:text-foreground">
+            <input
+              type="checkbox"
+              checked={autoReview}
+              onChange={(e) => setAutoReview(e.target.checked)}
+              className="rounded border-border text-primary focus:ring-0"
+            />
+            Auto Vision-Review
+          </label>
+        </div>
+
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && onGenerate(false)}
+            onKeyDown={(e) => e.key === "Enter" && onGenerate()}
             placeholder={t.descPlaceholder}
-            className="flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted focus:border-primary focus:outline-none"
+            className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted focus:border-primary focus:outline-none"
           />
           <button
-            onClick={() => onGenerate(false)}
-            disabled={generating}
-            className="flex items-center gap-1.5 whitespace-nowrap rounded-md border border-primary bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-50"
+            onClick={onGenerate}
+            disabled={generating || reviewing}
+            className="flex items-center gap-1.5 whitespace-nowrap rounded-md border border-primary bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-50"
           >
             {generating ? (
               <Loader2 size={13} className="animate-spin" />
             ) : (
-              <Sparkles size={13} />
+              <Wand2 size={13} />
             )}
             {t.generate}
           </button>
         </div>
       </div>
-      <p className="border-b border-border/60 px-4 py-2.5 text-[11px] leading-relaxed text-muted">
-        {t.hint}
-      </p>
-      <textarea
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        onKeyDown={handleKeyDown}
-        spellCheck={false}
-        className="h-[360px] w-full flex-1 resize-none bg-background px-4 py-3 font-mono text-[13px] leading-relaxed text-foreground focus:outline-none lg:h-[520px]"
-      />
+
+      {/* 🌟 2. 核心创新：统一的视觉评审与用户反馈修构 Hub */}
+      {(verdict || reviewing) && (
+        <div className="p-4 border-b border-border/60 bg-primary/5 flex flex-col gap-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1">
+                <Search size={13} className="text-primary" /> AI Vision Review
+              </span>
+              {verdict && (
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium border ${
+                    verdict.decision === "continue"
+                      ? "border-emerald-800 bg-emerald-950/50 text-emerald-400"
+                      : "border-amber-800 bg-amber-950/50 text-amber-400"
+                  }`}
+                >
+                  {verdict.decision === "continue" ? (
+                    <CheckCircle2 size={10} />
+                  ) : (
+                    <AlertCircle size={10} />
+                  )}
+                  {verdict.decision === "continue" ? "Pass" : "Needs Work"} (
+                  {Math.round(verdict.score * 100)}%)
+                </span>
+              )}
+            </div>
+
+            <button
+              onClick={onReview}
+              disabled={reviewing || generating}
+              className="text-[11px] text-muted hover:text-primary underline underline-offset-2 flex items-center gap-1"
+            >
+              {reviewing && <Loader2 size={11} className="animate-spin" />}{" "}
+              Re-Analyze
+            </button>
+          </div>
+
+          {/* 可编辑的修构反馈框 (融合 AI 意见 + 用户自定义要求) */}
+          <div className="flex flex-col gap-2">
+            <textarea
+              value={feedbackInput}
+              onChange={(e) => setFeedbackInput(e.target.value)}
+              placeholder="Critique & User Modifications..."
+              rows={2}
+              className="w-full rounded-md border border-border/80 bg-background/80 px-2.5 py-2 text-xs font-mono text-foreground placeholder:text-muted focus:border-primary focus:outline-none resize-none leading-relaxed"
+            />
+            <button
+              onClick={onRefine}
+              disabled={generating || reviewing || !feedbackInput.trim()}
+              className="flex items-center justify-center gap-1.5 w-full rounded-md border border-primary/60 bg-primary/10 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-40 transition-colors"
+            >
+              {generating ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <RotateCcw size={13} />
+              )}
+              Refine & Apply Changes
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 💻 3. Code Editor */}
+      <div className="flex-1 flex flex-col">
+        <div className="px-4 py-2 border-b border-border/40 text-[11px] text-muted flex items-center justify-between bg-background/30">
+          <span>JavaScript (Three.js)</span>
+          <span className="text-[10px] opacity-60">⌘/Ctrl+Enter to run</span>
+        </div>
+        <textarea
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          onKeyDown={handleKeyDown}
+          spellCheck={false}
+          className="h-[280px] w-full flex-1 resize-none bg-background/50 px-4 py-3 font-mono text-[12.5px] leading-relaxed text-foreground focus:outline-none lg:h-[380px]"
+        />
+      </div>
     </div>
   );
 };
 
-const PreviewPanel = ({
-  containerRef,
-  stats,
-  verdict,
-  error,
-  lastCritique,
-  reviewing,
-  onReview,
-  onRegenerate,
-  generating,
-  t,
-}: any) => (
+const PreviewPanel = ({ containerRef, stats, error, t }: any) => (
   <div className="relative min-h-[360px] flex-1 bg-background lg:min-h-[520px]">
     <div
       ref={containerRef}
       className="absolute inset-0"
       style={{ touchAction: "none" }}
     />
-    <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-col gap-2">
-      <div className="pointer-events-auto w-fit rounded-md border border-border bg-background/70 px-2.5 py-1.5 font-mono text-[11px] text-primary backdrop-blur-sm">
+    <div className="pointer-events-none absolute inset-x-3 top-3 flex justify-between items-center">
+      <div className="pointer-events-auto rounded-md border border-border bg-background/70 px-2.5 py-1.5 font-mono text-[11px] text-primary backdrop-blur-sm">
         {t.triangles}: {stats.triangles} | {t.vertices}: {stats.vertices}
-      </div>
-      <div className="pointer-events-auto flex flex-wrap items-center gap-2">
-        <button
-          onClick={onReview}
-          disabled={reviewing}
-          className="flex items-center gap-1.5 rounded-md border border-border bg-background/70 px-2.5 py-1.5 text-[11px] text-muted backdrop-blur-sm hover:text-foreground disabled:opacity-50"
-        >
-          {reviewing ? (
-            <Loader2 size={12} className="animate-spin" />
-          ) : (
-            <Search size={12} />
-          )}
-          {t.review}
-        </button>
-        {verdict?.decision === "refine" && (
-          <button
-            onClick={() => onRegenerate(true)}
-            disabled={generating}
-            className="flex items-center gap-1.5 rounded-md border border-primary/60 bg-primary/10 px-2.5 py-1.5 text-[11px] font-medium text-primary backdrop-blur-sm hover:bg-primary/20 disabled:opacity-50"
-          >
-            <RotateCcw size={12} /> {t.regenerate}
-          </button>
-        )}
-        {verdict && (
-          <span
-            className={`rounded-md border px-2.5 py-1.5 font-mono text-[11px] backdrop-blur-sm ${verdict.decision === "continue" ? "border-emerald-800 text-emerald-400" : "border-amber-800 text-amber-400"}`}
-          >
-            {verdict.decision === "continue"
-              ? t.verdictContinue
-              : t.verdictRefine}{" "}
-            ({Math.round(verdict.score * 100)}%)
-          </span>
-        )}
       </div>
     </div>
     {error && (
@@ -539,16 +577,11 @@ const PreviewPanel = ({
         {error}
       </div>
     )}
-    {!error && verdict?.decision === "refine" && lastCritique && (
-      <div className="absolute inset-x-0 bottom-0 max-h-[40%] overflow-y-auto whitespace-pre-wrap border-t border-primary/40 bg-background/95 px-4 py-3 font-mono text-xs text-primary">
-        💬 {lastCritique}
-      </div>
-    )}
   </div>
 );
 
 // ==========================================
-// 4. Main Export Component (The Glue)
+// 3. Main Export Component
 // ==========================================
 export function ModelGenerator() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -563,67 +596,84 @@ export function ModelGenerator() {
   const [stats, setStats] = useState<Stats>({ triangles: 0, vertices: 0 });
   const [error, setError] = useState<string | null>(null);
 
-  // AI Loop State
+  // UX & Agent State
+  const [autoReview, setAutoReview] = useState(true); // 默认开启自动视觉评审
   const [verdict, setVerdict] = useState<Verdict | null>(null);
-  const [lastCritique, setLastCritique] = useState("");
+  const [feedbackInput, setFeedbackInput] = useState(""); // 融合 AI 与用户输入的反馈框
   const [generating, setGenerating] = useState(false);
   const [reviewing, setReviewing] = useState(false);
 
   const t = TRANSLATIONS[lang];
-
-  // Use separated engine hook
   const engine = useThreeEngine(containerRef, setError, setStats);
 
-  // 初次加载默认模型
-  useEffect(() => {}, []);
+  // 1. 发起 Review
+  const triggerReview = async (customDesc?: string) => {
+    const descToUse = customDesc || description.trim();
+    if (!descToUse) return null;
 
-  const handleLangChange = (newLang: Lang) => {
-    if (isDefaultCode(code)) setCode(DEFAULT_CODE[newLang]);
-    setLang(newLang);
+    const screenshot = engine.captureImage();
+    if (!screenshot) return null;
+
+    setReviewing(true);
+    try {
+      const res = await fetch("/api/review-model", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: descToUse,
+          screenshot,
+          apiKey: apiKey.trim() || undefined,
+          model,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setVerdict(data);
+      if (data.critique) {
+        setFeedbackInput(data.critique); // 自动把 AI 评审填入可编辑框
+      }
+      return data;
+    } catch (err) {
+      setError(
+        "Review failed: " + (err instanceof Error ? err.message : String(err)),
+      );
+      return null;
+    } finally {
+      setReviewing(false);
+    }
   };
 
-  const handleWireframeToggle = (checked: boolean) => {
-    setWireframe(checked);
-    engine.applyWireframe(checked);
-  };
-
-  const handleClear = () => {
-    setCode("");
-    engine.clearModel();
-    setStats({ triangles: 0, vertices: 0 });
-    setError(null);
-    setVerdict(null);
-    setLastCritique("");
-  };
-
-  const handleGenerate = async (useFeedback: boolean) => {
+  // 2. 初次生成
+  const handleGenerate = async () => {
     const desc = description.trim();
     if (!desc) return setError("Enter a description first.");
 
     setGenerating(true);
     setError(null);
     setVerdict(null);
-    try {
-      const body = useFeedback
-        ? {
-            description: desc,
-            previousCode: code,
-            feedback: lastCritique,
-            apiKey: apiKey.trim() || undefined,
-            model,
-          }
-        : { description: desc, apiKey: apiKey.trim() || undefined, model };
+    setFeedbackInput("");
 
+    try {
       const res = await fetch("/api/generate-model", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          description: desc,
+          apiKey: apiKey.trim() || undefined,
+          model,
+        }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
       setCode(data.code);
       engine.executeCode(data.code, wireframe);
+
+      // 🌟 如果勾选了 Auto Vision-Review，生成完自动触发视觉评审！
+      if (autoReview) {
+        setTimeout(() => triggerReview(desc), 300);
+      }
     } catch (err) {
       setError(
         "Generate failed: " +
@@ -634,22 +684,23 @@ export function ModelGenerator() {
     }
   };
 
-  const handleReview = async () => {
-    if (!description.trim())
-      return setError(
-        "Enter a description above first, so Review knows what to check against.",
-      );
-    const screenshot = engine.captureImage();
-    if (!screenshot) return;
+  // 3. 带反馈的迭代生成 (Refine)
+  const handleRefine = async () => {
+    const desc = description.trim();
+    if (!desc) return setError("Enter a description first.");
+    if (!feedbackInput.trim()) return setError("Feedback is empty.");
 
-    setReviewing(true);
+    setGenerating(true);
+    setError(null);
+
     try {
-      const res = await fetch("/api/review-model", {
+      const res = await fetch("/api/generate-model", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          description: description.trim(),
-          screenshot,
+          description: desc,
+          previousCode: code,
+          feedback: feedbackInput.trim(), // 🌟 发送用户/AI 共同修改后的反馈
           apiKey: apiKey.trim() || undefined,
           model,
         }),
@@ -657,17 +708,34 @@ export function ModelGenerator() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
-      setVerdict(data);
-      setLastCritique(
-        data.decision === "refine" && data.critique ? data.critique : "",
-      );
+      setCode(data.code);
+      engine.executeCode(data.code, wireframe);
+
+      // 迭代后再次自动 Review 检查结果
+      if (autoReview) {
+        setTimeout(() => triggerReview(desc), 300);
+      }
     } catch (err) {
       setError(
-        "Review failed: " + (err instanceof Error ? err.message : String(err)),
+        "Refine failed: " + (err instanceof Error ? err.message : String(err)),
       );
     } finally {
-      setReviewing(false);
+      setGenerating(false);
     }
+  };
+
+  const handleLangChange = (newLang: Lang) => {
+    if (isDefaultCode(code)) setCode(DEFAULT_CODE[newLang]);
+    setLang(newLang);
+  };
+
+  const handleClear = () => {
+    setCode("");
+    engine.clearModel();
+    setStats({ triangles: 0, vertices: 0 });
+    setError(null);
+    setVerdict(null);
+    setFeedbackInput("");
   };
 
   return (
@@ -677,12 +745,15 @@ export function ModelGenerator() {
         lang={lang}
         setLang={handleLangChange}
         wireframe={wireframe}
-        setWireframe={handleWireframeToggle}
+        setWireframe={(checked: boolean) => {
+          setWireframe(checked);
+          engine.applyWireframe(checked);
+        }}
         onClear={handleClear}
         onRun={() => engine.executeCode(code, wireframe)}
       />
       <div className="flex flex-col lg:flex-row">
-        <CodeEditorPanel
+        <ControlCoPilotPanel
           t={t}
           code={code}
           setCode={setCode}
@@ -693,19 +764,21 @@ export function ModelGenerator() {
           description={description}
           setDescription={setDescription}
           generating={generating}
+          reviewing={reviewing}
+          autoReview={autoReview}
+          setAutoReview={setAutoReview}
+          verdict={verdict}
+          feedbackInput={feedbackInput}
+          setFeedbackInput={setFeedbackInput}
           onGenerate={handleGenerate}
+          onReview={() => triggerReview()}
+          onRefine={handleRefine}
           onRun={() => engine.executeCode(code, wireframe)}
         />
         <PreviewPanel
           containerRef={containerRef}
           stats={stats}
-          verdict={verdict}
           error={error}
-          lastCritique={lastCritique}
-          reviewing={reviewing}
-          generating={generating}
-          onReview={handleReview}
-          onRegenerate={handleGenerate}
           t={t}
         />
       </div>
