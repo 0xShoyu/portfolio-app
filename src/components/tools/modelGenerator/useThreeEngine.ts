@@ -1,0 +1,285 @@
+"use client";
+
+import { useCallback, useEffect, useRef } from "react";
+import * as THREE from "three";
+import type { Stats } from "./types";
+
+export function useThreeEngine(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  onError: (err: string | null) => void,
+  onStatsUpdate: (stats: Stats) => void,
+) {
+  const engineRef = useRef<any>(null);
+
+  const clearModel = useCallback(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    while (engine.modelGroup.children.length) {
+      const obj = engine.modelGroup.children.pop()!;
+      obj.traverse((o: any) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) {
+          const mats = Array.isArray(o.material) ? o.material : [o.material];
+          mats.forEach((m: any) => {
+            m.dispose();
+            if (m.map) m.map.dispose();
+          });
+        }
+      });
+    }
+  }, []);
+
+  const applyWireframe = useCallback((wf: boolean) => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.modelGroup.traverse((o: any) => {
+      if (o.isMesh && o.material) {
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach((m: any) => (m.wireframe = wf));
+      }
+    });
+  }, []);
+
+  const executeCode = useCallback(
+    (codeStr: string, isWireframe: boolean) => {
+      const engine = engineRef.current;
+      if (!engine) return;
+      try {
+        clearModel();
+        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+        const fn = new Function(
+          "THREE",
+          codeStr + "\n;return buildModel(THREE);",
+        );
+        const result = fn(THREE);
+
+        if (!result || !(result instanceof THREE.Object3D)) {
+          throw new Error("buildModel(THREE) must return a THREE.Object3D");
+        }
+
+        result.traverse((o: any) => {
+          if (o instanceof THREE.Mesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+          }
+        });
+
+        engine.modelGroup.add(result);
+        applyWireframe(isWireframe);
+
+        const box = new THREE.Box3().setFromObject(result);
+        if (!box.isEmpty()) {
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          const center = new THREE.Vector3();
+          box.getCenter(center);
+          const maxDim = Math.max(size.x, size.y, size.z) || 1;
+          const fitDist =
+            (maxDim / (2 * Math.tan((engine.camera.fov * Math.PI) / 180 / 2))) *
+            1.8;
+          engine.camDistance = fitDist;
+          engine.minDist = fitDist * 0.15;
+          engine.maxDist = fitDist * 8;
+          engine.lookTarget.copy(center);
+        }
+
+        let tris = 0,
+          verts = 0;
+        result.traverse((o: any) => {
+          if (o.isMesh && o.geometry) {
+            const posCount = o.geometry.attributes.position
+              ? o.geometry.attributes.position.count
+              : 0;
+            verts += posCount;
+            tris += o.geometry.index
+              ? o.geometry.index.count / 3
+              : posCount / 3;
+          }
+        });
+        onStatsUpdate({ triangles: Math.round(tris), vertices: verts });
+        onError(null);
+      } catch (err) {
+        onError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [clearModel, applyWireframe, onError, onStatsUpdate],
+  );
+
+  const captureImage = useCallback(() => {
+    const engine = engineRef.current;
+    if (!engine) return null;
+    engine.renderer.render(engine.scene, engine.camera);
+    return engine.renderer.domElement.toDataURL("image/png");
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b0f16);
+
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      preserveDrawingBuffer: true,
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    scene.add(new THREE.HemisphereLight(0x8fa3bf, 0x0e131b, 0.5));
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    keyLight.position.set(5, 8, 5);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 1024;
+    keyLight.shadow.mapSize.height = 1024;
+    keyLight.shadow.bias = -0.001;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x4488aa, 0.3);
+    fillLight.position.set(-4, 1, -3);
+    scene.add(fillLight);
+
+    const grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
+    scene.add(grid);
+
+    const shadowPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(20, 20),
+      new THREE.ShadowMaterial({ opacity: 0.6 }),
+    );
+    shadowPlane.rotation.x = -Math.PI / 2;
+    shadowPlane.position.y = -0.01;
+    shadowPlane.receiveShadow = true;
+    scene.add(shadowPlane);
+
+    const modelGroup = new THREE.Group();
+    scene.add(modelGroup);
+
+    const engineState = {
+      scene,
+      camera,
+      renderer,
+      modelGroup,
+      rotY: 0,
+      elevation: 0.35,
+      camDistance: 3,
+      minDist: 0.5,
+      maxDist: 20,
+      lookTarget: new THREE.Vector3(0, 0.4, 0),
+      dragging: false,
+      lastX: 0,
+      lastY: 0,
+      activePointers: new Map(),
+      frameId: 0,
+    };
+    engineRef.current = engineState;
+
+    function clamp(v: number, a: number, b: number) {
+      return Math.max(a, Math.min(b, v));
+    }
+
+    function onPointerDown(e: PointerEvent) {
+      container!.setPointerCapture(e.pointerId);
+      engineState.activePointers.set(e.pointerId, {
+        x: e.clientX,
+        y: e.clientY,
+      });
+      if (engineState.activePointers.size === 1) {
+        engineState.dragging = true;
+        engineState.lastX = e.clientX;
+        engineState.lastY = e.clientY;
+      }
+    }
+
+    function onPointerMove(e: PointerEvent) {
+      if (!engineState.activePointers.has(e.pointerId)) return;
+      engineState.activePointers.set(e.pointerId, {
+        x: e.clientX,
+        y: e.clientY,
+      });
+      if (engineState.dragging && engineState.activePointers.size === 1) {
+        const dx = e.clientX - engineState.lastX;
+        const dy = e.clientY - engineState.lastY;
+        engineState.lastX = e.clientX;
+        engineState.lastY = e.clientY;
+        engineState.rotY += dx * 0.008;
+        engineState.elevation = clamp(
+          engineState.elevation + dy * 0.008,
+          -1.4,
+          1.4,
+        );
+      }
+    }
+
+    function onPointerUp(e: PointerEvent) {
+      engineState.activePointers.delete(e.pointerId);
+      engineState.dragging = engineState.activePointers.size > 0;
+    }
+
+    function onWheel(e: WheelEvent) {
+      e.preventDefault();
+      engineState.camDistance = clamp(
+        engineState.camDistance + e.deltaY * 0.0015 * engineState.camDistance,
+        engineState.minDist,
+        engineState.maxDist,
+      );
+    }
+
+    container.addEventListener("pointerdown", onPointerDown);
+    container.addEventListener("pointermove", onPointerMove);
+    container.addEventListener("pointerup", onPointerUp);
+    container.addEventListener("wheel", onWheel, { passive: false });
+
+    function onResize() {
+      const w = container!.clientWidth,
+        h = container!.clientHeight;
+      if (w === 0 || h === 0) return;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+    const resizeObserver = new ResizeObserver(onResize);
+    resizeObserver.observe(container);
+    onResize();
+
+    function animate() {
+      engineState.frameId = requestAnimationFrame(animate);
+      const h = engineState.camDistance * Math.cos(engineState.elevation);
+      const y = engineState.camDistance * Math.sin(engineState.elevation);
+      camera.position.set(
+        engineState.lookTarget.x,
+        engineState.lookTarget.y + y,
+        engineState.lookTarget.z + h,
+      );
+      camera.lookAt(engineState.lookTarget);
+
+      if (!engineState.dragging) {
+        engineState.rotY += 0.002;
+      }
+      modelGroup.rotation.y = engineState.rotY;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    return () => {
+      cancelAnimationFrame(engineState.frameId);
+      resizeObserver.disconnect();
+      container.removeEventListener("pointerdown", onPointerDown);
+      container.removeEventListener("pointermove", onPointerMove);
+      container.removeEventListener("pointerup", onPointerUp);
+      container.removeEventListener("wheel", onWheel);
+      renderer.dispose();
+      if (renderer.domElement.parentElement === container) {
+        container.removeChild(renderer.domElement);
+      }
+      engineRef.current = null;
+    };
+  }, []);
+
+  return { executeCode, clearModel, captureImage, applyWireframe };
+}
