@@ -930,13 +930,13 @@ export function ControlCoPilotPanel({
         </div>
       </div>
 
-      {/* 🌟 视觉评审与修改反馈 Hub */}
-      {(verdict || reviewing) && (
-        <div className="p-4 border-b border-border/60 bg-primary/5 flex flex-col gap-2.5">
+      {/* 🌟 视觉评审与修改反馈 Hub (只要有代码就常驻显示) */}
+      {code && (
+        <div className="p-4 border-b border-border/60 bg-primary/5 flex flex-col gap-2.5 transition-all duration-300">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <Search size={13} className="text-primary" /> AI Vision Review
+                <Search size={13} className="text-primary" /> Review & Refine
               </span>
               {verdict && (
                 <span
@@ -957,13 +957,18 @@ export function ControlCoPilotPanel({
               )}
             </div>
 
+            {/* 常驻的手动 Review 触发按钮 */}
             <button
               onClick={onReview}
               disabled={reviewing || generating}
-              className="text-[11px] text-muted hover:text-primary underline underline-offset-2 flex items-center gap-1"
+              className="text-[11px] font-medium text-muted hover:text-primary underline underline-offset-2 flex items-center gap-1"
             >
-              {reviewing && <Loader2 size={11} className="animate-spin" />}{" "}
-              Re-Analyze
+              {reviewing ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Search size={11} />
+              )}
+              {verdict ? "Re-Analyze" : "Analyze Render"}
             </button>
           </div>
 
@@ -971,7 +976,11 @@ export function ControlCoPilotPanel({
             <textarea
               value={feedbackInput}
               onChange={(e) => setFeedbackInput(e.target.value)}
-              placeholder="Critique & User Modifications..."
+              placeholder={
+                verdict
+                  ? "Critique & User Modifications..."
+                  : "Enter manual tweaks here, or click Analyze to get AI feedback..."
+              }
               rows={2}
               className="w-full rounded-md border border-border/80 bg-background/80 px-2.5 py-2 text-xs font-mono text-foreground placeholder:text-muted focus:border-primary focus:outline-none resize-none leading-relaxed"
             />
@@ -1278,10 +1287,72 @@ export function useThreeEngine(
       if (!engine) return;
       try {
         clearModel();
+
+        // 🌟 核心魔法：预置注入高级几何体辅助函数库
+        const HELPER_FUNCTIONS = `
+          function buildExtrudeShape(points, holes) {
+            const shape = new THREE.Shape();
+            if (points.length > 0) {
+              shape.moveTo(points[0][0], points[0][1]);
+              for (let i = 1; i < points.length; i++) shape.lineTo(points[i][0], points[i][1]);
+            }
+            for (const loop of holes ?? []) {
+              if (loop.length < 3) continue;
+              const path = new THREE.Path();
+              path.moveTo(loop[0][0], loop[0][1]);
+              for (let i = 1; i < loop.length; i++) path.lineTo(loop[i][0], loop[i][1]);
+              path.closePath();
+              shape.holes.push(path);
+            }
+            return shape;
+          }
+
+          function ovalLoop(cx, cy, rx, ry, seg = 24) {
+            const loop = [];
+            for (let i = 0; i < seg; i++) {
+              const a = (i / seg) * Math.PI * 2;
+              loop.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
+            }
+            return loop;
+          }
+
+          function buildExtrudeGeometry(profile) {
+            const holes = [...(profile.holes ?? []), ...((profile.ovalHoles ?? []).map(o => ovalLoop(o.cx, o.cy, o.rx, o.ry)))];
+            const shape = buildExtrudeShape(profile.points, holes);
+            return new THREE.ExtrudeGeometry(shape, { depth: profile.depth, bevelEnabled: false, steps: 1 });
+          }
+
+          function buildCurveSweepGeometry(sweep) {
+            const shape = new THREE.Shape();
+            const cs = sweep.crossSection.points;
+            if (cs.length > 0) {
+              shape.moveTo(cs[0][0], cs[0][1]);
+              for (let i = 1; i < cs.length; i++) shape.lineTo(cs[i][0], cs[i][1]);
+              shape.closePath();
+            }
+            const spine = sweep.spine.map(p => new THREE.Vector3(p[0], p[1], p[2]));
+            const path = new THREE.CatmullRomCurve3(spine, sweep.closed ?? false);
+            return new THREE.ExtrudeGeometry(shape, { extrudePath: path, steps: Math.max(24, spine.length * 8), bevelEnabled: false });
+          }
+
+          function buildLatheGeometry(profile) {
+            const points = profile.points.map(p => new THREE.Vector2(Math.max(0.0001, p[0]), p[1]));
+            return new THREE.LatheGeometry(points, profile.segments ?? 24);
+          }
+
+          function buildTubeGeometry(path) {
+            const vectors = path.points.map(p => new THREE.Vector3(p[0], p[1], p[2]));
+            const curve = new THREE.CatmullRomCurve3(vectors, path.closed ?? false);
+            const tubularSegments = Math.max(8, path.points.length * 6);
+            return new THREE.TubeGeometry(curve, tubularSegments, path.radius ?? 0.05, path.radialSegments ?? 8, path.closed ?? false);
+          }
+        `;
+
+        // 将助手函数和用户的代码拼接起来一起放入引擎执行
         // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
         const fn = new Function(
           "THREE",
-          codeStr + "\n;return buildModel(THREE);",
+          HELPER_FUNCTIONS + "\n" + codeStr + "\n;return buildModel(THREE);",
         );
         const result = fn(THREE);
 
@@ -2324,30 +2395,32 @@ const SYSTEM_PROMPT = `You are a code generator, not a conversational assistant.
 
 The user's input is a description of a physical object to model in 3D. You must build it in a premium "Cozy Low-Poly" art style (similar to classic faceted low-poly game assets).
 
-Before writing code, think about the most distinctive silhouette of the object. Do NOT just stack 3-4 giant boxes (that looks like a cheap matchbox). Instead, use 15 to 30 thoughtfully placed, well-proportioned small primitives to create composition and micro-details (e.g., window frames, separate roof tiles, bumpers, rims, door handles, straps, joints). Keep it structured and clean, not chaotic.
+Before writing code, think about the most distinctive silhouette of the object. Do NOT just stack 3-4 giant boxes (that looks like a cheap matchbox). Instead, use 15 to 30 thoughtfully placed, well-proportioned small primitives to create composition and micro-details.
 
 Strict Rules for the Cozy Low-Poly style:
-
 1. Output ONLY a single function named exactly: function buildModel(THREE) { ... }
-
 2. It must return a THREE.Object3D (a THREE.Group or THREE.Mesh).
-
 3. Allowed geometries ONLY: THREE.BoxGeometry, THREE.CylinderGeometry, THREE.ConeGeometry, THREE.IcosahedronGeometry, THREE.DodecahedronGeometry, THREE.SphereGeometry.
-
-4. Faceted curves & Limbs: You MUST NOT use smooth curves. When using THREE.CylinderGeometry or THREE.ConeGeometry, you MUST set radialSegments to a low number like 6, 8, or 10 (e.g., new THREE.CylinderGeometry(0.5, 0.5, 1, 8)).
-
-5. Heads, Helmets & Visors: To get the classic faceted look for heads or helmets, use low-segment geometries (e.g., new THREE.SphereGeometry(r, 10, 10) or THREE.IcosahedronGeometry(r, 1)) scaled with \`mesh.scale.set(x, y, z)\`.
-CRITICAL FOR VISORS/FACES: If the helmet has a visor, face, or screen, you MUST create a separate contrasting dark mesh and place it significantly FORWARD on the Z-axis (e.g., posZ = +0.25 to +0.4) so it clearly protrudes out of the helmet and is not buried inside!
-
+   (You can also use custom helpers \`buildCurveSweepGeometry(sweep)\` and \`buildExtrudeGeometry(profile)\` which are already injected into your environment).
+4. Vehicles & Cars (THE TRAPEZOID TEMPLATE - CRITICAL):
+   NEVER use a simple Box for a car cabin (it creates ugly 90-degree vertical windshields). You MUST use this exact 4-sided cylinder trick to create slanted windshields:
+   - Top radius MUST be smaller than bottom radius.
+   - You MUST scale the mesh on the Z-axis so it forms a rectangular cabin.
+   USE THIS EXACT LOGIC STRUCTURE:
+   const cabGeo = new THREE.CylinderGeometry(0.5, 0.7, 0.5, 4);
+   cabGeo.rotateY(Math.PI / 4); // Turns it into a sloped trapezoid!
+   const cabin = new THREE.Mesh(cabGeo, bodyMaterial);
+   cabin.scale.set(1, 1, 1.8); // Stretch length to match car
+   const winGeo = new THREE.CylinderGeometry(0.52, 0.72, 0.35, 4); // Slightly larger
+   winGeo.rotateY(Math.PI / 4);
+   const windows = new THREE.Mesh(winGeo, darkWindowMaterial); // Material MUST have polygonOffset
+   windows.scale.set(1, 1, 1.8);
+5. Heads, Helmets & Organic Shapes: ALWAYS use \`mesh.scale.set(x, y, z)\` on Spheres/Icosahedrons to squash or stretch them.
 6. Materials & Anti-Clipping: ONLY use THREE.MeshStandardMaterial with { flatShading: true, roughness: 0.9, metalness: 0.05 }.
-CRITICAL FOR VISORS/DECALS/WINDOWS: To prevent Z-fighting and mesh clipping (穿模) when overlaying details (like visors on helmets), ALWAYS set { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 } on the overlying detail material (e.g., visorMat), OR make the detail mesh thick enough to fully clear the base geometry.
-
+   CRITICAL FOR WINDOWS/DECALS: To prevent Z-fighting, ALWAYS set { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 } on the overlying detail material (like dark window material).
 7. Shadows: Every single mesh you create MUST have \`mesh.castShadow = true\` and \`mesh.receiveShadow = true\`.
-
-8. Colors: Use warm, pastel, cohesive color palettes (e.g., warm woods, terracotta, muted greens, soft greys). Limit to 5-6 distinct colors per model so it doesn't look messy.
-
-9. Keep the code organized. Group related parts (e.g., all 4 wheels of a car, left arm, right leg) logically.
-
+8. Colors: Use warm, pastel, cohesive color palettes. Limit to 5-6 distinct colors.
+9. Keep the code organized. Group related parts logically.
 10. Do NOT wrap the code in markdown fences. Output ONLY raw JavaScript code.`;
 
 export async function POST(req: NextRequest) {

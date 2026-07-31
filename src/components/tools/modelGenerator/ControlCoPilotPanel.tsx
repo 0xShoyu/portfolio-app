@@ -126,13 +126,13 @@ export function ControlCoPilotPanel({
         </div>
       </div>
 
-      {/* 🌟 视觉评审与修改反馈 Hub */}
-      {(verdict || reviewing) && (
-        <div className="p-4 border-b border-border/60 bg-primary/5 flex flex-col gap-2.5">
+      {/* 🌟 视觉评审与修改反馈 Hub (只要有代码就常驻显示) */}
+      {code && (
+        <div className="p-4 border-b border-border/60 bg-primary/5 flex flex-col gap-2.5 transition-all duration-300">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <Search size={13} className="text-primary" /> AI Vision Review
+                <Search size={13} className="text-primary" /> Review & Refine
               </span>
               {verdict && (
                 <span
@@ -153,13 +153,18 @@ export function ControlCoPilotPanel({
               )}
             </div>
 
+            {/* 常驻的手动 Review 触发按钮 */}
             <button
               onClick={onReview}
               disabled={reviewing || generating}
-              className="text-[11px] text-muted hover:text-primary underline underline-offset-2 flex items-center gap-1"
+              className="text-[11px] font-medium text-muted hover:text-primary underline underline-offset-2 flex items-center gap-1"
             >
-              {reviewing && <Loader2 size={11} className="animate-spin" />}{" "}
-              Re-Analyze
+              {reviewing ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Search size={11} />
+              )}
+              {verdict ? "Re-Analyze" : "Analyze Render"}
             </button>
           </div>
 
@@ -167,7 +172,11 @@ export function ControlCoPilotPanel({
             <textarea
               value={feedbackInput}
               onChange={(e) => setFeedbackInput(e.target.value)}
-              placeholder="Critique & User Modifications..."
+              placeholder={
+                verdict
+                  ? "Critique & User Modifications..."
+                  : "Enter manual tweaks here, or click Analyze to get AI feedback..."
+              }
               rows={2}
               className="w-full rounded-md border border-border/80 bg-background/80 px-2.5 py-2 text-xs font-mono text-foreground placeholder:text-muted focus:border-primary focus:outline-none resize-none leading-relaxed"
             />

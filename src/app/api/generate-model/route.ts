@@ -5,31 +5,36 @@ const SYSTEM_PROMPT = `You are a code generator, not a conversational assistant.
 
 The user's input is a description of a physical object to model in 3D. You must build it in a premium "Cozy Low-Poly" art style (similar to classic faceted low-poly game assets).
 
-Before writing code, think about the most distinctive silhouette of the object. Do NOT just stack 3-4 giant boxes (that looks like a cheap matchbox). Instead, use 15 to 30 thoughtfully placed, well-proportioned small primitives to create composition and micro-details (e.g., window frames, separate roof tiles, bumpers, rims, door handles, straps, joints). Keep it structured and clean, not chaotic.
+Before writing code, think about the most distinctive silhouette of the object. Do NOT just stack 3-4 giant boxes. Instead, use 15 to 30 thoughtfully placed, well-proportioned small primitives to create composition and micro-details.
 
 Strict Rules for the Cozy Low-Poly style:
-
 1. Output ONLY a single function named exactly: function buildModel(THREE) { ... }
-
 2. It must return a THREE.Object3D (a THREE.Group or THREE.Mesh).
-
 3. Allowed geometries ONLY: THREE.BoxGeometry, THREE.CylinderGeometry, THREE.ConeGeometry, THREE.IcosahedronGeometry, THREE.DodecahedronGeometry, THREE.SphereGeometry.
-
-4. Faceted curves & Limbs: You MUST NOT use smooth curves. When using THREE.CylinderGeometry or THREE.ConeGeometry, you MUST set radialSegments to a low number like 6, 8, or 10 (e.g., new THREE.CylinderGeometry(0.5, 0.5, 1, 8)).
-
-5. Heads, Helmets & Visors: To get the classic faceted look for heads or helmets, use low-segment geometries (e.g., new THREE.SphereGeometry(r, 10, 10) or THREE.IcosahedronGeometry(r, 1)) scaled with \`mesh.scale.set(x, y, z)\`.
-CRITICAL FOR VISORS/FACES: If the helmet has a visor, face, or screen, you MUST create a separate contrasting dark mesh and place it significantly FORWARD on the Z-axis (e.g., posZ = +0.25 to +0.4) so it clearly protrudes out of the helmet and is not buried inside!
-
+   (You can also use custom helpers \`buildCurveSweepGeometry(sweep)\` and \`buildExtrudeGeometry(profile)\` which are already injected into your environment).
+4. Vehicles & Car Cabins (THE TRAPEZOID TEMPLATE - CRITICAL):
+   NEVER use a simple Box for a car cabin (it creates ugly 90-degree vertical windshields). You MUST use this exact 4-sided cylinder trick to create slanted windshields:
+   - Top radius MUST be smaller than bottom radius!
+   - You MUST scale the mesh on the Z-axis so it forms a rectangular cabin.
+   USE THIS EXACT LOGIC STRUCTURE:
+   const cabGeo = new THREE.CylinderGeometry(0.5, 0.7, 0.5, 4);
+   cabGeo.rotateY(Math.PI / 4); // Turns it into a sloped trapezoid!
+   const cabin = new THREE.Mesh(cabGeo, bodyMaterial);
+   cabin.scale.set(1, 1, 1.8); // Stretch length to match car
+   const winGeo = new THREE.CylinderGeometry(0.52, 0.72, 0.35, 4); // Slightly larger
+   winGeo.rotateY(Math.PI / 4);
+   const windows = new THREE.Mesh(winGeo, darkWindowMaterial); // Material MUST have polygonOffset
+   windows.scale.set(1, 1, 1.8);
+5. Heads, Helmets & Organic Shapes: Use low-segment geometries (e.g., new THREE.SphereGeometry(r, 10, 10)). ALWAYS use \`mesh.scale.set(x, y, z)\` to squash or stretch them to make them look stylized.
 6. Materials & Anti-Clipping: ONLY use THREE.MeshStandardMaterial with { flatShading: true, roughness: 0.9, metalness: 0.05 }.
-CRITICAL FOR VISORS/DECALS/WINDOWS: To prevent Z-fighting and mesh clipping (穿模) when overlaying details (like visors on helmets), ALWAYS set { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 } on the overlying detail material (e.g., visorMat), OR make the detail mesh thick enough to fully clear the base geometry.
-
+   CRITICAL FOR WINDOWS/DECALS: To prevent Z-fighting, ALWAYS set { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 } on the overlying detail material (like dark window material).
 7. Shadows: Every single mesh you create MUST have \`mesh.castShadow = true\` and \`mesh.receiveShadow = true\`.
-
-8. Colors: Use warm, pastel, cohesive color palettes (e.g., warm woods, terracotta, muted greens, soft greys). Limit to 5-6 distinct colors per model so it doesn't look messy.
-
-9. Keep the code organized. Group related parts (e.g., all 4 wheels of a car, left arm, right leg) logically.
-
-10. Do NOT wrap the code in markdown fences. Output ONLY raw JavaScript code.`;
+8. Colors: Use warm, pastel, cohesive color palettes. Limit to 5-6 distinct colors.
+9. Keep the code organized. Group related parts logically.
+10. STRICT VARIABLE DECLARATIONS: Always declare every group, material, or mesh variable with \`const\` BEFORE adding children to it or referencing it (e.g., \`const paperMenuGroup = new THREE.Group();\`). Never use undeclared variables.
+11. NO MARKDOWN, NO CONVERSATION: Output ONLY raw executable JS starting with \`function buildModel(THREE)\`. Absolutely NO intro/outro text!
+12. STRICT VARIABLE DECLARATIONS: Always declare every group, material, or mesh variable with \`const\` BEFORE adding children to it or referencing it (e.g., \`const paperMenuGroup = new THREE.Group();\`). Never use undeclared variables.
+`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,17 +63,29 @@ export async function POST(req: NextRequest) {
       config: { systemInstruction: SYSTEM_PROMPT, temperature: 0.8 },
     });
 
-    let code = (response.text ?? "").trim();
-    code = code
-      .replace(/^```(?:javascript|js)?\n?/i, "")
-      .replace(/```$/i, "")
-      .trim();
+    const responseText = response.text ?? "";
+
+    // 🌟 第一重清洗：如果包含 ```javascript ... ``` 标签，强行提炼内部代码
+    const markdownMatch = responseText.match(
+      /```(?:javascript|js)?\s*([\s\S]*?)\s*```/i,
+    );
+    let code = markdownMatch ? markdownMatch[1].trim() : responseText.trim();
+
+    // 🌟 第二重清洗：强行从 function buildModel(THREE) 截取到最后一个结束花括号 }
+    const fnMatch = code.match(/function\s+buildModel\s*\([\s\S]*/);
+    if (fnMatch) {
+      code = fnMatch[0].trim();
+      const lastBraceIndex = code.lastIndexOf("}");
+      if (lastBraceIndex !== -1) {
+        code = code.slice(0, lastBraceIndex + 1).trim();
+      }
+    }
 
     if (!/function\s+buildModel\s*\(/.test(code)) {
       return NextResponse.json(
         {
           error:
-            "The model returned something that isn't code — try rephrasing your description.",
+            "The model returned something that isn't valid code — try rephrasing your description.",
         },
         { status: 502 },
       );

@@ -41,15 +41,77 @@ export function useThreeEngine(
   }, []);
 
   const executeCode = useCallback(
-    (codeStr: string, isWireframe: boolean) => {
+    (codeStr: string, isWireframe: boolean): boolean => {
       const engine = engineRef.current;
       if (!engine) return;
       try {
         clearModel();
+
+        // 🌟 核心魔法：预置注入高级几何体辅助函数库
+        const HELPER_FUNCTIONS = `
+          function buildExtrudeShape(points, holes) {
+            const shape = new THREE.Shape();
+            if (points.length > 0) {
+              shape.moveTo(points[0][0], points[0][1]);
+              for (let i = 1; i < points.length; i++) shape.lineTo(points[i][0], points[i][1]);
+            }
+            for (const loop of holes ?? []) {
+              if (loop.length < 3) continue;
+              const path = new THREE.Path();
+              path.moveTo(loop[0][0], loop[0][1]);
+              for (let i = 1; i < loop.length; i++) path.lineTo(loop[i][0], loop[i][1]);
+              path.closePath();
+              shape.holes.push(path);
+            }
+            return shape;
+          }
+
+          function ovalLoop(cx, cy, rx, ry, seg = 24) {
+            const loop = [];
+            for (let i = 0; i < seg; i++) {
+              const a = (i / seg) * Math.PI * 2;
+              loop.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
+            }
+            return loop;
+          }
+
+          function buildExtrudeGeometry(profile) {
+            const holes = [...(profile.holes ?? []), ...((profile.ovalHoles ?? []).map(o => ovalLoop(o.cx, o.cy, o.rx, o.ry)))];
+            const shape = buildExtrudeShape(profile.points, holes);
+            return new THREE.ExtrudeGeometry(shape, { depth: profile.depth, bevelEnabled: false, steps: 1 });
+          }
+
+          function buildCurveSweepGeometry(sweep) {
+            const shape = new THREE.Shape();
+            const cs = sweep.crossSection.points;
+            if (cs.length > 0) {
+              shape.moveTo(cs[0][0], cs[0][1]);
+              for (let i = 1; i < cs.length; i++) shape.lineTo(cs[i][0], cs[i][1]);
+              shape.closePath();
+            }
+            const spine = sweep.spine.map(p => new THREE.Vector3(p[0], p[1], p[2]));
+            const path = new THREE.CatmullRomCurve3(spine, sweep.closed ?? false);
+            return new THREE.ExtrudeGeometry(shape, { extrudePath: path, steps: Math.max(24, spine.length * 8), bevelEnabled: false });
+          }
+
+          function buildLatheGeometry(profile) {
+            const points = profile.points.map(p => new THREE.Vector2(Math.max(0.0001, p[0]), p[1]));
+            return new THREE.LatheGeometry(points, profile.segments ?? 24);
+          }
+
+          function buildTubeGeometry(path) {
+            const vectors = path.points.map(p => new THREE.Vector3(p[0], p[1], p[2]));
+            const curve = new THREE.CatmullRomCurve3(vectors, path.closed ?? false);
+            const tubularSegments = Math.max(8, path.points.length * 6);
+            return new THREE.TubeGeometry(curve, tubularSegments, path.radius ?? 0.05, path.radialSegments ?? 8, path.closed ?? false);
+          }
+        `;
+
+        // 将助手函数和用户的代码拼接起来一起放入引擎执行
         // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
         const fn = new Function(
           "THREE",
-          codeStr + "\n;return buildModel(THREE);",
+          HELPER_FUNCTIONS + "\n" + codeStr + "\n;return buildModel(THREE);",
         );
         const result = fn(THREE);
 
@@ -98,8 +160,11 @@ export function useThreeEngine(
         });
         onStatsUpdate({ triangles: Math.round(tris), vertices: verts });
         onError(null);
+        return true;
       } catch (err) {
-        onError(err instanceof Error ? err.message : String(err));
+        const msg = err instanceof Error ? err.message : String(err);
+        onError(msg);
+        return false;
       }
     },
     [clearModel, applyWireframe, onError, onStatsUpdate],

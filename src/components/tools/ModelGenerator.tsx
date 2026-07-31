@@ -17,7 +17,7 @@ import { PreviewPanel } from "./modelGenerator/PreviewPanel";
 export function ModelGenerator() {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // State
+  // State Management
   const [lang, setLang] = useState<Lang>("en");
   const [code, setCode] = useState("");
   const [description, setDescription] = useState("");
@@ -38,6 +38,7 @@ export function ModelGenerator() {
   const t = TRANSLATIONS[lang];
   const engine = useThreeEngine(containerRef, setError, setStats);
 
+  // 终端日志记录函数
   const addLog = useCallback((tag: LogEntry["tag"], text: string) => {
     const time = new Date().toLocaleTimeString("en-US", { hour12: false });
     setLogs((prev) => [
@@ -50,6 +51,7 @@ export function ModelGenerator() {
     addLog("SYSTEM", "WebGL Engine initialized. PCFSoftShadowMap enabled.");
   }, [addLog]);
 
+  // 手动/自动 触发视觉评审
   const triggerReview = async (customDesc?: string) => {
     const descToUse = customDesc || description.trim();
     if (!descToUse) return null;
@@ -99,6 +101,7 @@ export function ModelGenerator() {
     }
   };
 
+  // 初次代码生成
   const handleGenerate = async () => {
     const desc = description.trim();
     if (!desc) return setError("Enter a description first.");
@@ -126,11 +129,19 @@ export function ModelGenerator() {
 
       setCode(data.code);
       addLog("WEBGL", "Compilation successful. Executing buildModel(THREE)...");
-      engine.executeCode(data.code, wireframe);
-      addLog("WEBGL", "Model loaded into scene with auto-fit perspective.");
 
-      if (autoReview) {
-        setTimeout(() => triggerReview(desc), 300);
+      // 🌟 检查 WebGL 执行状态
+      const ok = engine.executeCode(data.code, wireframe);
+      if (ok) {
+        addLog("WEBGL", "Model loaded into scene with auto-fit perspective.");
+        if (autoReview) {
+          setTimeout(() => triggerReview(desc), 300);
+        }
+      } else {
+        addLog(
+          "ERROR",
+          "WebGL execution failed due to JS runtime error in generated code.",
+        );
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -141,6 +152,7 @@ export function ModelGenerator() {
     }
   };
 
+  // 带反馈的二次迭代修构
   const handleRefine = async () => {
     const desc = description.trim();
     if (!desc) return setError("Enter a description first.");
@@ -172,10 +184,19 @@ export function ModelGenerator() {
 
       setCode(data.code);
       addLog("WEBGL", "Refinement compiled. Hot-reloading WebGL scene...");
-      engine.executeCode(data.code, wireframe);
 
-      if (autoReview) {
-        setTimeout(() => triggerReview(desc), 300);
+      // 🌟 检查 WebGL 执行状态
+      const ok = engine.executeCode(data.code, wireframe);
+      if (ok) {
+        addLog("WEBGL", "Model reloaded into scene with auto-fit perspective.");
+        if (autoReview) {
+          setTimeout(() => triggerReview(desc), 300);
+        }
+      } else {
+        addLog(
+          "ERROR",
+          "Refinement WebGL execution failed due to JS runtime error.",
+        );
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -201,6 +222,16 @@ export function ModelGenerator() {
     addLog("SYSTEM", "Scene & Editor cleared.");
   };
 
+  // 快捷手动运行函数
+  const handleManualRun = () => {
+    const ok = engine.executeCode(code, wireframe);
+    if (ok) {
+      addLog("WEBGL", "Manual execution successful.");
+    } else {
+      addLog("ERROR", "Manual execution failed.");
+    }
+  };
+
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
       <Toolbar
@@ -213,7 +244,7 @@ export function ModelGenerator() {
           engine.applyWireframe(checked);
         }}
         onClear={handleClear}
-        onRun={() => engine.executeCode(code, wireframe)}
+        onRun={handleManualRun}
       />
       <div className="flex flex-col lg:flex-row">
         <ControlCoPilotPanel
@@ -238,7 +269,7 @@ export function ModelGenerator() {
           onGenerate={handleGenerate}
           onReview={() => triggerReview()}
           onRefine={handleRefine}
-          onRun={() => engine.executeCode(code, wireframe)}
+          onRun={handleManualRun}
         />
         <PreviewPanel
           containerRef={containerRef}
