@@ -43,7 +43,7 @@ export function useThreeEngine(
   const executeCode = useCallback(
     (codeStr: string, isWireframe: boolean): boolean => {
       const engine = engineRef.current;
-      if (!engine) return;
+      if (!engine) return false;
       try {
         clearModel();
 
