@@ -127,6 +127,24 @@ export function useThreeEngine(
             const tubularSegments = Math.max(8, path.points.length * 6);
             return new THREE.TubeGeometry(curve, tubularSegments, path.radius ?? 0.05, path.radialSegments ?? 8, path.closed ?? false);
           }
+
+          // 🌟 新增：两点之间搭一根杆（A柱、结构梁、肢体连杆等），用四元数对齐，
+          // 调用方永远不需要手动猜 rotation.x/y/z 该转哪个轴、转多少度。
+          function buildBeamBetween(p1, p2, thickness) {
+            const start = new THREE.Vector3(p1[0], p1[1], p1[2] ?? 0);
+            const end = new THREE.Vector3(p2[0], p2[1], p2[2] ?? 0);
+            const dir = new THREE.Vector3().subVectors(end, start);
+            const length = dir.length();
+            const geo = new THREE.CylinderGeometry(thickness, thickness, length, 6);
+            geo.translate(0, length / 2, 0); // 原点对齐到起点 p1，方便直接用 position.copy(start)
+            const mesh = new THREE.Mesh(geo);
+            mesh.position.copy(start);
+            mesh.quaternion.setFromUnitVectors(
+              new THREE.Vector3(0, 1, 0),
+              dir.clone().normalize(),
+            );
+            return mesh;
+          }
         `;
 
         // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func

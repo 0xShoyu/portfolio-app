@@ -15,6 +15,7 @@ You MUST follow their exact TypeScript parameter interfaces:
 1. buildExtrudeGeometry(profile)
    - Interface: profile = { points: [number, number][], depth: number, holes?: [number, number][][], ovalHoles?: {cx: number, cy: number, rx: number, ry: number}[] }
    - Example: const bladeGeo = buildExtrudeGeometry({ points: [[-0.1,0], [0.1,0], [0.05,1.2], [-0.05,1.2]], depth: 0.05, ovalHoles: [{cx:0, cy:0.3, rx:0.02, ry:0.04}] });
+   - This is also the REQUIRED tool for car cabins/greenhouses — see the Vehicles rule below. Points are drawn in the (length, height) plane; depth extrudes along the width axis.
 
 2. buildCurveSweepGeometry(sweep)
    - Interface: sweep = { spine: [number, number, number][], crossSection: { points: [number, number][] }, closed?: boolean }
@@ -27,34 +28,50 @@ You MUST follow their exact TypeScript parameter interfaces:
 4. buildTubeGeometry(path)
    - Interface: path = { points: [number, number, number][], radius?: number, radialSegments?: number, closed?: boolean }
    - Example: const cableGeo = buildTubeGeometry({ points: [[0,0,0], [0.5,0.5,0], [1,0,0]], radius: 0.04, radialSegments: 8 });
+
+5. buildBeamBetween(p1, p2, thickness)
+   - Interface: p1 = [x, y, z], p2 = [x, y, z], thickness = number (radius)
+   - Returns a THREE.Mesh (no material attached — you must set beam.material = yourMaterial before adding shadows/casting).
+   - This ALREADY handles all rotation math for you via quaternion alignment. You give it two 3D points and it builds a correctly-oriented cylinder between them — you never need to compute or guess a rotation angle or axis yourself.
+   - Example: const aPillar = buildBeamBetween([0.38, 0.55, -0.4], [0.12, 0.62, -0.4], 0.02); aPillar.material = pillarMaterial;
 ===================================================================
 
 Strict Rules for the Cozy Low-Poly style:
 1. Output ONLY a single function named exactly: function buildModel(THREE) { ... }
 2. It must return a THREE.Object3D (a THREE.Group or THREE.Mesh).
 3. Allowed geometries: THREE.BoxGeometry, THREE.CylinderGeometry, THREE.ConeGeometry, THREE.IcosahedronGeometry, THREE.DodecahedronGeometry, THREE.SphereGeometry, or the pre-injected custom helpers above.
-4. Vehicles & Car Cabins (THE TRAPEZOID TEMPLATE - CRITICAL):
-   NEVER use a simple Box for a car cabin (it creates ugly 90-degree vertical windshields). You MUST use this exact 4-sided cylinder trick to create slanted windshields:
-   - Top radius MUST be smaller than bottom radius!
-   - You MUST scale the mesh on the Z-axis so it forms a rectangular cabin.
-   USE THIS EXACT LOGIC STRUCTURE:
-   const cabGeo = new THREE.CylinderGeometry(0.5, 0.7, 0.5, 4);
-   cabGeo.rotateY(Math.PI / 4); // Turns it into a sloped trapezoid!
-   const cabin = new THREE.Mesh(cabGeo, bodyMaterial);
-   cabin.scale.set(1, 1, 1.8); // Stretch length to match car
-   const winGeo = new THREE.CylinderGeometry(0.52, 0.72, 0.35, 4); // Slightly larger
-   winGeo.rotateY(Math.PI / 4);
-   const windows = new THREE.Mesh(winGeo, darkWindowMaterial); // Material MUST have polygonOffset
-   windows.scale.set(1, 1, 1.8);
-5. Heads, Helmets & Organic Shapes: Use low-segment geometries (e.g., new THREE.SphereGeometry(r, 10, 10)). ALWAYS use \`mesh.scale.set(x, y, z)\` to squash or stretch them to make them look stylized.
-6. Materials & Anti-Clipping: ONLY use THREE.MeshStandardMaterial with { flatShading: true, roughness: 0.9, metalness: 0.05 }.
+4. Vehicles & Car Cabins (THE EXTRUDED PROFILE TEMPLATE - CRITICAL):
+   NEVER build a car cabin/greenhouse out of a single tapered THREE.CylinderGeometry(topRadius, bottomRadius, height, 4). Its taper is radially symmetric, so it shrinks the shape equally on ALL sides — front-to-back AND left-to-right — which produces a pyramid/tent-shaped roof instead of a proper windshield slope with flat, vertical sides.
+
+   Instead, ALWAYS build the cabin as a side-view profile extruded along the car's width axis using buildExtrudeGeometry. The taper only lives in the 2D profile (length x height plane); the extrusion axis (width) stays perfectly straight, so the sides never taper.
+   USE THIS EXACT LOGIC STRUCTURE (adjust numbers to match the described vehicle's proportions):
+   const cabinWidth = 0.9; // match this to the car body's width
+   const cabinProfile = buildExtrudeGeometry({
+     points: [
+       [-0.45, 0.28],  // rear base of glasshouse, where it meets the body
+       [ 0.5,  0.28],  // front base of glasshouse, where it meets the hood
+       [ 0.38, 0.55],  // windshield top (slanted forward — this is the "slope")
+       [ 0.12, 0.62],  // roof front edge
+       [-0.3,  0.62],  // roof rear edge — the segment between these two points is the FLAT roof
+       [-0.45, 0.4],   // rear window base (slanted back)
+     ],
+     depth: cabinWidth,
+   });
+   const cabin = new THREE.Mesh(cabinProfile, windowMaterial); // material MUST have polygonOffset
+   cabin.position.z = -cabinWidth / 2; // buildExtrudeGeometry extrudes from z=0 to z=depth, so recenter it
+
+   ROOF PANEL RULE (applies whenever a separate roof cap/lid/light-box sits on top of the glasshouse, e.g. a taxi sign): it MUST be a thin shell, not a slab. Its Y-axis thickness must be 8%–12% of the glasshouse height, and its footprint must not overhang the glasshouse silhouette by more than ~5% on any side. NEVER model the roof as a thick block or let it project as a large brim/canopy beyond the cabin outline, unless the user's description explicitly asks for a roof rack, canopy, or awning.
+5. Structural Beams & Pillars (A-pillars, roof struts, cross-braces, cables, limbs, etc.):
+   NEVER build a strut/pillar/beam by manually setting \`mesh.rotation.x/y/z\` on a CylinderGeometry to point it at an angle — guessing the correct axis and angle by hand is unreliable and produces beams that point in the wrong direction entirely (e.g. lying flat instead of leaning across a windshield).
+   ALWAYS use \`buildBeamBetween(p1, p2, thickness)\` for this instead. Give it the two 3D endpoints the beam should connect (e.g. the base and top corner of a windshield frame), and it computes the correct orientation for you — you never need to reason about rotation axes yourself. Remember to set \`.material\` on the returned mesh, and \`.castShadow\`/\`.receiveShadow\` per rule 8 below.
+6. Heads, Helmets & Organic Shapes: Use low-segment geometries (e.g., new THREE.SphereGeometry(r, 10, 10)). ALWAYS use \`mesh.scale.set(x, y, z)\` to squash or stretch them to make them look stylized.
+7. Materials & Anti-Clipping: ONLY use THREE.MeshStandardMaterial with { flatShading: true, roughness: 0.9, metalness: 0.05 }.
    CRITICAL FOR WINDOWS/DECALS: To prevent Z-fighting, ALWAYS set { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 } on the overlying detail material (like dark window material).
-7. Shadows: Every single mesh you create MUST have \`mesh.castShadow = true\` and \`mesh.receiveShadow = true\`.
-8. Colors: Use warm, pastel, cohesive color palettes. Limit to 5-6 distinct colors.
-9. Keep the code organized. Group related parts logically.
-10. STRICT VARIABLE DECLARATIONS: Always declare every group, material, or mesh variable with \`const\` BEFORE adding children to it or referencing it (e.g., \`const paperMenuGroup = new THREE.Group();\`). Never use undeclared variables.
-11. NO MARKDOWN, NO CONVERSATION: Output ONLY raw executable JS starting with \`function buildModel(THREE)\`. Absolutely NO intro/outro text.
-12. STRICT VARIABLE DECLARATIONS: Always declare every group, material, or mesh variable with \`const\` BEFORE adding children to it or referencing it (e.g., \`const paperMenuGroup = new THREE.Group();\`). Never use undeclared variables.
+8. Shadows: Every single mesh you create MUST have \`mesh.castShadow = true\` and \`mesh.receiveShadow = true\`.
+9. Colors: Use warm, pastel, cohesive color palettes. Limit to 5-6 distinct colors.
+10. Keep the code organized. Group related parts logically.
+11. STRICT VARIABLE DECLARATIONS: Always declare every group, material, or mesh variable with \`const\` BEFORE adding children to it or referencing it (e.g., \`const paperMenuGroup = new THREE.Group();\`). Never use undeclared variables. When mirroring a symmetric part via .clone(), always clone the completed THREE.Mesh variable, never the raw geometry variable it was built from.
+12. NO MARKDOWN, NO CONVERSATION: Output ONLY raw executable JS starting with \`function buildModel(THREE)\`. Absolutely NO intro/outro text.
 `;
 
 export async function POST(req: NextRequest) {
