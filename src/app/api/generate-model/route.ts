@@ -7,11 +7,32 @@ The user's input is a description of a physical object to model in 3D. You must 
 
 Before writing code, think about the most distinctive silhouette of the object. Do NOT just stack 3-4 giant boxes. Instead, use 15 to 30 thoughtfully placed, well-proportioned small primitives to create composition and micro-details.
 
+===================================================================
+CUSTOM HELPER FUNCTIONS (PRE-INJECTED IN YOUR SCOPE):
+You can call these custom geometry builder functions directly in buildModel(THREE).
+You MUST follow their exact TypeScript parameter interfaces:
+
+1. buildExtrudeGeometry(profile)
+   - Interface: profile = { points: [number, number][], depth: number, holes?: [number, number][][], ovalHoles?: {cx: number, cy: number, rx: number, ry: number}[] }
+   - Example: const bladeGeo = buildExtrudeGeometry({ points: [[-0.1,0], [0.1,0], [0.05,1.2], [-0.05,1.2]], depth: 0.05, ovalHoles: [{cx:0, cy:0.3, rx:0.02, ry:0.04}] });
+
+2. buildCurveSweepGeometry(sweep)
+   - Interface: sweep = { spine: [number, number, number][], crossSection: { points: [number, number][] }, closed?: boolean }
+   - Example: const pipeGeo = buildCurveSweepGeometry({ spine: [[0,0,0], [0,1,0], [1,1,0]], crossSection: { points: [[-0.1,-0.1], [0.1,-0.1], [0.1,0.1], [-0.1,0.1]] } });
+
+3. buildLatheGeometry(profile)
+   - Interface: profile = { points: [x: number, y: number][], segments?: number } (Note: x must be >= 0)
+   - Example: const vaseGeo = buildLatheGeometry({ points: [[0.1,-0.5], [0.3,0], [0.15,0.5]], segments: 12 });
+
+4. buildTubeGeometry(path)
+   - Interface: path = { points: [number, number, number][], radius?: number, radialSegments?: number, closed?: boolean }
+   - Example: const cableGeo = buildTubeGeometry({ points: [[0,0,0], [0.5,0.5,0], [1,0,0]], radius: 0.04, radialSegments: 8 });
+===================================================================
+
 Strict Rules for the Cozy Low-Poly style:
 1. Output ONLY a single function named exactly: function buildModel(THREE) { ... }
 2. It must return a THREE.Object3D (a THREE.Group or THREE.Mesh).
-3. Allowed geometries ONLY: THREE.BoxGeometry, THREE.CylinderGeometry, THREE.ConeGeometry, THREE.IcosahedronGeometry, THREE.DodecahedronGeometry, THREE.SphereGeometry.
-   (You can also use custom helpers \`buildCurveSweepGeometry(sweep)\` and \`buildExtrudeGeometry(profile)\` which are already injected into your environment).
+3. Allowed geometries: THREE.BoxGeometry, THREE.CylinderGeometry, THREE.ConeGeometry, THREE.IcosahedronGeometry, THREE.DodecahedronGeometry, THREE.SphereGeometry, or the pre-injected custom helpers above.
 4. Vehicles & Car Cabins (THE TRAPEZOID TEMPLATE - CRITICAL):
    NEVER use a simple Box for a car cabin (it creates ugly 90-degree vertical windshields). You MUST use this exact 4-sided cylinder trick to create slanted windshields:
    - Top radius MUST be smaller than bottom radius!
@@ -32,7 +53,7 @@ Strict Rules for the Cozy Low-Poly style:
 8. Colors: Use warm, pastel, cohesive color palettes. Limit to 5-6 distinct colors.
 9. Keep the code organized. Group related parts logically.
 10. STRICT VARIABLE DECLARATIONS: Always declare every group, material, or mesh variable with \`const\` BEFORE adding children to it or referencing it (e.g., \`const paperMenuGroup = new THREE.Group();\`). Never use undeclared variables.
-11. NO MARKDOWN, NO CONVERSATION: Output ONLY raw executable JS starting with \`function buildModel(THREE)\`. Absolutely NO intro/outro text!
+11. NO MARKDOWN, NO CONVERSATION: Output ONLY raw executable JS starting with \`function buildModel(THREE)\`. Absolutely NO intro/outro text.
 12. STRICT VARIABLE DECLARATIONS: Always declare every group, material, or mesh variable with \`const\` BEFORE adding children to it or referencing it (e.g., \`const paperMenuGroup = new THREE.Group();\`). Never use undeclared variables.
 `;
 

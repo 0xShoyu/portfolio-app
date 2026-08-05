@@ -1,6 +1,6 @@
 "use client";
 
-import { Play, Trash2, Box } from "lucide-react";
+import { Play, Trash2, Box, Sun, Moon } from "lucide-react";
 import type { Lang } from "../modelGenerator.constants";
 
 export function Toolbar({
@@ -9,6 +9,8 @@ export function Toolbar({
   setLang,
   wireframe,
   setWireframe,
+  canvasTheme,
+  onThemeToggle,
   onClear,
   onRun,
 }: any) {
@@ -31,6 +33,23 @@ export function Toolbar({
           <option value="zh">中文</option>
           <option value="ja">日本語</option>
         </select>
+
+        {/* 🌟 日间/暗黑 模式切换按钮 */}
+        <button
+          onClick={onThemeToggle}
+          title="Toggle Canvas Day/Night Mode"
+          className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted hover:border-foreground/30 hover:text-foreground transition-colors"
+        >
+          {canvasTheme === "dark" ? (
+            <Sun size={14} className="text-amber-400" />
+          ) : (
+            <Moon size={14} className="text-sky-400" />
+          )}
+          <span className="hidden sm:inline">
+            {canvasTheme === "dark" ? "Day" : "Night"}
+          </span>
+        </button>
+
         <label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer">
           <input
             type="checkbox"

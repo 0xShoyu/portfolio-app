@@ -24,6 +24,7 @@ export function ModelGenerator() {
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState<string>(GEMINI_MODELS[0].value);
   const [wireframe, setWireframe] = useState(false);
+  const [canvasTheme, setCanvasTheme] = useState<"dark" | "day">("dark");
   const [stats, setStats] = useState<Stats>({ triangles: 0, vertices: 0 });
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +33,7 @@ export function ModelGenerator() {
   const [autoReview, setAutoReview] = useState(true);
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [feedbackInput, setFeedbackInput] = useState("");
+  const [lastScreenshot, setLastScreenshot] = useState<string | null>(null); // 🌟 保存发送给 AI 的截图
   const [generating, setGenerating] = useState(false);
   const [reviewing, setReviewing] = useState(false);
 
@@ -51,14 +53,27 @@ export function ModelGenerator() {
     addLog("SYSTEM", "WebGL Engine initialized. PCFSoftShadowMap enabled.");
   }, [addLog]);
 
-  // 手动/自动 触发视觉评审
+  // 切换背景主题处理函数
+  const handleThemeToggle = () => {
+    const nextTheme = canvasTheme === "dark" ? "day" : "dark";
+    setCanvasTheme(nextTheme);
+    engine.setCanvasTheme(nextTheme);
+    addLog(
+      "SYSTEM",
+      `Canvas background switched to ${nextTheme.toUpperCase()} mode.`,
+    );
+  };
+
+  // 触发视觉评审 (Vision Review)
   const triggerReview = async (customDesc?: string) => {
     const descToUse = customDesc || description.trim();
     if (!descToUse) return null;
 
-    addLog("VISION", "Capturing WebGL Canvas screenshot...");
+    addLog("VISION", "Capturing WebGL Canvas multi-angle screenshot...");
     const screenshot = engine.captureImage();
     if (!screenshot) return null;
+
+    setLastScreenshot(screenshot); // 🌟 存入状态，供用户在界面上点击查看
 
     setReviewing(true);
     addLog(
@@ -130,7 +145,6 @@ export function ModelGenerator() {
       setCode(data.code);
       addLog("WEBGL", "Compilation successful. Executing buildModel(THREE)...");
 
-      // 🌟 检查 WebGL 执行状态
       const ok = engine.executeCode(data.code, wireframe);
       if (ok) {
         addLog("WEBGL", "Model loaded into scene with auto-fit perspective.");
@@ -152,7 +166,7 @@ export function ModelGenerator() {
     }
   };
 
-  // 带反馈的二次迭代修构
+  // 带反馈的迭代修构 (Refine)
   const handleRefine = async () => {
     const desc = description.trim();
     if (!desc) return setError("Enter a description first.");
@@ -185,7 +199,6 @@ export function ModelGenerator() {
       setCode(data.code);
       addLog("WEBGL", "Refinement compiled. Hot-reloading WebGL scene...");
 
-      // 🌟 检查 WebGL 执行状态
       const ok = engine.executeCode(data.code, wireframe);
       if (ok) {
         addLog("WEBGL", "Model reloaded into scene with auto-fit perspective.");
@@ -219,10 +232,10 @@ export function ModelGenerator() {
     setError(null);
     setVerdict(null);
     setFeedbackInput("");
+    setLastScreenshot(null);
     addLog("SYSTEM", "Scene & Editor cleared.");
   };
 
-  // 快捷手动运行函数
   const handleManualRun = () => {
     const ok = engine.executeCode(code, wireframe);
     if (ok) {
@@ -243,6 +256,8 @@ export function ModelGenerator() {
           setWireframe(checked);
           engine.applyWireframe(checked);
         }}
+        canvasTheme={canvasTheme}
+        onThemeToggle={handleThemeToggle}
         onClear={handleClear}
         onRun={handleManualRun}
       />
@@ -264,6 +279,7 @@ export function ModelGenerator() {
           verdict={verdict}
           feedbackInput={feedbackInput}
           setFeedbackInput={setFeedbackInput}
+          lastScreenshot={lastScreenshot}
           logs={logs}
           clearLogs={() => setLogs([])}
           onGenerate={handleGenerate}

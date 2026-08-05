@@ -11,6 +11,28 @@ export function useThreeEngine(
 ) {
   const engineRef = useRef<any>(null);
 
+  // 1. 切换 WebGL 画布背景与网格主题
+  const setCanvasTheme = useCallback((mode: "dark" | "day") => {
+    const engine = engineRef.current;
+    if (!engine) return;
+
+    if (mode === "day") {
+      engine.scene.background = new THREE.Color(0xf1f5f9);
+      engine.scene.remove(engine.grid);
+      engine.grid.geometry.dispose();
+      engine.grid.material.dispose();
+      engine.grid = new THREE.GridHelper(4, 16, 0x94a3b8, 0xcbd5e1);
+      engine.scene.add(engine.grid);
+    } else {
+      engine.scene.background = new THREE.Color(0x0b0f16);
+      engine.scene.remove(engine.grid);
+      engine.grid.geometry.dispose();
+      engine.grid.material.dispose();
+      engine.grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
+      engine.scene.add(engine.grid);
+    }
+  }, []);
+
   const clearModel = useCallback(() => {
     const engine = engineRef.current;
     if (!engine) return;
@@ -44,10 +66,10 @@ export function useThreeEngine(
     (codeStr: string, isWireframe: boolean): boolean => {
       const engine = engineRef.current;
       if (!engine) return false;
+
       try {
         clearModel();
 
-        // 🌟 核心魔法：预置注入高级几何体辅助函数库
         const HELPER_FUNCTIONS = `
           function buildExtrudeShape(points, holes) {
             const shape = new THREE.Shape();
@@ -107,7 +129,6 @@ export function useThreeEngine(
           }
         `;
 
-        // 将助手函数和用户的代码拼接起来一起放入引擎执行
         // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
         const fn = new Function(
           "THREE",
@@ -170,11 +191,77 @@ export function useThreeEngine(
     [clearModel, applyWireframe, onError, onStatsUpdate],
   );
 
+  // 🌟 核心修复：无变形、完美长宽比、高对比度离屏多视角截图
   const captureImage = useCallback(() => {
     const engine = engineRef.current;
     if (!engine) return null;
+
+    const container = containerRef.current;
+    const origWidth = container?.clientWidth || 800;
+    const origHeight = container?.clientHeight || 600;
+    const origAspect = engine.camera.aspect;
+    const origRotY = engine.rotY;
+    const origElevation = engine.elevation;
+
+    // 1. 创建 1024x512 拼接画布
+    const combinedCanvas = document.createElement("canvas");
+    combinedCanvas.width = 1024;
+    combinedCanvas.height = 512;
+    const ctx = combinedCanvas.getContext("2d");
+    if (!ctx) return null;
+
+    // 2. 🌟 强制将渲染器临时切为 512x512 正方形，比例为 1.0 (无变形!)
+    engine.renderer.setSize(512, 512, false);
+    engine.camera.aspect = 1.0;
+    engine.camera.updateProjectionMatrix();
+
+    const renderAngleToCanvas = (
+      rotY: number,
+      elevation: number,
+      offsetX: number,
+    ) => {
+      engine.rotY = rotY;
+      engine.elevation = elevation;
+
+      const h = engine.camDistance * Math.cos(engine.elevation);
+      const y = engine.camDistance * Math.sin(engine.elevation);
+      engine.camera.position.set(
+        engine.lookTarget.x,
+        engine.lookTarget.y + y,
+        engine.lookTarget.z + h,
+      );
+      engine.camera.lookAt(engine.lookTarget);
+      engine.modelGroup.rotation.y = engine.rotY;
+
+      engine.renderer.render(engine.scene, engine.camera);
+      ctx.drawImage(engine.renderer.domElement, offsetX, 0, 512, 512);
+    };
+
+    // 📸 视角 A：视角 45°，俯角 0.48 (约 28° 俯视，看清顶部和底座)
+    renderAngleToCanvas(Math.PI / 4, 0.48, 0);
+
+    // 📸 视角 B：视角 -60°，俯角 0.52 (约 30° 俯视)
+    renderAngleToCanvas(-Math.PI / 3, 0.52, 512);
+
+    // 3. 还原渲染器尺寸、相机比例与旋转视角
+    engine.renderer.setSize(origWidth, origHeight, false);
+    engine.camera.aspect = origAspect;
+    engine.camera.updateProjectionMatrix();
+
+    engine.rotY = origRotY;
+    engine.elevation = origElevation;
+    engine.modelGroup.rotation.y = engine.rotY;
+    const h = engine.camDistance * Math.cos(engine.elevation);
+    const y = engine.camDistance * Math.sin(engine.elevation);
+    engine.camera.position.set(
+      engine.lookTarget.x,
+      engine.lookTarget.y + y,
+      engine.lookTarget.z + h,
+    );
+    engine.camera.lookAt(engine.lookTarget);
     engine.renderer.render(engine.scene, engine.camera);
-    return engine.renderer.domElement.toDataURL("image/png");
+
+    return combinedCanvas.toDataURL("image/png");
   }, []);
 
   useEffect(() => {
@@ -195,7 +282,7 @@ export function useThreeEngine(
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
-    scene.add(new THREE.HemisphereLight(0x8fa3bf, 0x0e131b, 0.5));
+    scene.add(new THREE.HemisphereLight(0x8fa3bf, 0x0e131b, 0.6));
 
     const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
     keyLight.position.set(5, 8, 5);
@@ -205,8 +292,9 @@ export function useThreeEngine(
     keyLight.shadow.bias = -0.001;
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0x4488aa, 0.3);
-    fillLight.position.set(-4, 1, -3);
+    // 🌟 增强补光灯 (intensity 从 0.3 -> 0.55, 位置调低)，照亮底部和阴影细节！
+    const fillLight = new THREE.DirectionalLight(0x66aacc, 0.55);
+    fillLight.position.set(-4, -1, -3);
     scene.add(fillLight);
 
     const grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
@@ -214,7 +302,7 @@ export function useThreeEngine(
 
     const shadowPlane = new THREE.Mesh(
       new THREE.PlaneGeometry(20, 20),
-      new THREE.ShadowMaterial({ opacity: 0.6 }),
+      new THREE.ShadowMaterial({ opacity: 0.5 }),
     );
     shadowPlane.rotation.x = -Math.PI / 2;
     shadowPlane.position.y = -0.01;
@@ -229,6 +317,7 @@ export function useThreeEngine(
       camera,
       renderer,
       modelGroup,
+      grid,
       rotY: 0,
       elevation: 0.35,
       camDistance: 3,
@@ -337,6 +426,7 @@ export function useThreeEngine(
       container.removeEventListener("pointerdown", onPointerDown);
       container.removeEventListener("pointermove", onPointerMove);
       container.removeEventListener("pointerup", onPointerUp);
+      container.removeEventListener("pointercancel", onPointerUp);
       container.removeEventListener("wheel", onWheel);
       renderer.dispose();
       if (renderer.domElement.parentElement === container) {
@@ -346,5 +436,11 @@ export function useThreeEngine(
     };
   }, []);
 
-  return { executeCode, clearModel, captureImage, applyWireframe };
+  return {
+    executeCode,
+    clearModel,
+    captureImage,
+    applyWireframe,
+    setCanvasTheme,
+  };
 }

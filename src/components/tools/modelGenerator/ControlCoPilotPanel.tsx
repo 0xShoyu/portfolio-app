@@ -32,6 +32,7 @@ export function ControlCoPilotPanel({
   verdict,
   feedbackInput,
   setFeedbackInput,
+  lastScreenshot,
   logs,
   clearLogs,
   onGenerate,
@@ -126,14 +127,33 @@ export function ControlCoPilotPanel({
         </div>
       </div>
 
-      {/* 🌟 视觉评审与修改反馈 Hub (只要有代码就常驻显示) */}
+      {/* 🌟 视觉评审与修改反馈 Hub (只要有代码/模型就常驻显示) */}
       {code && (
         <div className="p-4 border-b border-border/60 bg-primary/5 flex flex-col gap-2.5 transition-all duration-300">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-foreground flex items-center gap-1">
                 <Search size={13} className="text-primary" /> Review & Refine
               </span>
+
+              {/* 🖼️ 点击在新标签页查看给 Vision AI 发送的双视角截图 */}
+              {lastScreenshot && (
+                <button
+                  onClick={() => {
+                    const win = window.open();
+                    if (win) {
+                      win.document.write(
+                        `<body style="margin:0;background:#0b0f16;display:flex;align-items:center;justify-content:center;height:100vh;"><img src="${lastScreenshot}" style="max-width:90%;border:2px solid #38bdf8;border-radius:12px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);"/></body>`,
+                      );
+                    }
+                  }}
+                  className="text-[11px] text-primary hover:underline flex items-center gap-1 transition-colors"
+                  title="Open the exact 2-in-1 image sent to Gemini Vision"
+                >
+                  🖼️ View Snapshot
+                </button>
+              )}
+
               {verdict && (
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium border ${

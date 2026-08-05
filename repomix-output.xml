@@ -801,257 +801,6 @@ export function CodeWindow() {
 }
 </file>
 
-<file path="src/components/tools/modelGenerator/ControlCoPilotPanel.tsx">
-"use client";
-
-import { useState, KeyboardEvent } from "react";
-import {
-  Sparkles,
-  Loader2,
-  Wand2,
-  Search,
-  CheckCircle2,
-  AlertCircle,
-  RotateCcw,
-  Code2,
-  Terminal as TerminalIcon,
-} from "lucide-react";
-import { GEMINI_MODELS } from "../modelGenerator.constants";
-import { TerminalView } from "./TerminalView";
-
-export function ControlCoPilotPanel({
-  t,
-  code,
-  setCode,
-  apiKey,
-  setApiKey,
-  model,
-  setModel,
-  description,
-  setDescription,
-  generating,
-  reviewing,
-  autoReview,
-  setAutoReview,
-  verdict,
-  feedbackInput,
-  setFeedbackInput,
-  logs,
-  clearLogs,
-  onGenerate,
-  onReview,
-  onRefine,
-  onRun,
-}: any) {
-  const [activeTab, setActiveTab] = useState<"code" | "terminal">("code");
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Tab") {
-      e.preventDefault();
-      const el = e.currentTarget;
-      const start = el.selectionStart;
-      const end = el.selectionEnd;
-      setCode(code.slice(0, start) + "  " + code.slice(end));
-      requestAnimationFrame(
-        () => (el.selectionStart = el.selectionEnd = start + 2),
-      );
-    } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-      e.preventDefault();
-      onRun();
-    }
-  };
-
-  return (
-    <div className="flex flex-col border-b border-border/60 lg:w-[46%] lg:border-b-0 lg:border-r bg-background/20">
-      {/* 🔑 API Key & Model Config */}
-      <div className="flex flex-col gap-2.5 border-b border-border/60 bg-background/40 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xs">🔑</span>
-          <input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder={t.keyPlaceholder}
-            autoComplete="off"
-            className="flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 font-mono text-xs text-foreground placeholder:text-muted focus:border-primary focus:outline-none"
-          />
-          <select
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground"
-          >
-            {GEMINI_MODELS.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* 🚀 提示词输入区 */}
-      <div className="p-4 border-b border-border/60 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-            <Sparkles size={13} className="text-primary" /> Prompt Description
-          </label>
-          <label className="flex items-center gap-1.5 text-[11px] text-muted cursor-pointer hover:text-foreground">
-            <input
-              type="checkbox"
-              checked={autoReview}
-              onChange={(e) => setAutoReview(e.target.checked)}
-              className="rounded border-border text-primary focus:ring-0"
-            />
-            Auto Vision-Review
-          </label>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && onGenerate()}
-            placeholder={t.descPlaceholder}
-            className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted focus:border-primary focus:outline-none"
-          />
-          <button
-            onClick={onGenerate}
-            disabled={generating || reviewing}
-            className="flex items-center gap-1.5 whitespace-nowrap rounded-md border border-primary bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-50"
-          >
-            {generating ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : (
-              <Wand2 size={13} />
-            )}
-            {t.generate}
-          </button>
-        </div>
-      </div>
-
-      {/* 🌟 视觉评审与修改反馈 Hub (只要有代码就常驻显示) */}
-      {code && (
-        <div className="p-4 border-b border-border/60 bg-primary/5 flex flex-col gap-2.5 transition-all duration-300">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <Search size={13} className="text-primary" /> Review & Refine
-              </span>
-              {verdict && (
-                <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium border ${
-                    verdict.decision === "continue"
-                      ? "border-emerald-800 bg-emerald-950/50 text-emerald-400"
-                      : "border-amber-800 bg-amber-950/50 text-amber-400"
-                  }`}
-                >
-                  {verdict.decision === "continue" ? (
-                    <CheckCircle2 size={10} />
-                  ) : (
-                    <AlertCircle size={10} />
-                  )}
-                  {verdict.decision === "continue" ? "Pass" : "Needs Work"} (
-                  {Math.round(verdict.score * 100)}%)
-                </span>
-              )}
-            </div>
-
-            {/* 常驻的手动 Review 触发按钮 */}
-            <button
-              onClick={onReview}
-              disabled={reviewing || generating}
-              className="text-[11px] font-medium text-muted hover:text-primary underline underline-offset-2 flex items-center gap-1"
-            >
-              {reviewing ? (
-                <Loader2 size={11} className="animate-spin" />
-              ) : (
-                <Search size={11} />
-              )}
-              {verdict ? "Re-Analyze" : "Analyze Render"}
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <textarea
-              value={feedbackInput}
-              onChange={(e) => setFeedbackInput(e.target.value)}
-              placeholder={
-                verdict
-                  ? "Critique & User Modifications..."
-                  : "Enter manual tweaks here, or click Analyze to get AI feedback..."
-              }
-              rows={2}
-              className="w-full rounded-md border border-border/80 bg-background/80 px-2.5 py-2 text-xs font-mono text-foreground placeholder:text-muted focus:border-primary focus:outline-none resize-none leading-relaxed"
-            />
-            <button
-              onClick={onRefine}
-              disabled={generating || reviewing || !feedbackInput.trim()}
-              className="flex items-center justify-center gap-1.5 w-full rounded-md border border-primary/60 bg-primary/10 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-40 transition-colors"
-            >
-              {generating ? (
-                <Loader2 size={13} className="animate-spin" />
-              ) : (
-                <RotateCcw size={13} />
-              )}
-              Refine & Apply Changes
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 💻 代码与 Terminal 选项卡组 */}
-      <div className="flex-1 flex flex-col">
-        <div className="px-4 py-2 border-b border-border/40 text-[11px] flex items-center justify-between bg-background/30">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setActiveTab("code")}
-              className={`flex items-center gap-1.5 font-medium transition-colors ${
-                activeTab === "code"
-                  ? "text-primary"
-                  : "text-muted hover:text-foreground"
-              }`}
-            >
-              <Code2 size={13} /> JavaScript
-            </button>
-            <button
-              onClick={() => setActiveTab("terminal")}
-              className={`flex items-center gap-1.5 font-medium transition-colors ${
-                activeTab === "terminal"
-                  ? "text-primary"
-                  : "text-muted hover:text-foreground"
-              }`}
-            >
-              <TerminalIcon size={13} /> Logs Terminal
-              {logs.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-primary/20 text-primary text-[9px]">
-                  {logs.length}
-                </span>
-              )}
-            </button>
-          </div>
-          {activeTab === "code" && (
-            <span className="text-[10px] opacity-60">⌘/Ctrl+Enter to run</span>
-          )}
-        </div>
-
-        {activeTab === "code" ? (
-          <textarea
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            onKeyDown={handleKeyDown}
-            spellCheck={false}
-            className="h-[280px] w-full flex-1 resize-none bg-background/50 px-4 py-3 font-mono text-[12.5px] leading-relaxed text-foreground focus:outline-none lg:h-[380px]"
-          />
-        ) : (
-          <TerminalView logs={logs} onClearLogs={clearLogs} />
-        )}
-      </div>
-    </div>
-  );
-}
-</file>
-
 <file path="src/components/tools/modelGenerator/PreviewPanel.tsx">
 "use client";
 
@@ -1161,7 +910,7 @@ export function TerminalView({
 <file path="src/components/tools/modelGenerator/Toolbar.tsx">
 "use client";
 
-import { Play, Trash2, Box } from "lucide-react";
+import { Play, Trash2, Box, Sun, Moon } from "lucide-react";
 import type { Lang } from "../modelGenerator.constants";
 
 export function Toolbar({
@@ -1170,6 +919,8 @@ export function Toolbar({
   setLang,
   wireframe,
   setWireframe,
+  canvasTheme,
+  onThemeToggle,
   onClear,
   onRun,
 }: any) {
@@ -1192,6 +943,23 @@ export function Toolbar({
           <option value="zh">中文</option>
           <option value="ja">日本語</option>
         </select>
+
+        {/* 🌟 日间/暗黑 模式切换按钮 */}
+        <button
+          onClick={onThemeToggle}
+          title="Toggle Canvas Day/Night Mode"
+          className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted hover:border-foreground/30 hover:text-foreground transition-colors"
+        >
+          {canvasTheme === "dark" ? (
+            <Sun size={14} className="text-amber-400" />
+          ) : (
+            <Moon size={14} className="text-sky-400" />
+          )}
+          <span className="hidden sm:inline">
+            {canvasTheme === "dark" ? "Day" : "Night"}
+          </span>
+        </button>
+
         <label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer">
           <input
             type="checkbox"
@@ -1235,356 +1003,6 @@ export interface LogEntry {
   time: string;
   tag: "SYSTEM" | "PROMPT" | "AGENT" | "WEBGL" | "VISION" | "REVIEW" | "ERROR";
   text: string;
-}
-</file>
-
-<file path="src/components/tools/modelGenerator/useThreeEngine.ts">
-"use client";
-
-import { useCallback, useEffect, useRef } from "react";
-import * as THREE from "three";
-import type { Stats } from "./types";
-
-export function useThreeEngine(
-  containerRef: React.RefObject<HTMLDivElement | null>,
-  onError: (err: string | null) => void,
-  onStatsUpdate: (stats: Stats) => void,
-) {
-  const engineRef = useRef<any>(null);
-
-  const clearModel = useCallback(() => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    while (engine.modelGroup.children.length) {
-      const obj = engine.modelGroup.children.pop()!;
-      obj.traverse((o: any) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) {
-          const mats = Array.isArray(o.material) ? o.material : [o.material];
-          mats.forEach((m: any) => {
-            m.dispose();
-            if (m.map) m.map.dispose();
-          });
-        }
-      });
-    }
-  }, []);
-
-  const applyWireframe = useCallback((wf: boolean) => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.modelGroup.traverse((o: any) => {
-      if (o.isMesh && o.material) {
-        const mats = Array.isArray(o.material) ? o.material : [o.material];
-        mats.forEach((m: any) => (m.wireframe = wf));
-      }
-    });
-  }, []);
-
-  const executeCode = useCallback(
-    (codeStr: string, isWireframe: boolean) => {
-      const engine = engineRef.current;
-      if (!engine) return;
-      try {
-        clearModel();
-
-        // 🌟 核心魔法：预置注入高级几何体辅助函数库
-        const HELPER_FUNCTIONS = `
-          function buildExtrudeShape(points, holes) {
-            const shape = new THREE.Shape();
-            if (points.length > 0) {
-              shape.moveTo(points[0][0], points[0][1]);
-              for (let i = 1; i < points.length; i++) shape.lineTo(points[i][0], points[i][1]);
-            }
-            for (const loop of holes ?? []) {
-              if (loop.length < 3) continue;
-              const path = new THREE.Path();
-              path.moveTo(loop[0][0], loop[0][1]);
-              for (let i = 1; i < loop.length; i++) path.lineTo(loop[i][0], loop[i][1]);
-              path.closePath();
-              shape.holes.push(path);
-            }
-            return shape;
-          }
-
-          function ovalLoop(cx, cy, rx, ry, seg = 24) {
-            const loop = [];
-            for (let i = 0; i < seg; i++) {
-              const a = (i / seg) * Math.PI * 2;
-              loop.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
-            }
-            return loop;
-          }
-
-          function buildExtrudeGeometry(profile) {
-            const holes = [...(profile.holes ?? []), ...((profile.ovalHoles ?? []).map(o => ovalLoop(o.cx, o.cy, o.rx, o.ry)))];
-            const shape = buildExtrudeShape(profile.points, holes);
-            return new THREE.ExtrudeGeometry(shape, { depth: profile.depth, bevelEnabled: false, steps: 1 });
-          }
-
-          function buildCurveSweepGeometry(sweep) {
-            const shape = new THREE.Shape();
-            const cs = sweep.crossSection.points;
-            if (cs.length > 0) {
-              shape.moveTo(cs[0][0], cs[0][1]);
-              for (let i = 1; i < cs.length; i++) shape.lineTo(cs[i][0], cs[i][1]);
-              shape.closePath();
-            }
-            const spine = sweep.spine.map(p => new THREE.Vector3(p[0], p[1], p[2]));
-            const path = new THREE.CatmullRomCurve3(spine, sweep.closed ?? false);
-            return new THREE.ExtrudeGeometry(shape, { extrudePath: path, steps: Math.max(24, spine.length * 8), bevelEnabled: false });
-          }
-
-          function buildLatheGeometry(profile) {
-            const points = profile.points.map(p => new THREE.Vector2(Math.max(0.0001, p[0]), p[1]));
-            return new THREE.LatheGeometry(points, profile.segments ?? 24);
-          }
-
-          function buildTubeGeometry(path) {
-            const vectors = path.points.map(p => new THREE.Vector3(p[0], p[1], p[2]));
-            const curve = new THREE.CatmullRomCurve3(vectors, path.closed ?? false);
-            const tubularSegments = Math.max(8, path.points.length * 6);
-            return new THREE.TubeGeometry(curve, tubularSegments, path.radius ?? 0.05, path.radialSegments ?? 8, path.closed ?? false);
-          }
-        `;
-
-        // 将助手函数和用户的代码拼接起来一起放入引擎执行
-        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
-        const fn = new Function(
-          "THREE",
-          HELPER_FUNCTIONS + "\n" + codeStr + "\n;return buildModel(THREE);",
-        );
-        const result = fn(THREE);
-
-        if (!result || !(result instanceof THREE.Object3D)) {
-          throw new Error("buildModel(THREE) must return a THREE.Object3D");
-        }
-
-        result.traverse((o: any) => {
-          if (o instanceof THREE.Mesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-          }
-        });
-
-        engine.modelGroup.add(result);
-        applyWireframe(isWireframe);
-
-        const box = new THREE.Box3().setFromObject(result);
-        if (!box.isEmpty()) {
-          const size = new THREE.Vector3();
-          box.getSize(size);
-          const center = new THREE.Vector3();
-          box.getCenter(center);
-          const maxDim = Math.max(size.x, size.y, size.z) || 1;
-          const fitDist =
-            (maxDim / (2 * Math.tan((engine.camera.fov * Math.PI) / 180 / 2))) *
-            1.8;
-          engine.camDistance = fitDist;
-          engine.minDist = fitDist * 0.15;
-          engine.maxDist = fitDist * 8;
-          engine.lookTarget.copy(center);
-        }
-
-        let tris = 0,
-          verts = 0;
-        result.traverse((o: any) => {
-          if (o.isMesh && o.geometry) {
-            const posCount = o.geometry.attributes.position
-              ? o.geometry.attributes.position.count
-              : 0;
-            verts += posCount;
-            tris += o.geometry.index
-              ? o.geometry.index.count / 3
-              : posCount / 3;
-          }
-        });
-        onStatsUpdate({ triangles: Math.round(tris), vertices: verts });
-        onError(null);
-      } catch (err) {
-        onError(err instanceof Error ? err.message : String(err));
-      }
-    },
-    [clearModel, applyWireframe, onError, onStatsUpdate],
-  );
-
-  const captureImage = useCallback(() => {
-    const engine = engineRef.current;
-    if (!engine) return null;
-    engine.renderer.render(engine.scene, engine.camera);
-    return engine.renderer.domElement.toDataURL("image/png");
-  }, []);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0b0f16);
-
-    const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      preserveDrawingBuffer: true,
-    });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    container.appendChild(renderer.domElement);
-
-    scene.add(new THREE.HemisphereLight(0x8fa3bf, 0x0e131b, 0.5));
-
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    keyLight.position.set(5, 8, 5);
-    keyLight.castShadow = true;
-    keyLight.shadow.mapSize.width = 1024;
-    keyLight.shadow.mapSize.height = 1024;
-    keyLight.shadow.bias = -0.001;
-    scene.add(keyLight);
-
-    const fillLight = new THREE.DirectionalLight(0x4488aa, 0.3);
-    fillLight.position.set(-4, 1, -3);
-    scene.add(fillLight);
-
-    const grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
-    scene.add(grid);
-
-    const shadowPlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(20, 20),
-      new THREE.ShadowMaterial({ opacity: 0.6 }),
-    );
-    shadowPlane.rotation.x = -Math.PI / 2;
-    shadowPlane.position.y = -0.01;
-    shadowPlane.receiveShadow = true;
-    scene.add(shadowPlane);
-
-    const modelGroup = new THREE.Group();
-    scene.add(modelGroup);
-
-    const engineState = {
-      scene,
-      camera,
-      renderer,
-      modelGroup,
-      rotY: 0,
-      elevation: 0.35,
-      camDistance: 3,
-      minDist: 0.5,
-      maxDist: 20,
-      lookTarget: new THREE.Vector3(0, 0.4, 0),
-      dragging: false,
-      lastX: 0,
-      lastY: 0,
-      activePointers: new Map(),
-      frameId: 0,
-    };
-    engineRef.current = engineState;
-
-    function clamp(v: number, a: number, b: number) {
-      return Math.max(a, Math.min(b, v));
-    }
-
-    function onPointerDown(e: PointerEvent) {
-      container!.setPointerCapture(e.pointerId);
-      engineState.activePointers.set(e.pointerId, {
-        x: e.clientX,
-        y: e.clientY,
-      });
-      if (engineState.activePointers.size === 1) {
-        engineState.dragging = true;
-        engineState.lastX = e.clientX;
-        engineState.lastY = e.clientY;
-      }
-    }
-
-    function onPointerMove(e: PointerEvent) {
-      if (!engineState.activePointers.has(e.pointerId)) return;
-      engineState.activePointers.set(e.pointerId, {
-        x: e.clientX,
-        y: e.clientY,
-      });
-      if (engineState.dragging && engineState.activePointers.size === 1) {
-        const dx = e.clientX - engineState.lastX;
-        const dy = e.clientY - engineState.lastY;
-        engineState.lastX = e.clientX;
-        engineState.lastY = e.clientY;
-        engineState.rotY += dx * 0.008;
-        engineState.elevation = clamp(
-          engineState.elevation + dy * 0.008,
-          -1.4,
-          1.4,
-        );
-      }
-    }
-
-    function onPointerUp(e: PointerEvent) {
-      engineState.activePointers.delete(e.pointerId);
-      engineState.dragging = engineState.activePointers.size > 0;
-    }
-
-    function onWheel(e: WheelEvent) {
-      e.preventDefault();
-      engineState.camDistance = clamp(
-        engineState.camDistance + e.deltaY * 0.0015 * engineState.camDistance,
-        engineState.minDist,
-        engineState.maxDist,
-      );
-    }
-
-    container.addEventListener("pointerdown", onPointerDown);
-    container.addEventListener("pointermove", onPointerMove);
-    container.addEventListener("pointerup", onPointerUp);
-    container.addEventListener("wheel", onWheel, { passive: false });
-
-    function onResize() {
-      const w = container!.clientWidth,
-        h = container!.clientHeight;
-      if (w === 0 || h === 0) return;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    }
-    const resizeObserver = new ResizeObserver(onResize);
-    resizeObserver.observe(container);
-    onResize();
-
-    function animate() {
-      engineState.frameId = requestAnimationFrame(animate);
-      const h = engineState.camDistance * Math.cos(engineState.elevation);
-      const y = engineState.camDistance * Math.sin(engineState.elevation);
-      camera.position.set(
-        engineState.lookTarget.x,
-        engineState.lookTarget.y + y,
-        engineState.lookTarget.z + h,
-      );
-      camera.lookAt(engineState.lookTarget);
-
-      if (!engineState.dragging) {
-        engineState.rotY += 0.002;
-      }
-      modelGroup.rotation.y = engineState.rotY;
-
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    return () => {
-      cancelAnimationFrame(engineState.frameId);
-      resizeObserver.disconnect();
-      container.removeEventListener("pointerdown", onPointerDown);
-      container.removeEventListener("pointermove", onPointerMove);
-      container.removeEventListener("pointerup", onPointerUp);
-      container.removeEventListener("wheel", onWheel);
-      renderer.dispose();
-      if (renderer.domElement.parentElement === container) {
-        container.removeChild(renderer.domElement);
-      }
-      engineRef.current = null;
-    };
-  }, []);
-
-  return { executeCode, clearModel, captureImage, applyWireframe };
 }
 </file>
 
@@ -2194,6 +1612,277 @@ export default async function ProjectPage({
 }
 </file>
 
+<file path="src/components/tools/modelGenerator/ControlCoPilotPanel.tsx">
+"use client";
+
+import { useState, KeyboardEvent } from "react";
+import {
+  Sparkles,
+  Loader2,
+  Wand2,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  RotateCcw,
+  Code2,
+  Terminal as TerminalIcon,
+} from "lucide-react";
+import { GEMINI_MODELS } from "../modelGenerator.constants";
+import { TerminalView } from "./TerminalView";
+
+export function ControlCoPilotPanel({
+  t,
+  code,
+  setCode,
+  apiKey,
+  setApiKey,
+  model,
+  setModel,
+  description,
+  setDescription,
+  generating,
+  reviewing,
+  autoReview,
+  setAutoReview,
+  verdict,
+  feedbackInput,
+  setFeedbackInput,
+  lastScreenshot,
+  logs,
+  clearLogs,
+  onGenerate,
+  onReview,
+  onRefine,
+  onRun,
+}: any) {
+  const [activeTab, setActiveTab] = useState<"code" | "terminal">("code");
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const el = e.currentTarget;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      setCode(code.slice(0, start) + "  " + code.slice(end));
+      requestAnimationFrame(
+        () => (el.selectionStart = el.selectionEnd = start + 2),
+      );
+    } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      onRun();
+    }
+  };
+
+  return (
+    <div className="flex flex-col border-b border-border/60 lg:w-[46%] lg:border-b-0 lg:border-r bg-background/20">
+      {/* 🔑 API Key & Model Config */}
+      <div className="flex flex-col gap-2.5 border-b border-border/60 bg-background/40 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs">🔑</span>
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder={t.keyPlaceholder}
+            autoComplete="off"
+            className="flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 font-mono text-xs text-foreground placeholder:text-muted focus:border-primary focus:outline-none"
+          />
+          <select
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+          >
+            {GEMINI_MODELS.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* 🚀 提示词输入区 */}
+      <div className="p-4 border-b border-border/60 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <Sparkles size={13} className="text-primary" /> Prompt Description
+          </label>
+          <label className="flex items-center gap-1.5 text-[11px] text-muted cursor-pointer hover:text-foreground">
+            <input
+              type="checkbox"
+              checked={autoReview}
+              onChange={(e) => setAutoReview(e.target.checked)}
+              className="rounded border-border text-primary focus:ring-0"
+            />
+            Auto Vision-Review
+          </label>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && onGenerate()}
+            placeholder={t.descPlaceholder}
+            className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted focus:border-primary focus:outline-none"
+          />
+          <button
+            onClick={onGenerate}
+            disabled={generating || reviewing}
+            className="flex items-center gap-1.5 whitespace-nowrap rounded-md border border-primary bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-50"
+          >
+            {generating ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <Wand2 size={13} />
+            )}
+            {t.generate}
+          </button>
+        </div>
+      </div>
+
+      {/* 🌟 视觉评审与修改反馈 Hub (只要有代码/模型就常驻显示) */}
+      {code && (
+        <div className="p-4 border-b border-border/60 bg-primary/5 flex flex-col gap-2.5 transition-all duration-300">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1">
+                <Search size={13} className="text-primary" /> Review & Refine
+              </span>
+
+              {/* 🖼️ 点击在新标签页查看给 Vision AI 发送的双视角截图 */}
+              {lastScreenshot && (
+                <button
+                  onClick={() => {
+                    const win = window.open();
+                    if (win) {
+                      win.document.write(
+                        `<body style="margin:0;background:#0b0f16;display:flex;align-items:center;justify-content:center;height:100vh;"><img src="${lastScreenshot}" style="max-width:90%;border:2px solid #38bdf8;border-radius:12px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);"/></body>`,
+                      );
+                    }
+                  }}
+                  className="text-[11px] text-primary hover:underline flex items-center gap-1 transition-colors"
+                  title="Open the exact 2-in-1 image sent to Gemini Vision"
+                >
+                  🖼️ View Snapshot
+                </button>
+              )}
+
+              {verdict && (
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium border ${
+                    verdict.decision === "continue"
+                      ? "border-emerald-800 bg-emerald-950/50 text-emerald-400"
+                      : "border-amber-800 bg-amber-950/50 text-amber-400"
+                  }`}
+                >
+                  {verdict.decision === "continue" ? (
+                    <CheckCircle2 size={10} />
+                  ) : (
+                    <AlertCircle size={10} />
+                  )}
+                  {verdict.decision === "continue" ? "Pass" : "Needs Work"} (
+                  {Math.round(verdict.score * 100)}%)
+                </span>
+              )}
+            </div>
+
+            {/* 常驻的手动 Review 触发按钮 */}
+            <button
+              onClick={onReview}
+              disabled={reviewing || generating}
+              className="text-[11px] font-medium text-muted hover:text-primary underline underline-offset-2 flex items-center gap-1"
+            >
+              {reviewing ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Search size={11} />
+              )}
+              {verdict ? "Re-Analyze" : "Analyze Render"}
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <textarea
+              value={feedbackInput}
+              onChange={(e) => setFeedbackInput(e.target.value)}
+              placeholder={
+                verdict
+                  ? "Critique & User Modifications..."
+                  : "Enter manual tweaks here, or click Analyze to get AI feedback..."
+              }
+              rows={2}
+              className="w-full rounded-md border border-border/80 bg-background/80 px-2.5 py-2 text-xs font-mono text-foreground placeholder:text-muted focus:border-primary focus:outline-none resize-none leading-relaxed"
+            />
+            <button
+              onClick={onRefine}
+              disabled={generating || reviewing || !feedbackInput.trim()}
+              className="flex items-center justify-center gap-1.5 w-full rounded-md border border-primary/60 bg-primary/10 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-40 transition-colors"
+            >
+              {generating ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <RotateCcw size={13} />
+              )}
+              Refine & Apply Changes
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 💻 代码与 Terminal 选项卡组 */}
+      <div className="flex-1 flex flex-col">
+        <div className="px-4 py-2 border-b border-border/40 text-[11px] flex items-center justify-between bg-background/30">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setActiveTab("code")}
+              className={`flex items-center gap-1.5 font-medium transition-colors ${
+                activeTab === "code"
+                  ? "text-primary"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              <Code2 size={13} /> JavaScript
+            </button>
+            <button
+              onClick={() => setActiveTab("terminal")}
+              className={`flex items-center gap-1.5 font-medium transition-colors ${
+                activeTab === "terminal"
+                  ? "text-primary"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              <TerminalIcon size={13} /> Logs Terminal
+              {logs.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-primary/20 text-primary text-[9px]">
+                  {logs.length}
+                </span>
+              )}
+            </button>
+          </div>
+          {activeTab === "code" && (
+            <span className="text-[10px] opacity-60">⌘/Ctrl+Enter to run</span>
+          )}
+        </div>
+
+        {activeTab === "code" ? (
+          <textarea
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            onKeyDown={handleKeyDown}
+            spellCheck={false}
+            className="h-[280px] w-full flex-1 resize-none bg-background/50 px-4 py-3 font-mono text-[12.5px] leading-relaxed text-foreground focus:outline-none lg:h-[380px]"
+          />
+        ) : (
+          <TerminalView logs={logs} onClearLogs={clearLogs} />
+        )}
+      </div>
+    </div>
+  );
+}
+</file>
+
 <file path="src/components/ui/Card.tsx">
 "use client";
 
@@ -2387,106 +2076,17 @@ yarn-error.log*
 next-env.d.ts
 </file>
 
-<file path="src/app/api/generate-model/route.ts">
-import { GoogleGenAI } from "@google/genai";
-import { NextRequest, NextResponse } from "next/server";
-
-const SYSTEM_PROMPT = `You are a code generator, not a conversational assistant. You NEVER chat, explain, ask questions, or give advice — you ONLY output code.
-
-The user's input is a description of a physical object to model in 3D. You must build it in a premium "Cozy Low-Poly" art style (similar to classic faceted low-poly game assets).
-
-Before writing code, think about the most distinctive silhouette of the object. Do NOT just stack 3-4 giant boxes (that looks like a cheap matchbox). Instead, use 15 to 30 thoughtfully placed, well-proportioned small primitives to create composition and micro-details.
-
-Strict Rules for the Cozy Low-Poly style:
-1. Output ONLY a single function named exactly: function buildModel(THREE) { ... }
-2. It must return a THREE.Object3D (a THREE.Group or THREE.Mesh).
-3. Allowed geometries ONLY: THREE.BoxGeometry, THREE.CylinderGeometry, THREE.ConeGeometry, THREE.IcosahedronGeometry, THREE.DodecahedronGeometry, THREE.SphereGeometry.
-   (You can also use custom helpers \`buildCurveSweepGeometry(sweep)\` and \`buildExtrudeGeometry(profile)\` which are already injected into your environment).
-4. Vehicles & Cars (THE TRAPEZOID TEMPLATE - CRITICAL):
-   NEVER use a simple Box for a car cabin (it creates ugly 90-degree vertical windshields). You MUST use this exact 4-sided cylinder trick to create slanted windshields:
-   - Top radius MUST be smaller than bottom radius.
-   - You MUST scale the mesh on the Z-axis so it forms a rectangular cabin.
-   USE THIS EXACT LOGIC STRUCTURE:
-   const cabGeo = new THREE.CylinderGeometry(0.5, 0.7, 0.5, 4);
-   cabGeo.rotateY(Math.PI / 4); // Turns it into a sloped trapezoid!
-   const cabin = new THREE.Mesh(cabGeo, bodyMaterial);
-   cabin.scale.set(1, 1, 1.8); // Stretch length to match car
-   const winGeo = new THREE.CylinderGeometry(0.52, 0.72, 0.35, 4); // Slightly larger
-   winGeo.rotateY(Math.PI / 4);
-   const windows = new THREE.Mesh(winGeo, darkWindowMaterial); // Material MUST have polygonOffset
-   windows.scale.set(1, 1, 1.8);
-5. Heads, Helmets & Organic Shapes: ALWAYS use \`mesh.scale.set(x, y, z)\` on Spheres/Icosahedrons to squash or stretch them.
-6. Materials & Anti-Clipping: ONLY use THREE.MeshStandardMaterial with { flatShading: true, roughness: 0.9, metalness: 0.05 }.
-   CRITICAL FOR WINDOWS/DECALS: To prevent Z-fighting, ALWAYS set { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 } on the overlying detail material (like dark window material).
-7. Shadows: Every single mesh you create MUST have \`mesh.castShadow = true\` and \`mesh.receiveShadow = true\`.
-8. Colors: Use warm, pastel, cohesive color palettes. Limit to 5-6 distinct colors.
-9. Keep the code organized. Group related parts logically.
-10. Do NOT wrap the code in markdown fences. Output ONLY raw JavaScript code.`;
-
-export async function POST(req: NextRequest) {
-  try {
-    const { description, previousCode, feedback, apiKey, model } =
-      await req.json();
-    if (!description || typeof description !== "string") {
-      return NextResponse.json(
-        { error: "Missing description" },
-        { status: 400 },
-      );
-    }
-
-    const ai = new GoogleGenAI({
-      apiKey: apiKey || process.env.GEMINI_API_KEY,
-    });
-    const selectedModel = model || "gemini-3.6-flash";
-
-    const userPrompt =
-      previousCode && feedback
-        ? `Original request: ${description}\n\nPrevious code:\n${previousCode}\n\nA reviewer looked at a render of this and said:\n"${feedback}"\n\nRewrite the buildModel function to fix this, while still following all the rules.`
-        : description;
-
-    const response = await ai.models.generateContent({
-      model: selectedModel,
-      contents: userPrompt,
-      config: { systemInstruction: SYSTEM_PROMPT, temperature: 0.8 },
-    });
-
-    let code = (response.text ?? "").trim();
-    code = code
-      .replace(/^```(?:javascript|js)?\n?/i, "")
-      .replace(/```$/i, "")
-      .trim();
-
-    if (!/function\s+buildModel\s*\(/.test(code)) {
-      return NextResponse.json(
-        {
-          error:
-            "The model returned something that isn't code — try rephrasing your description.",
-        },
-        { status: 502 },
-      );
-    }
-
-    return NextResponse.json({ code });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Generation failed" },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
 <file path="src/app/api/review-model/route.ts">
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 
-const REVIEW_SYSTEM_PROMPT = `You are reviewing a screenshot of a rendered low-poly 3D model against the text description it was supposed to match.
+const REVIEW_SYSTEM_PROMPT = `You are reviewing a dual-view screenshot (Left: 3/4 angle, Right: opposite angle) of a rendered low-poly 3D model against the text description.
 
-Before scoring, first identify the single most visually distinctive silhouette feature of the described object (e.g. a cooling tower's hourglass taper, a car's low wide body, a lamp's shade). Check whether the render actually has that feature. If it's missing or clearly wrong, this alone should push the decision to "refine" regardless of how good the overall vibe looks.
+IMPORTANT FOR OCCOLUSION: Look at BOTH camera views provided in the image before concluding an item is missing! If an item (like stools, lanterns, wheels) is visible in AT LEAST ONE view, treat it as PRESENT.
 
+Before scoring, identify the single most visually distinctive silhouette feature of the described object.
 Score how well the render matches the description on a 0 to 1 scale.
-Decide "continue" if it's a reasonable match for a simple low-poly game asset, or "refine" if something important is clearly wrong (wrong silhouette, wrong shape, missing part, badly wrong proportions, or colors that don't match the described object at all).
-Be lenient about minor low-poly stylization — this is not meant to be realistic.
+Decide "continue" if it's a reasonable match for a simple low-poly game asset, or "refine" if something important is clearly missing in ALL views or badly wrong in proportion.
 
 If "refine", give one short, specific, actionable sentence describing what to change.
 
@@ -2750,6 +2350,580 @@ export async function MarketTicker() {
 }
 </file>
 
+<file path="src/components/tools/modelGenerator/useThreeEngine.ts">
+"use client";
+
+import { useCallback, useEffect, useRef } from "react";
+import * as THREE from "three";
+import type { Stats } from "./types";
+
+export function useThreeEngine(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  onError: (err: string | null) => void,
+  onStatsUpdate: (stats: Stats) => void,
+) {
+  const engineRef = useRef<any>(null);
+
+  // 1. 切换 WebGL 画布背景与网格主题
+  const setCanvasTheme = useCallback((mode: "dark" | "day") => {
+    const engine = engineRef.current;
+    if (!engine) return;
+
+    if (mode === "day") {
+      engine.scene.background = new THREE.Color(0xf1f5f9);
+      engine.scene.remove(engine.grid);
+      engine.grid.geometry.dispose();
+      engine.grid.material.dispose();
+      engine.grid = new THREE.GridHelper(4, 16, 0x94a3b8, 0xcbd5e1);
+      engine.scene.add(engine.grid);
+    } else {
+      engine.scene.background = new THREE.Color(0x0b0f16);
+      engine.scene.remove(engine.grid);
+      engine.grid.geometry.dispose();
+      engine.grid.material.dispose();
+      engine.grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
+      engine.scene.add(engine.grid);
+    }
+  }, []);
+
+  const clearModel = useCallback(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    while (engine.modelGroup.children.length) {
+      const obj = engine.modelGroup.children.pop()!;
+      obj.traverse((o: any) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) {
+          const mats = Array.isArray(o.material) ? o.material : [o.material];
+          mats.forEach((m: any) => {
+            m.dispose();
+            if (m.map) m.map.dispose();
+          });
+        }
+      });
+    }
+  }, []);
+
+  const applyWireframe = useCallback((wf: boolean) => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.modelGroup.traverse((o: any) => {
+      if (o.isMesh && o.material) {
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach((m: any) => (m.wireframe = wf));
+      }
+    });
+  }, []);
+
+  const executeCode = useCallback(
+    (codeStr: string, isWireframe: boolean): boolean => {
+      const engine = engineRef.current;
+      if (!engine) return false;
+
+      try {
+        clearModel();
+
+        const HELPER_FUNCTIONS = `
+          function buildExtrudeShape(points, holes) {
+            const shape = new THREE.Shape();
+            if (points.length > 0) {
+              shape.moveTo(points[0][0], points[0][1]);
+              for (let i = 1; i < points.length; i++) shape.lineTo(points[i][0], points[i][1]);
+            }
+            for (const loop of holes ?? []) {
+              if (loop.length < 3) continue;
+              const path = new THREE.Path();
+              path.moveTo(loop[0][0], loop[0][1]);
+              for (let i = 1; i < loop.length; i++) path.lineTo(loop[i][0], loop[i][1]);
+              path.closePath();
+              shape.holes.push(path);
+            }
+            return shape;
+          }
+
+          function ovalLoop(cx, cy, rx, ry, seg = 24) {
+            const loop = [];
+            for (let i = 0; i < seg; i++) {
+              const a = (i / seg) * Math.PI * 2;
+              loop.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
+            }
+            return loop;
+          }
+
+          function buildExtrudeGeometry(profile) {
+            const holes = [...(profile.holes ?? []), ...((profile.ovalHoles ?? []).map(o => ovalLoop(o.cx, o.cy, o.rx, o.ry)))];
+            const shape = buildExtrudeShape(profile.points, holes);
+            return new THREE.ExtrudeGeometry(shape, { depth: profile.depth, bevelEnabled: false, steps: 1 });
+          }
+
+          function buildCurveSweepGeometry(sweep) {
+            const shape = new THREE.Shape();
+            const cs = sweep.crossSection.points;
+            if (cs.length > 0) {
+              shape.moveTo(cs[0][0], cs[0][1]);
+              for (let i = 1; i < cs.length; i++) shape.lineTo(cs[i][0], cs[i][1]);
+              shape.closePath();
+            }
+            const spine = sweep.spine.map(p => new THREE.Vector3(p[0], p[1], p[2]));
+            const path = new THREE.CatmullRomCurve3(spine, sweep.closed ?? false);
+            return new THREE.ExtrudeGeometry(shape, { extrudePath: path, steps: Math.max(24, spine.length * 8), bevelEnabled: false });
+          }
+
+          function buildLatheGeometry(profile) {
+            const points = profile.points.map(p => new THREE.Vector2(Math.max(0.0001, p[0]), p[1]));
+            return new THREE.LatheGeometry(points, profile.segments ?? 24);
+          }
+
+          function buildTubeGeometry(path) {
+            const vectors = path.points.map(p => new THREE.Vector3(p[0], p[1], p[2]));
+            const curve = new THREE.CatmullRomCurve3(vectors, path.closed ?? false);
+            const tubularSegments = Math.max(8, path.points.length * 6);
+            return new THREE.TubeGeometry(curve, tubularSegments, path.radius ?? 0.05, path.radialSegments ?? 8, path.closed ?? false);
+          }
+        `;
+
+        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+        const fn = new Function(
+          "THREE",
+          HELPER_FUNCTIONS + "\n" + codeStr + "\n;return buildModel(THREE);",
+        );
+        const result = fn(THREE);
+
+        if (!result || !(result instanceof THREE.Object3D)) {
+          throw new Error("buildModel(THREE) must return a THREE.Object3D");
+        }
+
+        result.traverse((o: any) => {
+          if (o instanceof THREE.Mesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+          }
+        });
+
+        engine.modelGroup.add(result);
+        applyWireframe(isWireframe);
+
+        const box = new THREE.Box3().setFromObject(result);
+        if (!box.isEmpty()) {
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          const center = new THREE.Vector3();
+          box.getCenter(center);
+          const maxDim = Math.max(size.x, size.y, size.z) || 1;
+          const fitDist =
+            (maxDim / (2 * Math.tan((engine.camera.fov * Math.PI) / 180 / 2))) *
+            1.8;
+          engine.camDistance = fitDist;
+          engine.minDist = fitDist * 0.15;
+          engine.maxDist = fitDist * 8;
+          engine.lookTarget.copy(center);
+        }
+
+        let tris = 0,
+          verts = 0;
+        result.traverse((o: any) => {
+          if (o.isMesh && o.geometry) {
+            const posCount = o.geometry.attributes.position
+              ? o.geometry.attributes.position.count
+              : 0;
+            verts += posCount;
+            tris += o.geometry.index
+              ? o.geometry.index.count / 3
+              : posCount / 3;
+          }
+        });
+        onStatsUpdate({ triangles: Math.round(tris), vertices: verts });
+        onError(null);
+        return true;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        onError(msg);
+        return false;
+      }
+    },
+    [clearModel, applyWireframe, onError, onStatsUpdate],
+  );
+
+  // 🌟 核心修复：无变形、完美长宽比、高对比度离屏多视角截图
+  const captureImage = useCallback(() => {
+    const engine = engineRef.current;
+    if (!engine) return null;
+
+    const container = containerRef.current;
+    const origWidth = container?.clientWidth || 800;
+    const origHeight = container?.clientHeight || 600;
+    const origAspect = engine.camera.aspect;
+    const origRotY = engine.rotY;
+    const origElevation = engine.elevation;
+
+    // 1. 创建 1024x512 拼接画布
+    const combinedCanvas = document.createElement("canvas");
+    combinedCanvas.width = 1024;
+    combinedCanvas.height = 512;
+    const ctx = combinedCanvas.getContext("2d");
+    if (!ctx) return null;
+
+    // 2. 🌟 强制将渲染器临时切为 512x512 正方形，比例为 1.0 (无变形!)
+    engine.renderer.setSize(512, 512, false);
+    engine.camera.aspect = 1.0;
+    engine.camera.updateProjectionMatrix();
+
+    const renderAngleToCanvas = (
+      rotY: number,
+      elevation: number,
+      offsetX: number,
+    ) => {
+      engine.rotY = rotY;
+      engine.elevation = elevation;
+
+      const h = engine.camDistance * Math.cos(engine.elevation);
+      const y = engine.camDistance * Math.sin(engine.elevation);
+      engine.camera.position.set(
+        engine.lookTarget.x,
+        engine.lookTarget.y + y,
+        engine.lookTarget.z + h,
+      );
+      engine.camera.lookAt(engine.lookTarget);
+      engine.modelGroup.rotation.y = engine.rotY;
+
+      engine.renderer.render(engine.scene, engine.camera);
+      ctx.drawImage(engine.renderer.domElement, offsetX, 0, 512, 512);
+    };
+
+    // 📸 视角 A：视角 45°，俯角 0.48 (约 28° 俯视，看清顶部和底座)
+    renderAngleToCanvas(Math.PI / 4, 0.48, 0);
+
+    // 📸 视角 B：视角 -60°，俯角 0.52 (约 30° 俯视)
+    renderAngleToCanvas(-Math.PI / 3, 0.52, 512);
+
+    // 3. 还原渲染器尺寸、相机比例与旋转视角
+    engine.renderer.setSize(origWidth, origHeight, false);
+    engine.camera.aspect = origAspect;
+    engine.camera.updateProjectionMatrix();
+
+    engine.rotY = origRotY;
+    engine.elevation = origElevation;
+    engine.modelGroup.rotation.y = engine.rotY;
+    const h = engine.camDistance * Math.cos(engine.elevation);
+    const y = engine.camDistance * Math.sin(engine.elevation);
+    engine.camera.position.set(
+      engine.lookTarget.x,
+      engine.lookTarget.y + y,
+      engine.lookTarget.z + h,
+    );
+    engine.camera.lookAt(engine.lookTarget);
+    engine.renderer.render(engine.scene, engine.camera);
+
+    return combinedCanvas.toDataURL("image/png");
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b0f16);
+
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      preserveDrawingBuffer: true,
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    scene.add(new THREE.HemisphereLight(0x8fa3bf, 0x0e131b, 0.6));
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    keyLight.position.set(5, 8, 5);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 1024;
+    keyLight.shadow.mapSize.height = 1024;
+    keyLight.shadow.bias = -0.001;
+    scene.add(keyLight);
+
+    // 🌟 增强补光灯 (intensity 从 0.3 -> 0.55, 位置调低)，照亮底部和阴影细节！
+    const fillLight = new THREE.DirectionalLight(0x66aacc, 0.55);
+    fillLight.position.set(-4, -1, -3);
+    scene.add(fillLight);
+
+    const grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
+    scene.add(grid);
+
+    const shadowPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(20, 20),
+      new THREE.ShadowMaterial({ opacity: 0.5 }),
+    );
+    shadowPlane.rotation.x = -Math.PI / 2;
+    shadowPlane.position.y = -0.01;
+    shadowPlane.receiveShadow = true;
+    scene.add(shadowPlane);
+
+    const modelGroup = new THREE.Group();
+    scene.add(modelGroup);
+
+    const engineState = {
+      scene,
+      camera,
+      renderer,
+      modelGroup,
+      grid,
+      rotY: 0,
+      elevation: 0.35,
+      camDistance: 3,
+      minDist: 0.5,
+      maxDist: 20,
+      lookTarget: new THREE.Vector3(0, 0.4, 0),
+      dragging: false,
+      lastX: 0,
+      lastY: 0,
+      activePointers: new Map(),
+      frameId: 0,
+    };
+    engineRef.current = engineState;
+
+    function clamp(v: number, a: number, b: number) {
+      return Math.max(a, Math.min(b, v));
+    }
+
+    function onPointerDown(e: PointerEvent) {
+      container!.setPointerCapture(e.pointerId);
+      engineState.activePointers.set(e.pointerId, {
+        x: e.clientX,
+        y: e.clientY,
+      });
+      if (engineState.activePointers.size === 1) {
+        engineState.dragging = true;
+        engineState.lastX = e.clientX;
+        engineState.lastY = e.clientY;
+      }
+    }
+
+    function onPointerMove(e: PointerEvent) {
+      if (!engineState.activePointers.has(e.pointerId)) return;
+      engineState.activePointers.set(e.pointerId, {
+        x: e.clientX,
+        y: e.clientY,
+      });
+      if (engineState.dragging && engineState.activePointers.size === 1) {
+        const dx = e.clientX - engineState.lastX;
+        const dy = e.clientY - engineState.lastY;
+        engineState.lastX = e.clientX;
+        engineState.lastY = e.clientY;
+        engineState.rotY += dx * 0.008;
+        engineState.elevation = clamp(
+          engineState.elevation + dy * 0.008,
+          -1.4,
+          1.4,
+        );
+      }
+    }
+
+    function onPointerUp(e: PointerEvent) {
+      engineState.activePointers.delete(e.pointerId);
+      engineState.dragging = engineState.activePointers.size > 0;
+    }
+
+    function onWheel(e: WheelEvent) {
+      e.preventDefault();
+      engineState.camDistance = clamp(
+        engineState.camDistance + e.deltaY * 0.0015 * engineState.camDistance,
+        engineState.minDist,
+        engineState.maxDist,
+      );
+    }
+
+    container.addEventListener("pointerdown", onPointerDown);
+    container.addEventListener("pointermove", onPointerMove);
+    container.addEventListener("pointerup", onPointerUp);
+    container.addEventListener("wheel", onWheel, { passive: false });
+
+    function onResize() {
+      const w = container!.clientWidth,
+        h = container!.clientHeight;
+      if (w === 0 || h === 0) return;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+    const resizeObserver = new ResizeObserver(onResize);
+    resizeObserver.observe(container);
+    onResize();
+
+    function animate() {
+      engineState.frameId = requestAnimationFrame(animate);
+      const h = engineState.camDistance * Math.cos(engineState.elevation);
+      const y = engineState.camDistance * Math.sin(engineState.elevation);
+      camera.position.set(
+        engineState.lookTarget.x,
+        engineState.lookTarget.y + y,
+        engineState.lookTarget.z + h,
+      );
+      camera.lookAt(engineState.lookTarget);
+
+      if (!engineState.dragging) {
+        engineState.rotY += 0.002;
+      }
+      modelGroup.rotation.y = engineState.rotY;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    return () => {
+      cancelAnimationFrame(engineState.frameId);
+      resizeObserver.disconnect();
+      container.removeEventListener("pointerdown", onPointerDown);
+      container.removeEventListener("pointermove", onPointerMove);
+      container.removeEventListener("pointerup", onPointerUp);
+      container.removeEventListener("pointercancel", onPointerUp);
+      container.removeEventListener("wheel", onWheel);
+      renderer.dispose();
+      if (renderer.domElement.parentElement === container) {
+        container.removeChild(renderer.domElement);
+      }
+      engineRef.current = null;
+    };
+  }, []);
+
+  return {
+    executeCode,
+    clearModel,
+    captureImage,
+    applyWireframe,
+    setCanvasTheme,
+  };
+}
+</file>
+
+<file path="src/app/api/generate-model/route.ts">
+import { GoogleGenAI } from "@google/genai";
+import { NextRequest, NextResponse } from "next/server";
+
+const SYSTEM_PROMPT = `You are a code generator, not a conversational assistant. You NEVER chat, explain, ask questions, or give advice — you ONLY output code.
+
+The user's input is a description of a physical object to model in 3D. You must build it in a premium "Cozy Low-Poly" art style (similar to classic faceted low-poly game assets).
+
+Before writing code, think about the most distinctive silhouette of the object. Do NOT just stack 3-4 giant boxes. Instead, use 15 to 30 thoughtfully placed, well-proportioned small primitives to create composition and micro-details.
+
+===================================================================
+CUSTOM HELPER FUNCTIONS (PRE-INJECTED IN YOUR SCOPE):
+You can call these custom geometry builder functions directly in buildModel(THREE).
+You MUST follow their exact TypeScript parameter interfaces:
+
+1. buildExtrudeGeometry(profile)
+   - Interface: profile = { points: [number, number][], depth: number, holes?: [number, number][][], ovalHoles?: {cx: number, cy: number, rx: number, ry: number}[] }
+   - Example: const bladeGeo = buildExtrudeGeometry({ points: [[-0.1,0], [0.1,0], [0.05,1.2], [-0.05,1.2]], depth: 0.05, ovalHoles: [{cx:0, cy:0.3, rx:0.02, ry:0.04}] });
+
+2. buildCurveSweepGeometry(sweep)
+   - Interface: sweep = { spine: [number, number, number][], crossSection: { points: [number, number][] }, closed?: boolean }
+   - Example: const pipeGeo = buildCurveSweepGeometry({ spine: [[0,0,0], [0,1,0], [1,1,0]], crossSection: { points: [[-0.1,-0.1], [0.1,-0.1], [0.1,0.1], [-0.1,0.1]] } });
+
+3. buildLatheGeometry(profile)
+   - Interface: profile = { points: [x: number, y: number][], segments?: number } (Note: x must be >= 0)
+   - Example: const vaseGeo = buildLatheGeometry({ points: [[0.1,-0.5], [0.3,0], [0.15,0.5]], segments: 12 });
+
+4. buildTubeGeometry(path)
+   - Interface: path = { points: [number, number, number][], radius?: number, radialSegments?: number, closed?: boolean }
+   - Example: const cableGeo = buildTubeGeometry({ points: [[0,0,0], [0.5,0.5,0], [1,0,0]], radius: 0.04, radialSegments: 8 });
+===================================================================
+
+Strict Rules for the Cozy Low-Poly style:
+1. Output ONLY a single function named exactly: function buildModel(THREE) { ... }
+2. It must return a THREE.Object3D (a THREE.Group or THREE.Mesh).
+3. Allowed geometries: THREE.BoxGeometry, THREE.CylinderGeometry, THREE.ConeGeometry, THREE.IcosahedronGeometry, THREE.DodecahedronGeometry, THREE.SphereGeometry, or the pre-injected custom helpers above.
+4. Vehicles & Car Cabins (THE TRAPEZOID TEMPLATE - CRITICAL):
+   NEVER use a simple Box for a car cabin (it creates ugly 90-degree vertical windshields). You MUST use this exact 4-sided cylinder trick to create slanted windshields:
+   - Top radius MUST be smaller than bottom radius!
+   - You MUST scale the mesh on the Z-axis so it forms a rectangular cabin.
+   USE THIS EXACT LOGIC STRUCTURE:
+   const cabGeo = new THREE.CylinderGeometry(0.5, 0.7, 0.5, 4);
+   cabGeo.rotateY(Math.PI / 4); // Turns it into a sloped trapezoid!
+   const cabin = new THREE.Mesh(cabGeo, bodyMaterial);
+   cabin.scale.set(1, 1, 1.8); // Stretch length to match car
+   const winGeo = new THREE.CylinderGeometry(0.52, 0.72, 0.35, 4); // Slightly larger
+   winGeo.rotateY(Math.PI / 4);
+   const windows = new THREE.Mesh(winGeo, darkWindowMaterial); // Material MUST have polygonOffset
+   windows.scale.set(1, 1, 1.8);
+5. Heads, Helmets & Organic Shapes: Use low-segment geometries (e.g., new THREE.SphereGeometry(r, 10, 10)). ALWAYS use \`mesh.scale.set(x, y, z)\` to squash or stretch them to make them look stylized.
+6. Materials & Anti-Clipping: ONLY use THREE.MeshStandardMaterial with { flatShading: true, roughness: 0.9, metalness: 0.05 }.
+   CRITICAL FOR WINDOWS/DECALS: To prevent Z-fighting, ALWAYS set { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 } on the overlying detail material (like dark window material).
+7. Shadows: Every single mesh you create MUST have \`mesh.castShadow = true\` and \`mesh.receiveShadow = true\`.
+8. Colors: Use warm, pastel, cohesive color palettes. Limit to 5-6 distinct colors.
+9. Keep the code organized. Group related parts logically.
+10. STRICT VARIABLE DECLARATIONS: Always declare every group, material, or mesh variable with \`const\` BEFORE adding children to it or referencing it (e.g., \`const paperMenuGroup = new THREE.Group();\`). Never use undeclared variables.
+11. NO MARKDOWN, NO CONVERSATION: Output ONLY raw executable JS starting with \`function buildModel(THREE)\`. Absolutely NO intro/outro text.
+12. STRICT VARIABLE DECLARATIONS: Always declare every group, material, or mesh variable with \`const\` BEFORE adding children to it or referencing it (e.g., \`const paperMenuGroup = new THREE.Group();\`). Never use undeclared variables.
+`;
+
+export async function POST(req: NextRequest) {
+  try {
+    const { description, previousCode, feedback, apiKey, model } =
+      await req.json();
+    if (!description || typeof description !== "string") {
+      return NextResponse.json(
+        { error: "Missing description" },
+        { status: 400 },
+      );
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey: apiKey || process.env.GEMINI_API_KEY,
+    });
+    const selectedModel = model || "gemini-3.6-flash";
+
+    const userPrompt =
+      previousCode && feedback
+        ? `Original request: ${description}\n\nPrevious code:\n${previousCode}\n\nA reviewer looked at a render of this and said:\n"${feedback}"\n\nRewrite the buildModel function to fix this, while still following all the rules.`
+        : description;
+
+    const response = await ai.models.generateContent({
+      model: selectedModel,
+      contents: userPrompt,
+      config: { systemInstruction: SYSTEM_PROMPT, temperature: 0.8 },
+    });
+
+    const responseText = response.text ?? "";
+
+    // 🌟 第一重清洗：如果包含 ```javascript ... ``` 标签，强行提炼内部代码
+    const markdownMatch = responseText.match(
+      /```(?:javascript|js)?\s*([\s\S]*?)\s*```/i,
+    );
+    let code = markdownMatch ? markdownMatch[1].trim() : responseText.trim();
+
+    // 🌟 第二重清洗：强行从 function buildModel(THREE) 截取到最后一个结束花括号 }
+    const fnMatch = code.match(/function\s+buildModel\s*\([\s\S]*/);
+    if (fnMatch) {
+      code = fnMatch[0].trim();
+      const lastBraceIndex = code.lastIndexOf("}");
+      if (lastBraceIndex !== -1) {
+        code = code.slice(0, lastBraceIndex + 1).trim();
+      }
+    }
+
+    if (!/function\s+buildModel\s*\(/.test(code)) {
+      return NextResponse.json(
+        {
+          error:
+            "The model returned something that isn't valid code — try rephrasing your description.",
+        },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json({ code });
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err.message || "Generation failed" },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
 <file path="src/components/home/Hero.tsx">
 "use client";
 
@@ -2850,261 +3024,6 @@ export function Hero() {
         </motion.div>
       </div>
     </section>
-  );
-}
-</file>
-
-<file path="src/components/tools/ModelGenerator.tsx">
-"use client";
-
-import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  DEFAULT_CODE,
-  GEMINI_MODELS,
-  TRANSLATIONS,
-  isDefaultCode,
-  type Lang,
-} from "./modelGenerator.constants";
-import type { Verdict, Stats, LogEntry } from "./modelGenerator/types";
-import { useThreeEngine } from "./modelGenerator/useThreeEngine";
-import { Toolbar } from "./modelGenerator/Toolbar";
-import { ControlCoPilotPanel } from "./modelGenerator/ControlCoPilotPanel";
-import { PreviewPanel } from "./modelGenerator/PreviewPanel";
-
-export function ModelGenerator() {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // State
-  const [lang, setLang] = useState<Lang>("en");
-  const [code, setCode] = useState("");
-  const [description, setDescription] = useState("");
-  const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState<string>(GEMINI_MODELS[0].value);
-  const [wireframe, setWireframe] = useState(false);
-  const [stats, setStats] = useState<Stats>({ triangles: 0, vertices: 0 });
-  const [error, setError] = useState<string | null>(null);
-
-  // Agent State
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [autoReview, setAutoReview] = useState(true);
-  const [verdict, setVerdict] = useState<Verdict | null>(null);
-  const [feedbackInput, setFeedbackInput] = useState("");
-  const [generating, setGenerating] = useState(false);
-  const [reviewing, setReviewing] = useState(false);
-
-  const t = TRANSLATIONS[lang];
-  const engine = useThreeEngine(containerRef, setError, setStats);
-
-  const addLog = useCallback((tag: LogEntry["tag"], text: string) => {
-    const time = new Date().toLocaleTimeString("en-US", { hour12: false });
-    setLogs((prev) => [
-      ...prev,
-      { id: Math.random().toString(), time, tag, text },
-    ]);
-  }, []);
-
-  useEffect(() => {
-    addLog("SYSTEM", "WebGL Engine initialized. PCFSoftShadowMap enabled.");
-  }, [addLog]);
-
-  const triggerReview = async (customDesc?: string) => {
-    const descToUse = customDesc || description.trim();
-    if (!descToUse) return null;
-
-    addLog("VISION", "Capturing WebGL Canvas screenshot...");
-    const screenshot = engine.captureImage();
-    if (!screenshot) return null;
-
-    setReviewing(true);
-    addLog(
-      "VISION",
-      `Sending render to Gemini Vision (${model}) for critique...`,
-    );
-    try {
-      const res = await fetch("/api/review-model", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: descToUse,
-          screenshot,
-          apiKey: apiKey.trim() || undefined,
-          model,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      setVerdict(data);
-      const scorePct = Math.round((data.score || 0) * 100);
-      addLog(
-        "REVIEW",
-        `Verdict: ${data.decision.toUpperCase()} (${scorePct}% score)`,
-      );
-
-      if (data.critique) {
-        setFeedbackInput(data.critique);
-        addLog("REVIEW", `Critique: "${data.critique}"`);
-      }
-      return data;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError("Review failed: " + msg);
-      addLog("ERROR", `Review Failed: ${msg}`);
-      return null;
-    } finally {
-      setReviewing(false);
-    }
-  };
-
-  const handleGenerate = async () => {
-    const desc = description.trim();
-    if (!desc) return setError("Enter a description first.");
-
-    setGenerating(true);
-    setError(null);
-    setVerdict(null);
-    setFeedbackInput("");
-
-    addLog("PROMPT", `User prompt received: "${desc}"`);
-    addLog("AGENT", `Invoking ${model} for Three.js code synthesis...`);
-
-    try {
-      const res = await fetch("/api/generate-model", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: desc,
-          apiKey: apiKey.trim() || undefined,
-          model,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      setCode(data.code);
-      addLog("WEBGL", "Compilation successful. Executing buildModel(THREE)...");
-      engine.executeCode(data.code, wireframe);
-      addLog("WEBGL", "Model loaded into scene with auto-fit perspective.");
-
-      if (autoReview) {
-        setTimeout(() => triggerReview(desc), 300);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError("Generate failed: " + msg);
-      addLog("ERROR", `Generation Failed: ${msg}`);
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const handleRefine = async () => {
-    const desc = description.trim();
-    if (!desc) return setError("Enter a description first.");
-    if (!feedbackInput.trim()) return setError("Feedback is empty.");
-
-    setGenerating(true);
-    setError(null);
-
-    addLog("PROMPT", `Applying refinement feedback: "${feedbackInput.trim()}"`);
-    addLog(
-      "AGENT",
-      "Re-synthesizing code with previous context & delta feedback...",
-    );
-
-    try {
-      const res = await fetch("/api/generate-model", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: desc,
-          previousCode: code,
-          feedback: feedbackInput.trim(),
-          apiKey: apiKey.trim() || undefined,
-          model,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      setCode(data.code);
-      addLog("WEBGL", "Refinement compiled. Hot-reloading WebGL scene...");
-      engine.executeCode(data.code, wireframe);
-
-      if (autoReview) {
-        setTimeout(() => triggerReview(desc), 300);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError("Refine failed: " + msg);
-      addLog("ERROR", `Refinement Failed: ${msg}`);
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const handleLangChange = (newLang: Lang) => {
-    if (isDefaultCode(code)) setCode(DEFAULT_CODE[newLang]);
-    setLang(newLang);
-  };
-
-  const handleClear = () => {
-    setCode("");
-    engine.clearModel();
-    setStats({ triangles: 0, vertices: 0 });
-    setError(null);
-    setVerdict(null);
-    setFeedbackInput("");
-    addLog("SYSTEM", "Scene & Editor cleared.");
-  };
-
-  return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
-      <Toolbar
-        t={t}
-        lang={lang}
-        setLang={handleLangChange}
-        wireframe={wireframe}
-        setWireframe={(checked: boolean) => {
-          setWireframe(checked);
-          engine.applyWireframe(checked);
-        }}
-        onClear={handleClear}
-        onRun={() => engine.executeCode(code, wireframe)}
-      />
-      <div className="flex flex-col lg:flex-row">
-        <ControlCoPilotPanel
-          t={t}
-          code={code}
-          setCode={setCode}
-          apiKey={apiKey}
-          setApiKey={setApiKey}
-          model={model}
-          setModel={setModel}
-          description={description}
-          setDescription={setDescription}
-          generating={generating}
-          reviewing={reviewing}
-          autoReview={autoReview}
-          setAutoReview={setAutoReview}
-          verdict={verdict}
-          feedbackInput={feedbackInput}
-          setFeedbackInput={setFeedbackInput}
-          logs={logs}
-          clearLogs={() => setLogs([])}
-          onGenerate={handleGenerate}
-          onReview={() => triggerReview()}
-          onRefine={handleRefine}
-          onRun={() => engine.executeCode(code, wireframe)}
-        />
-        <PreviewPanel
-          containerRef={containerRef}
-          stats={stats}
-          error={error}
-          t={t}
-        />
-      </div>
-    </div>
   );
 }
 </file>
@@ -4252,6 +4171,308 @@ export default function RootLayout({
         <main>{children}</main>
       </body>
     </html>
+  );
+}
+</file>
+
+<file path="src/components/tools/ModelGenerator.tsx">
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  DEFAULT_CODE,
+  GEMINI_MODELS,
+  TRANSLATIONS,
+  isDefaultCode,
+  type Lang,
+} from "./modelGenerator.constants";
+import type { Verdict, Stats, LogEntry } from "./modelGenerator/types";
+import { useThreeEngine } from "./modelGenerator/useThreeEngine";
+import { Toolbar } from "./modelGenerator/Toolbar";
+import { ControlCoPilotPanel } from "./modelGenerator/ControlCoPilotPanel";
+import { PreviewPanel } from "./modelGenerator/PreviewPanel";
+
+export function ModelGenerator() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // State Management
+  const [lang, setLang] = useState<Lang>("en");
+  const [code, setCode] = useState("");
+  const [description, setDescription] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [model, setModel] = useState<string>(GEMINI_MODELS[0].value);
+  const [wireframe, setWireframe] = useState(false);
+  const [canvasTheme, setCanvasTheme] = useState<"dark" | "day">("dark");
+  const [stats, setStats] = useState<Stats>({ triangles: 0, vertices: 0 });
+  const [error, setError] = useState<string | null>(null);
+
+  // Agent State
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [autoReview, setAutoReview] = useState(true);
+  const [verdict, setVerdict] = useState<Verdict | null>(null);
+  const [feedbackInput, setFeedbackInput] = useState("");
+  const [lastScreenshot, setLastScreenshot] = useState<string | null>(null); // 🌟 保存发送给 AI 的截图
+  const [generating, setGenerating] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+
+  const t = TRANSLATIONS[lang];
+  const engine = useThreeEngine(containerRef, setError, setStats);
+
+  // 终端日志记录函数
+  const addLog = useCallback((tag: LogEntry["tag"], text: string) => {
+    const time = new Date().toLocaleTimeString("en-US", { hour12: false });
+    setLogs((prev) => [
+      ...prev,
+      { id: Math.random().toString(), time, tag, text },
+    ]);
+  }, []);
+
+  useEffect(() => {
+    addLog("SYSTEM", "WebGL Engine initialized. PCFSoftShadowMap enabled.");
+  }, [addLog]);
+
+  // 切换背景主题处理函数
+  const handleThemeToggle = () => {
+    const nextTheme = canvasTheme === "dark" ? "day" : "dark";
+    setCanvasTheme(nextTheme);
+    engine.setCanvasTheme(nextTheme);
+    addLog(
+      "SYSTEM",
+      `Canvas background switched to ${nextTheme.toUpperCase()} mode.`,
+    );
+  };
+
+  // 触发视觉评审 (Vision Review)
+  const triggerReview = async (customDesc?: string) => {
+    const descToUse = customDesc || description.trim();
+    if (!descToUse) return null;
+
+    addLog("VISION", "Capturing WebGL Canvas multi-angle screenshot...");
+    const screenshot = engine.captureImage();
+    if (!screenshot) return null;
+
+    setLastScreenshot(screenshot); // 🌟 存入状态，供用户在界面上点击查看
+
+    setReviewing(true);
+    addLog(
+      "VISION",
+      `Sending render to Gemini Vision (${model}) for critique...`,
+    );
+    try {
+      const res = await fetch("/api/review-model", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: descToUse,
+          screenshot,
+          apiKey: apiKey.trim() || undefined,
+          model,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setVerdict(data);
+      const scorePct = Math.round((data.score || 0) * 100);
+      addLog(
+        "REVIEW",
+        `Verdict: ${data.decision.toUpperCase()} (${scorePct}% score)`,
+      );
+
+      if (data.critique) {
+        setFeedbackInput(data.critique);
+        addLog("REVIEW", `Critique: "${data.critique}"`);
+      }
+      return data;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError("Review failed: " + msg);
+      addLog("ERROR", `Review Failed: ${msg}`);
+      return null;
+    } finally {
+      setReviewing(false);
+    }
+  };
+
+  // 初次代码生成
+  const handleGenerate = async () => {
+    const desc = description.trim();
+    if (!desc) return setError("Enter a description first.");
+
+    setGenerating(true);
+    setError(null);
+    setVerdict(null);
+    setFeedbackInput("");
+
+    addLog("PROMPT", `User prompt received: "${desc}"`);
+    addLog("AGENT", `Invoking ${model} for Three.js code synthesis...`);
+
+    try {
+      const res = await fetch("/api/generate-model", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: desc,
+          apiKey: apiKey.trim() || undefined,
+          model,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setCode(data.code);
+      addLog("WEBGL", "Compilation successful. Executing buildModel(THREE)...");
+
+      const ok = engine.executeCode(data.code, wireframe);
+      if (ok) {
+        addLog("WEBGL", "Model loaded into scene with auto-fit perspective.");
+        if (autoReview) {
+          setTimeout(() => triggerReview(desc), 300);
+        }
+      } else {
+        addLog(
+          "ERROR",
+          "WebGL execution failed due to JS runtime error in generated code.",
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError("Generate failed: " + msg);
+      addLog("ERROR", `Generation Failed: ${msg}`);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // 带反馈的迭代修构 (Refine)
+  const handleRefine = async () => {
+    const desc = description.trim();
+    if (!desc) return setError("Enter a description first.");
+    if (!feedbackInput.trim()) return setError("Feedback is empty.");
+
+    setGenerating(true);
+    setError(null);
+
+    addLog("PROMPT", `Applying refinement feedback: "${feedbackInput.trim()}"`);
+    addLog(
+      "AGENT",
+      "Re-synthesizing code with previous context & delta feedback...",
+    );
+
+    try {
+      const res = await fetch("/api/generate-model", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: desc,
+          previousCode: code,
+          feedback: feedbackInput.trim(),
+          apiKey: apiKey.trim() || undefined,
+          model,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setCode(data.code);
+      addLog("WEBGL", "Refinement compiled. Hot-reloading WebGL scene...");
+
+      const ok = engine.executeCode(data.code, wireframe);
+      if (ok) {
+        addLog("WEBGL", "Model reloaded into scene with auto-fit perspective.");
+        if (autoReview) {
+          setTimeout(() => triggerReview(desc), 300);
+        }
+      } else {
+        addLog(
+          "ERROR",
+          "Refinement WebGL execution failed due to JS runtime error.",
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError("Refine failed: " + msg);
+      addLog("ERROR", `Refinement Failed: ${msg}`);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleLangChange = (newLang: Lang) => {
+    if (isDefaultCode(code)) setCode(DEFAULT_CODE[newLang]);
+    setLang(newLang);
+  };
+
+  const handleClear = () => {
+    setCode("");
+    engine.clearModel();
+    setStats({ triangles: 0, vertices: 0 });
+    setError(null);
+    setVerdict(null);
+    setFeedbackInput("");
+    setLastScreenshot(null);
+    addLog("SYSTEM", "Scene & Editor cleared.");
+  };
+
+  const handleManualRun = () => {
+    const ok = engine.executeCode(code, wireframe);
+    if (ok) {
+      addLog("WEBGL", "Manual execution successful.");
+    } else {
+      addLog("ERROR", "Manual execution failed.");
+    }
+  };
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <Toolbar
+        t={t}
+        lang={lang}
+        setLang={handleLangChange}
+        wireframe={wireframe}
+        setWireframe={(checked: boolean) => {
+          setWireframe(checked);
+          engine.applyWireframe(checked);
+        }}
+        canvasTheme={canvasTheme}
+        onThemeToggle={handleThemeToggle}
+        onClear={handleClear}
+        onRun={handleManualRun}
+      />
+      <div className="flex flex-col lg:flex-row">
+        <ControlCoPilotPanel
+          t={t}
+          code={code}
+          setCode={setCode}
+          apiKey={apiKey}
+          setApiKey={setApiKey}
+          model={model}
+          setModel={setModel}
+          description={description}
+          setDescription={setDescription}
+          generating={generating}
+          reviewing={reviewing}
+          autoReview={autoReview}
+          setAutoReview={setAutoReview}
+          verdict={verdict}
+          feedbackInput={feedbackInput}
+          setFeedbackInput={setFeedbackInput}
+          lastScreenshot={lastScreenshot}
+          logs={logs}
+          clearLogs={() => setLogs([])}
+          onGenerate={handleGenerate}
+          onReview={() => triggerReview()}
+          onRefine={handleRefine}
+          onRun={handleManualRun}
+        />
+        <PreviewPanel
+          containerRef={containerRef}
+          stats={stats}
+          error={error}
+          t={t}
+        />
+      </div>
+    </div>
   );
 }
 </file>

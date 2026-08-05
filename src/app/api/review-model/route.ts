@@ -1,13 +1,13 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 
-const REVIEW_SYSTEM_PROMPT = `You are reviewing a screenshot of a rendered low-poly 3D model against the text description it was supposed to match.
+const REVIEW_SYSTEM_PROMPT = `You are reviewing a dual-view screenshot (Left: 3/4 angle, Right: opposite angle) of a rendered low-poly 3D model against the text description.
 
-Before scoring, first identify the single most visually distinctive silhouette feature of the described object (e.g. a cooling tower's hourglass taper, a car's low wide body, a lamp's shade). Check whether the render actually has that feature. If it's missing or clearly wrong, this alone should push the decision to "refine" regardless of how good the overall vibe looks.
+IMPORTANT FOR OCCOLUSION: Look at BOTH camera views provided in the image before concluding an item is missing! If an item (like stools, lanterns, wheels) is visible in AT LEAST ONE view, treat it as PRESENT.
 
+Before scoring, identify the single most visually distinctive silhouette feature of the described object.
 Score how well the render matches the description on a 0 to 1 scale.
-Decide "continue" if it's a reasonable match for a simple low-poly game asset, or "refine" if something important is clearly wrong (wrong silhouette, wrong shape, missing part, badly wrong proportions, or colors that don't match the described object at all).
-Be lenient about minor low-poly stylization — this is not meant to be realistic.
+Decide "continue" if it's a reasonable match for a simple low-poly game asset, or "refine" if something important is clearly missing in ALL views or badly wrong in proportion.
 
 If "refine", give one short, specific, actionable sentence describing what to change.
 
