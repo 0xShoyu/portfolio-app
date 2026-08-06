@@ -1,7 +1,7 @@
 "use client";
 
 import { Play, Trash2, Box, Sun, Moon } from "lucide-react";
-import type { Lang } from "../modelGenerator.constants";
+import type { Lang } from "../constants";
 
 export function Toolbar({
   t,

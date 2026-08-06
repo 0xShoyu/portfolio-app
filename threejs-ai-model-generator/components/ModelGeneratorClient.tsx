@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 
 // 🌟 在客户端组件内部使用 ssr: false 是完全合法的
 const ModelGenerator = dynamic(
-  () => import("@/components/tools/ModelGenerator").then((mod) => mod.ModelGenerator),
+  () => import("./ModelGenerator").then((mod) => mod.ModelGenerator),
   {
     ssr: false,
     loading: () => (

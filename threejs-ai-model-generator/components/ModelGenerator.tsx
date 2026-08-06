@@ -7,12 +7,12 @@ import {
   TRANSLATIONS,
   isDefaultCode,
   type Lang,
-} from "./modelGenerator.constants";
-import type { Verdict, Stats, LogEntry } from "./modelGenerator/types";
-import { useThreeEngine } from "./modelGenerator/useThreeEngine";
-import { Toolbar } from "./modelGenerator/Toolbar";
-import { ControlCoPilotPanel } from "./modelGenerator/ControlCoPilotPanel";
-import { PreviewPanel } from "./modelGenerator/PreviewPanel";
+} from "../constants";
+import type { Verdict, Stats, LogEntry } from "../types";
+import { useThreeEngine } from "../hooks/useThreeEngine";
+import { Toolbar } from "./Toolbar";
+import { ControlCoPilotPanel } from "./ControlCoPilotPanel";
+import { PreviewPanel } from "./PreviewPanel";
 
 export function ModelGenerator() {
   const containerRef = useRef<HTMLDivElement>(null);

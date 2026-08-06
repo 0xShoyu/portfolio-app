@@ -12,7 +12,7 @@ import {
   Code2,
   Terminal as TerminalIcon,
 } from "lucide-react";
-import { GEMINI_MODELS } from "../modelGenerator.constants";
+import { GEMINI_MODELS } from "../constants";
 import { TerminalView } from "./TerminalView";
 
 export function ControlCoPilotPanel({

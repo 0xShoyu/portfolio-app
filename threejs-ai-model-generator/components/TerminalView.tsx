@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Terminal as TerminalIcon } from "lucide-react";
-import type { LogEntry } from "./types";
+import type { LogEntry } from "../types";
 
 export function TerminalView({
   logs,

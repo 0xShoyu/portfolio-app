@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import * as THREE from "three";
-import type { Stats } from "./types";
+import type { Stats } from "../types";
 
 export function useThreeEngine(
   containerRef: React.RefObject<HTMLDivElement | null>,

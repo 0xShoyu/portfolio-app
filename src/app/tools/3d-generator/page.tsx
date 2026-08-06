@@ -1,7 +1,7 @@
 import { Container } from "@/components/ui/Container";
 import { ArrowLeft, Box } from "lucide-react";
 import Link from "next/link";
-import { ModelGeneratorClient } from "@/components/tools/ModelGeneratorClient";
+import { ModelGeneratorClient } from "../../../../threejs-ai-model-generator/components/ModelGeneratorClient";
 
 // 保留服务端组件导出的 metadata (有利于 SEO)
 export const metadata = {
