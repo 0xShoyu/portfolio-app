@@ -62,6 +62,25 @@ export function useThreeEngine(
     });
   }, []);
 
+  // 🌟 分解图控制：factor 从 0(正常装配状态)到 1(完全分解)。executeCode 每次成功
+  // 构建之后,会给模型的每个顶层部件记录好"原始位置"和"从模型中心指向它的方向",
+  // 这里只是沿着那个方向做纯几何插值——不需要重新生成或重新执行代码,可以直接
+  // 绑一个 slider 拖着实时看。
+  const setExplodeFactor = useCallback((factor: number) => {
+    const engine = engineRef.current;
+    if (!engine || !engine.modelGroup.children.length) return;
+    const result = engine.modelGroup.children[0];
+    if (!result || !result.userData?.__explodeReady) return;
+    const clamped = Math.max(0, Math.min(1, factor));
+    const baseDistance = engine.explodeBaseDistance ?? 1;
+    result.children.forEach((child: any) => {
+      const origin = child.userData.__originPos;
+      const dir = child.userData.__explodeDir;
+      if (!origin || !dir) return;
+      child.position.copy(origin).addScaledVector(dir, clamped * baseDistance);
+    });
+  }, []);
+
   const executeCode = useCallback(
     (codeStr: string, isWireframe: boolean): boolean => {
       const engine = engineRef.current;
@@ -128,21 +147,94 @@ export function useThreeEngine(
             return new THREE.TubeGeometry(curve, tubularSegments, path.radius ?? 0.05, path.radialSegments ?? 8, path.closed ?? false);
           }
 
-          // 🌟 新增：两点之间搭一根杆（A柱、结构梁、肢体连杆等），用四元数对齐，
-          // 调用方永远不需要手动猜 rotation.x/y/z 该转哪个轴、转多少度。
-          function buildBeamBetween(p1, p2, thickness) {
+          // 🌟 包含式检查：整个 mesh 是否落在某个锚点部件的范围内(带一点容差)。
+          // 适用于"这个部件整体贴在另一个部件里面"的场景,比如 A 柱贴着同一块玻璃舱。
+          function assertWithinBounds(mesh, anchorMesh, opts) {
+            const tolerance = (opts && opts.tolerance) ?? 0.2;
+            const childBox = new THREE.Box3().setFromObject(mesh);
+            const anchorBox = new THREE.Box3().setFromObject(anchorMesh);
+            if (childBox.isEmpty() || anchorBox.isEmpty()) return mesh;
+            const anchorSize = new THREE.Vector3();
+            anchorBox.getSize(anchorSize);
+            const maxExtent = Math.max(anchorSize.x, anchorSize.y, anchorSize.z) || 0.01;
+            const expandedAnchorBox = anchorBox.clone().expandByScalar(maxExtent * tolerance);
+            if (!expandedAnchorBox.containsBox(childBox)) {
+              const childName = mesh.name || "(unnamed part)";
+              const anchorName = anchorMesh.name || "(unnamed anchor)";
+              throw new Error(
+                'Attachment check failed: "' + childName + '" falls outside the expected bounds of its anchor "' +
+                anchorName + '" (tolerance: ' + (tolerance * 100).toFixed(0) + '% of anchor size). ' +
+                'This usually means a coordinate was computed against the wrong reference point — ' +
+                'check the endpoints/position passed for "' + childName + '".'
+              );
+            }
+            return mesh;
+          }
+
+          // 🌟 单点邻近检查：只校验一个 3D 端点是否落在某个锚点部件附近,不要求整根
+          // 梁都塞进锚点的包围盒。适用于"这一端连着这个部件"的跨接场景,比如两根柱子
+          // 之间的横梁的其中一端,或者从座位连到地面的凳腿的"座位那一端"。
+          function assertPointNear(point, anchorMesh, opts) {
+            const tolerance = (opts && opts.tolerance) ?? 0.3;
+            const anchorBox = new THREE.Box3().setFromObject(anchorMesh);
+            if (anchorBox.isEmpty()) return point;
+            const anchorSize = new THREE.Vector3();
+            anchorBox.getSize(anchorSize);
+            const maxExtent = Math.max(anchorSize.x, anchorSize.y, anchorSize.z) || 0.01;
+            const expandedBox = anchorBox.clone().expandByScalar(maxExtent * tolerance);
+            if (!expandedBox.containsPoint(point)) {
+              const anchorName = anchorMesh.name || "(unnamed anchor)";
+              throw new Error(
+                'Attachment check failed: a beam endpoint at (' + point.x.toFixed(3) + ', ' + point.y.toFixed(3) + ', ' + point.z.toFixed(3) +
+                ') falls outside the expected bounds of its anchor "' + anchorName + '" (tolerance: ' + (tolerance * 100).toFixed(0) + '% of anchor size). ' +
+                'Double-check the coordinate you passed for this endpoint against where "' + anchorName + '" actually is.'
+              );
+            }
+            return point;
+          }
+
+          // 🌟 两点之间搭一根杆（A柱、结构梁、肢体连杆等）,用四元数对齐,调用方永远
+          // 不需要手动猜 rotation.x/y/z 该转哪个轴、转多少度。第 4 个参数可选,有两种
+          // 传法,分别对应两种完全不同的依附关系：
+          //
+          //   1) 传一个 mesh —— "包含式"：整根梁都应该贴在这一个部件里面
+          //      （比如 A 柱贴着同一块挡风玻璃舱）。用 assertWithinBounds 整根检查。
+          //      例：buildBeamBetween(p1, p2, t, cabinMesh)
+          //
+          //   2) 传 { start, end } —— "跨接式"：这根梁两端分别连着两个不同的部件
+          //      （比如连接两根不同柱子的横梁,或者从座位连到地面的凳腿）。
+          //      start / end 都是可选的,只校验你实际传了的那一端——凳腿连地面的那一端
+          //      往往没有对应的 mesh,直接不传那一侧就行。
+          //      例：buildBeamBetween(p1, p2, t, { start: pillarA, end: pillarB })
+          //      例：buildBeamBetween(p1, p2, t, { start: seatMesh })  // 另一端接地面,不传
+          //
+          // 两种情况下,端点算错、杆子捅到错误的地方时都会当场报错(附带具体端点坐标),
+          // 而不是悄悄渲染出一根穿模或者飘在半空的杆子。
+          function buildBeamBetween(p1, p2, thickness, anchors) {
             const start = new THREE.Vector3(p1[0], p1[1], p1[2] ?? 0);
             const end = new THREE.Vector3(p2[0], p2[1], p2[2] ?? 0);
             const dir = new THREE.Vector3().subVectors(end, start);
             const length = dir.length();
             const geo = new THREE.CylinderGeometry(thickness, thickness, length, 6);
-            geo.translate(0, length / 2, 0); // 原点对齐到起点 p1，方便直接用 position.copy(start)
+            geo.translate(0, length / 2, 0); // 原点对齐到起点 p1,方便直接用 position.copy(start)
             const mesh = new THREE.Mesh(geo);
             mesh.position.copy(start);
             mesh.quaternion.setFromUnitVectors(
               new THREE.Vector3(0, 1, 0),
               dir.clone().normalize(),
             );
+
+            if (anchors) {
+              if (anchors.isObject3D) {
+                // 单一 mesh：包含式检查
+                assertWithinBounds(mesh, anchors, { tolerance: 0.15 });
+              } else {
+                // { start, end } 对象：跨接式检查,每端各自独立校验
+                if (anchors.start) assertPointNear(start, anchors.start, { tolerance: 0.3 });
+                if (anchors.end) assertPointNear(end, anchors.end, { tolerance: 0.3 });
+              }
+            }
+
             return mesh;
           }
         `;
@@ -182,6 +274,29 @@ export function useThreeEngine(
           engine.minDist = fitDist * 0.15;
           engine.maxDist = fitDist * 8;
           engine.lookTarget.copy(center);
+
+          // 🌟 分解图支持：记录每个顶层命名部件当前的位置,以及"从模型中心指向
+          // 该部件"的方向。之后 setExplodeFactor(0~1) 可以随时无损地沿这个方向
+          // 把部件推开或收回,不依赖重新生成代码,纯几何计算。
+          let maxChildDistance = 0;
+          result.children.forEach((child: any) => {
+            const childBox = new THREE.Box3().setFromObject(child);
+            if (childBox.isEmpty()) return;
+            const childCenter = new THREE.Vector3();
+            childBox.getCenter(childCenter);
+            const dir = childCenter.clone().sub(center);
+            const dist = dir.length();
+            if (dist > maxChildDistance) maxChildDistance = dist;
+            child.userData.__originPos = child.position.clone();
+            child.userData.__explodeDir =
+              dist > 0.0001 ? dir.normalize() : new THREE.Vector3(0, 1, 0);
+          });
+          result.userData.__explodeReady = true;
+          engine.explodeBaseDistance = Math.max(
+            maxDim * 0.6,
+            maxChildDistance * 1.2,
+            0.5,
+          );
         }
 
         let tris = 0,
@@ -460,5 +575,6 @@ export function useThreeEngine(
     captureImage,
     applyWireframe,
     setCanvasTheme,
+    setExplodeFactor,
   };
 }

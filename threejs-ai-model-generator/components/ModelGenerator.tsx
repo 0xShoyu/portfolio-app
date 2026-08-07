@@ -27,6 +27,8 @@ export function ModelGenerator() {
   const [canvasTheme, setCanvasTheme] = useState<"dark" | "day">("dark");
   const [stats, setStats] = useState<Stats>({ triangles: 0, vertices: 0 });
   const [error, setError] = useState<string | null>(null);
+  // 🌟 分解图：0 = 正常装配, 1 = 完全分解。纯前端状态,不需要重新生成代码。
+  const [explodeFactor, setExplodeFactorState] = useState(0);
 
   // Agent State
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -62,6 +64,12 @@ export function ModelGenerator() {
       "SYSTEM",
       `Canvas background switched to ${nextTheme.toUpperCase()} mode.`,
     );
+  };
+
+  // 🌟 分解图滑块处理函数
+  const handleExplodeChange = (value: number) => {
+    setExplodeFactorState(value);
+    engine.setExplodeFactor(value);
   };
 
   // 触发视觉评审 (Vision Review)
@@ -125,6 +133,7 @@ export function ModelGenerator() {
     setError(null);
     setVerdict(null);
     setFeedbackInput("");
+    setExplodeFactorState(0); // 🌟 新模型进来,分解状态复位
 
     addLog("PROMPT", `User prompt received: "${desc}"`);
     addLog("AGENT", `Invoking ${model} for Three.js code synthesis...`);
@@ -174,6 +183,7 @@ export function ModelGenerator() {
 
     setGenerating(true);
     setError(null);
+    setExplodeFactorState(0); // 🌟 重新构建后,分解状态复位
 
     addLog("PROMPT", `Applying refinement feedback: "${feedbackInput.trim()}"`);
     addLog(
@@ -233,12 +243,14 @@ export function ModelGenerator() {
     setVerdict(null);
     setFeedbackInput("");
     setLastScreenshot(null);
+    setExplodeFactorState(0); // 🌟 清空场景时分解状态一并复位
     addLog("SYSTEM", "Scene & Editor cleared.");
   };
 
   const handleManualRun = () => {
     const ok = engine.executeCode(code, wireframe);
     if (ok) {
+      setExplodeFactorState(0); // 🌟 手动重跑代码后,分解状态复位
       addLog("WEBGL", "Manual execution successful.");
     } else {
       addLog("ERROR", "Manual execution failed.");
@@ -260,6 +272,8 @@ export function ModelGenerator() {
         onThemeToggle={handleThemeToggle}
         onClear={handleClear}
         onRun={handleManualRun}
+        explodeFactor={explodeFactor}
+        onExplodeChange={handleExplodeChange}
       />
       <div className="flex flex-col lg:flex-row">
         <ControlCoPilotPanel

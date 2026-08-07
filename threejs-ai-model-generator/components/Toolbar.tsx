@@ -1,6 +1,6 @@
 "use client";
 
-import { Play, Trash2, Box, Sun, Moon } from "lucide-react";
+import { Play, Trash2, Box, Sun, Moon, Boxes } from "lucide-react";
 import type { Lang } from "../constants";
 
 export function Toolbar({
@@ -13,6 +13,8 @@ export function Toolbar({
   onThemeToggle,
   onClear,
   onRun,
+  explodeFactor,
+  onExplodeChange,
 }: any) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
@@ -58,6 +60,27 @@ export function Toolbar({
           />
           {t.wireframe}
         </label>
+
+        {/* 🌟 分解视图滑块：0 = 正常装配, 1 = 完全分解，纯前端插值，拖动实时生效 */}
+        <label
+          title="Exploded View"
+          className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted"
+        >
+          <Boxes size={14} className="text-muted shrink-0" />
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={explodeFactor ?? 0}
+            onChange={(e) => onExplodeChange?.(parseFloat(e.target.value))}
+            className="w-16 accent-primary sm:w-20"
+          />
+          <span className="hidden w-9 text-right tabular-nums sm:inline">
+            {Math.round((explodeFactor ?? 0) * 100)}%
+          </span>
+        </label>
+
         <button
           onClick={onClear}
           className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-foreground/30 hover:text-foreground"

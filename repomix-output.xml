@@ -1276,6 +1276,8 @@ export function ModelGenerator() {
   const [canvasTheme, setCanvasTheme] = useState<"dark" | "day">("dark");
   const [stats, setStats] = useState<Stats>({ triangles: 0, vertices: 0 });
   const [error, setError] = useState<string | null>(null);
+  // 🌟 分解图：0 = 正常装配, 1 = 完全分解。纯前端状态,不需要重新生成代码。
+  const [explodeFactor, setExplodeFactorState] = useState(0);
 
   // Agent State
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -1311,6 +1313,12 @@ export function ModelGenerator() {
       "SYSTEM",
       `Canvas background switched to ${nextTheme.toUpperCase()} mode.`,
     );
+  };
+
+  // 🌟 分解图滑块处理函数
+  const handleExplodeChange = (value: number) => {
+    setExplodeFactorState(value);
+    engine.setExplodeFactor(value);
   };
 
   // 触发视觉评审 (Vision Review)
@@ -1374,6 +1382,7 @@ export function ModelGenerator() {
     setError(null);
     setVerdict(null);
     setFeedbackInput("");
+    setExplodeFactorState(0); // 🌟 新模型进来,分解状态复位
 
     addLog("PROMPT", `User prompt received: "${desc}"`);
     addLog("AGENT", `Invoking ${model} for Three.js code synthesis...`);
@@ -1423,6 +1432,7 @@ export function ModelGenerator() {
 
     setGenerating(true);
     setError(null);
+    setExplodeFactorState(0); // 🌟 重新构建后,分解状态复位
 
     addLog("PROMPT", `Applying refinement feedback: "${feedbackInput.trim()}"`);
     addLog(
@@ -1482,12 +1492,14 @@ export function ModelGenerator() {
     setVerdict(null);
     setFeedbackInput("");
     setLastScreenshot(null);
+    setExplodeFactorState(0); // 🌟 清空场景时分解状态一并复位
     addLog("SYSTEM", "Scene & Editor cleared.");
   };
 
   const handleManualRun = () => {
     const ok = engine.executeCode(code, wireframe);
     if (ok) {
+      setExplodeFactorState(0); // 🌟 手动重跑代码后,分解状态复位
       addLog("WEBGL", "Manual execution successful.");
     } else {
       addLog("ERROR", "Manual execution failed.");
@@ -1509,6 +1521,8 @@ export function ModelGenerator() {
         onThemeToggle={handleThemeToggle}
         onClear={handleClear}
         onRun={handleManualRun}
+        explodeFactor={explodeFactor}
+        onExplodeChange={handleExplodeChange}
       />
       <div className="flex flex-col lg:flex-row">
         <ControlCoPilotPanel
@@ -1680,7 +1694,7 @@ export function TerminalView({
 <file path="threejs-ai-model-generator/components/Toolbar.tsx">
 "use client";
 
-import { Play, Trash2, Box, Sun, Moon } from "lucide-react";
+import { Play, Trash2, Box, Sun, Moon, Boxes } from "lucide-react";
 import type { Lang } from "../constants";
 
 export function Toolbar({
@@ -1693,6 +1707,8 @@ export function Toolbar({
   onThemeToggle,
   onClear,
   onRun,
+  explodeFactor,
+  onExplodeChange,
 }: any) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
@@ -1738,6 +1754,27 @@ export function Toolbar({
           />
           {t.wireframe}
         </label>
+
+        {/* 🌟 分解视图滑块：0 = 正常装配, 1 = 完全分解，纯前端插值，拖动实时生效 */}
+        <label
+          title="Exploded View"
+          className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted"
+        >
+          <Boxes size={14} className="text-muted shrink-0" />
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={explodeFactor ?? 0}
+            onChange={(e) => onExplodeChange?.(parseFloat(e.target.value))}
+            className="w-16 accent-primary sm:w-20"
+          />
+          <span className="hidden w-9 text-right tabular-nums sm:inline">
+            {Math.round((explodeFactor ?? 0) * 100)}%
+          </span>
+        </label>
+
         <button
           onClick={onClear}
           className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-foreground/30 hover:text-foreground"
@@ -1821,6 +1858,25 @@ export function useThreeEngine(
     });
   }, []);
 
+  // 🌟 分解图控制：factor 从 0(正常装配状态)到 1(完全分解)。executeCode 每次成功
+  // 构建之后,会给模型的每个顶层部件记录好"原始位置"和"从模型中心指向它的方向",
+  // 这里只是沿着那个方向做纯几何插值——不需要重新生成或重新执行代码,可以直接
+  // 绑一个 slider 拖着实时看。
+  const setExplodeFactor = useCallback((factor: number) => {
+    const engine = engineRef.current;
+    if (!engine || !engine.modelGroup.children.length) return;
+    const result = engine.modelGroup.children[0];
+    if (!result || !result.userData?.__explodeReady) return;
+    const clamped = Math.max(0, Math.min(1, factor));
+    const baseDistance = engine.explodeBaseDistance ?? 1;
+    result.children.forEach((child: any) => {
+      const origin = child.userData.__originPos;
+      const dir = child.userData.__explodeDir;
+      if (!origin || !dir) return;
+      child.position.copy(origin).addScaledVector(dir, clamped * baseDistance);
+    });
+  }, []);
+
   const executeCode = useCallback(
     (codeStr: string, isWireframe: boolean): boolean => {
       const engine = engineRef.current;
@@ -1887,21 +1943,94 @@ export function useThreeEngine(
             return new THREE.TubeGeometry(curve, tubularSegments, path.radius ?? 0.05, path.radialSegments ?? 8, path.closed ?? false);
           }
 
-          // 🌟 新增：两点之间搭一根杆（A柱、结构梁、肢体连杆等），用四元数对齐，
-          // 调用方永远不需要手动猜 rotation.x/y/z 该转哪个轴、转多少度。
-          function buildBeamBetween(p1, p2, thickness) {
+          // 🌟 包含式检查：整个 mesh 是否落在某个锚点部件的范围内(带一点容差)。
+          // 适用于"这个部件整体贴在另一个部件里面"的场景,比如 A 柱贴着同一块玻璃舱。
+          function assertWithinBounds(mesh, anchorMesh, opts) {
+            const tolerance = (opts && opts.tolerance) ?? 0.2;
+            const childBox = new THREE.Box3().setFromObject(mesh);
+            const anchorBox = new THREE.Box3().setFromObject(anchorMesh);
+            if (childBox.isEmpty() || anchorBox.isEmpty()) return mesh;
+            const anchorSize = new THREE.Vector3();
+            anchorBox.getSize(anchorSize);
+            const maxExtent = Math.max(anchorSize.x, anchorSize.y, anchorSize.z) || 0.01;
+            const expandedAnchorBox = anchorBox.clone().expandByScalar(maxExtent * tolerance);
+            if (!expandedAnchorBox.containsBox(childBox)) {
+              const childName = mesh.name || "(unnamed part)";
+              const anchorName = anchorMesh.name || "(unnamed anchor)";
+              throw new Error(
+                'Attachment check failed: "' + childName + '" falls outside the expected bounds of its anchor "' +
+                anchorName + '" (tolerance: ' + (tolerance * 100).toFixed(0) + '% of anchor size). ' +
+                'This usually means a coordinate was computed against the wrong reference point — ' +
+                'check the endpoints/position passed for "' + childName + '".'
+              );
+            }
+            return mesh;
+          }
+
+          // 🌟 单点邻近检查：只校验一个 3D 端点是否落在某个锚点部件附近,不要求整根
+          // 梁都塞进锚点的包围盒。适用于"这一端连着这个部件"的跨接场景,比如两根柱子
+          // 之间的横梁的其中一端,或者从座位连到地面的凳腿的"座位那一端"。
+          function assertPointNear(point, anchorMesh, opts) {
+            const tolerance = (opts && opts.tolerance) ?? 0.3;
+            const anchorBox = new THREE.Box3().setFromObject(anchorMesh);
+            if (anchorBox.isEmpty()) return point;
+            const anchorSize = new THREE.Vector3();
+            anchorBox.getSize(anchorSize);
+            const maxExtent = Math.max(anchorSize.x, anchorSize.y, anchorSize.z) || 0.01;
+            const expandedBox = anchorBox.clone().expandByScalar(maxExtent * tolerance);
+            if (!expandedBox.containsPoint(point)) {
+              const anchorName = anchorMesh.name || "(unnamed anchor)";
+              throw new Error(
+                'Attachment check failed: a beam endpoint at (' + point.x.toFixed(3) + ', ' + point.y.toFixed(3) + ', ' + point.z.toFixed(3) +
+                ') falls outside the expected bounds of its anchor "' + anchorName + '" (tolerance: ' + (tolerance * 100).toFixed(0) + '% of anchor size). ' +
+                'Double-check the coordinate you passed for this endpoint against where "' + anchorName + '" actually is.'
+              );
+            }
+            return point;
+          }
+
+          // 🌟 两点之间搭一根杆（A柱、结构梁、肢体连杆等）,用四元数对齐,调用方永远
+          // 不需要手动猜 rotation.x/y/z 该转哪个轴、转多少度。第 4 个参数可选,有两种
+          // 传法,分别对应两种完全不同的依附关系：
+          //
+          //   1) 传一个 mesh —— "包含式"：整根梁都应该贴在这一个部件里面
+          //      （比如 A 柱贴着同一块挡风玻璃舱）。用 assertWithinBounds 整根检查。
+          //      例：buildBeamBetween(p1, p2, t, cabinMesh)
+          //
+          //   2) 传 { start, end } —— "跨接式"：这根梁两端分别连着两个不同的部件
+          //      （比如连接两根不同柱子的横梁,或者从座位连到地面的凳腿）。
+          //      start / end 都是可选的,只校验你实际传了的那一端——凳腿连地面的那一端
+          //      往往没有对应的 mesh,直接不传那一侧就行。
+          //      例：buildBeamBetween(p1, p2, t, { start: pillarA, end: pillarB })
+          //      例：buildBeamBetween(p1, p2, t, { start: seatMesh })  // 另一端接地面,不传
+          //
+          // 两种情况下,端点算错、杆子捅到错误的地方时都会当场报错(附带具体端点坐标),
+          // 而不是悄悄渲染出一根穿模或者飘在半空的杆子。
+          function buildBeamBetween(p1, p2, thickness, anchors) {
             const start = new THREE.Vector3(p1[0], p1[1], p1[2] ?? 0);
             const end = new THREE.Vector3(p2[0], p2[1], p2[2] ?? 0);
             const dir = new THREE.Vector3().subVectors(end, start);
             const length = dir.length();
             const geo = new THREE.CylinderGeometry(thickness, thickness, length, 6);
-            geo.translate(0, length / 2, 0); // 原点对齐到起点 p1，方便直接用 position.copy(start)
+            geo.translate(0, length / 2, 0); // 原点对齐到起点 p1,方便直接用 position.copy(start)
             const mesh = new THREE.Mesh(geo);
             mesh.position.copy(start);
             mesh.quaternion.setFromUnitVectors(
               new THREE.Vector3(0, 1, 0),
               dir.clone().normalize(),
             );
+
+            if (anchors) {
+              if (anchors.isObject3D) {
+                // 单一 mesh：包含式检查
+                assertWithinBounds(mesh, anchors, { tolerance: 0.15 });
+              } else {
+                // { start, end } 对象：跨接式检查,每端各自独立校验
+                if (anchors.start) assertPointNear(start, anchors.start, { tolerance: 0.3 });
+                if (anchors.end) assertPointNear(end, anchors.end, { tolerance: 0.3 });
+              }
+            }
+
             return mesh;
           }
         `;
@@ -1941,6 +2070,29 @@ export function useThreeEngine(
           engine.minDist = fitDist * 0.15;
           engine.maxDist = fitDist * 8;
           engine.lookTarget.copy(center);
+
+          // 🌟 分解图支持：记录每个顶层命名部件当前的位置,以及"从模型中心指向
+          // 该部件"的方向。之后 setExplodeFactor(0~1) 可以随时无损地沿这个方向
+          // 把部件推开或收回,不依赖重新生成代码,纯几何计算。
+          let maxChildDistance = 0;
+          result.children.forEach((child: any) => {
+            const childBox = new THREE.Box3().setFromObject(child);
+            if (childBox.isEmpty()) return;
+            const childCenter = new THREE.Vector3();
+            childBox.getCenter(childCenter);
+            const dir = childCenter.clone().sub(center);
+            const dist = dir.length();
+            if (dist > maxChildDistance) maxChildDistance = dist;
+            child.userData.__originPos = child.position.clone();
+            child.userData.__explodeDir =
+              dist > 0.0001 ? dir.normalize() : new THREE.Vector3(0, 1, 0);
+          });
+          result.userData.__explodeReady = true;
+          engine.explodeBaseDistance = Math.max(
+            maxDim * 0.6,
+            maxChildDistance * 1.2,
+            0.5,
+          );
         }
 
         let tris = 0,
@@ -2219,6 +2371,7 @@ export function useThreeEngine(
     captureImage,
     applyWireframe,
     setCanvasTheme,
+    setExplodeFactor,
   };
 }
 </file>
@@ -2255,11 +2408,26 @@ You MUST follow their exact TypeScript parameter interfaces:
    - Interface: path = { points: [number, number, number][], radius?: number, radialSegments?: number, closed?: boolean }
    - Example: const cableGeo = buildTubeGeometry({ points: [[0,0,0], [0.5,0.5,0], [1,0,0]], radius: 0.04, radialSegments: 8 });
 
-5. buildBeamBetween(p1, p2, thickness)
+5. buildBeamBetween(p1, p2, thickness, anchors?)
    - Interface: p1 = [x, y, z], p2 = [x, y, z], thickness = number (radius)
    - Returns a THREE.Mesh (no material attached — you must set beam.material = yourMaterial before adding shadows/casting).
    - This ALREADY handles all rotation math for you via quaternion alignment. You give it two 3D points and it builds a correctly-oriented cylinder between them — you never need to compute or guess a rotation angle or axis yourself.
-   - Example: const aPillar = buildBeamBetween([0.38, 0.55, -0.4], [0.12, 0.62, -0.4], 0.02); aPillar.material = pillarMaterial;
+   - The optional 4th argument enables an automatic placement check, and there are TWO DIFFERENT SHAPES it can take depending on what kind of beam this is — picking the wrong shape for the wrong beam type will make a geometrically correct beam fail the check, so read this carefully:
+
+     (a) CONTAINED beam — pass a single mesh. Use this when the ENTIRE beam should sit inside/against ONE part (e.g. an A-pillar that belongs entirely to one windshield frame). This checks that the whole beam's bounding box falls within that mesh's bounds.
+         Example: const aPillar = buildBeamBetween([0.38, 0.55, -0.4], [0.12, 0.62, -0.4], 0.02, cabinMesh);
+
+     (b) BRIDGING beam — pass { start: meshA, end: meshB }. Use this whenever the beam's TWO ENDS belong to TWO DIFFERENT parts — a crossbeam between two separate pillars, a chair/stool leg running from the seat down to the floor, a handle bar connecting two struts. Each end is checked independently against its own anchor; the beam is NOT required to fit inside either one. Either side can be omitted if there's no real part there (e.g. a leg's floor-end has no mesh to check against — just omit \`end\`).
+         Example (beam between two known pillars): const beamTop = buildBeamBetween([-0.5, 2.05, 0.78], [0.5, 2.05, 0.78], 0.03, { start: pillarLeft, end: pillarRight });
+         Example (leg from a seat down to the floor, no floor mesh exists): const leg = buildBeamBetween([0.12, 0.4, 0.12], [0.16, 0, 0.16], 0.02, { start: seatMesh });
+
+   - RULE OF THUMB: if you can point to ONE existing mesh that the whole beam visually belongs to, use form (a). If the beam's two ends touch two DIFFERENT things (or one end touches nothing), use form (b). Never pass a single mesh for a beam whose ends are far apart on purpose (like a crossbeam spanning between two pillars) — that will always fail the check, because the check would be asking "is this whole beam inside one small part?" when the beam was never supposed to be.
+
+6. assertWithinBounds(mesh, anchorMesh, opts?)
+   - Interface: mesh = THREE.Mesh, anchorMesh = THREE.Mesh, opts = { tolerance?: number } (tolerance is a fraction of anchorMesh's largest dimension, default 0.2)
+   - General-purpose CONTAINED-style attachment check, usable for any part (not just beams) that is supposed to sit on/near ONE other part — e.g. a mirror on a door, a roof panel on a cabin, a handle on a drawer. Throws if mesh's bounding box falls outside anchorMesh's bounding box expanded by tolerance.
+   - Use this for any attached decorative/functional part whose position is computed from arithmetic (offsets, rotations) rather than a fixed literal, since that's where coordinate mistakes happen.
+   - Example: assertWithinBounds(mirrorMesh, doorMesh, { tolerance: 0.3 });
 ===================================================================
 
 Strict Rules for the Cozy Low-Poly style:
@@ -2287,15 +2455,24 @@ Strict Rules for the Cozy Low-Poly style:
    cabin.position.z = -cabinWidth / 2; // buildExtrudeGeometry extrudes from z=0 to z=depth, so recenter it
 
    ROOF PANEL RULE (applies whenever a separate roof cap/lid/light-box sits on top of the glasshouse, e.g. a taxi sign): it MUST be a thin shell, not a slab. Its Y-axis thickness must be 8%–12% of the glasshouse height, and its footprint must not overhang the glasshouse silhouette by more than ~5% on any side. NEVER model the roof as a thick block or let it project as a large brim/canopy beyond the cabin outline, unless the user's description explicitly asks for a roof rack, canopy, or awning.
-5. Structural Beams & Pillars (A-pillars, roof struts, cross-braces, cables, limbs, etc.):
+5. Structural Beams & Pillars (A-pillars, roof struts, cross-braces, cables, chair/table/stool legs, limbs, etc.):
    NEVER build a strut/pillar/beam by manually setting \`mesh.rotation.x/y/z\` on a CylinderGeometry to point it at an angle — guessing the correct axis and angle by hand is unreliable and produces beams that point in the wrong direction entirely (e.g. lying flat instead of leaning across a windshield).
-   ALWAYS use \`buildBeamBetween(p1, p2, thickness)\` for this instead. Give it the two 3D endpoints the beam should connect (e.g. the base and top corner of a windshield frame), and it computes the correct orientation for you — you never need to reason about rotation axes yourself. Remember to set \`.material\` on the returned mesh, and \`.castShadow\`/\`.receiveShadow\` per rule 8 below.
+   ALWAYS use \`buildBeamBetween(p1, p2, thickness, anchors)\` for this instead. Give it the two 3D endpoints the beam should connect, and it computes the correct orientation for you — you never need to reason about rotation axes yourself.
+   You MUST pass the 4th argument whenever a real anchor part exists, and you MUST pick the correct shape for it (see the full explanation in the helper function docs above):
+     - A beam that belongs entirely to ONE part (e.g. an A-pillar inside a single windshield frame) → pass that ONE mesh directly.
+     - A beam that BRIDGES two different parts, or connects a part to open space (e.g. a crossbeam between two separate pillars, or a table/stool/chair leg running from the seat/tabletop down to the floor where no floor mesh exists) → pass an object \`{ start: meshA, end: meshB }\`, omitting whichever side has no real mesh to check against. Do NOT pass a single mesh for this case — a bridging beam's two ends are supposed to be far apart, and a single-mesh containment check will always fail it.
+   Remember to set \`.material\` on the returned mesh, and \`.castShadow\`/\`.receiveShadow\` per rule 8 below.
 6. Heads, Helmets & Organic Shapes: Use low-segment geometries (e.g., new THREE.SphereGeometry(r, 10, 10)). ALWAYS use \`mesh.scale.set(x, y, z)\` to squash or stretch them to make them look stylized.
 7. Materials & Anti-Clipping: ONLY use THREE.MeshStandardMaterial with { flatShading: true, roughness: 0.9, metalness: 0.05 }.
    CRITICAL FOR WINDOWS/DECALS: To prevent Z-fighting, ALWAYS set { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 } on the overlying detail material (like dark window material).
 8. Shadows: Every single mesh you create MUST have \`mesh.castShadow = true\` and \`mesh.receiveShadow = true\`.
 9. Colors: Use warm, pastel, cohesive color palettes. Limit to 5-6 distinct colors.
-10. Keep the code organized. Group related parts logically.
+10. EXPLODED-VIEW-READY STRUCTURE: The root Group's direct children must be a small number of NAMED sub-groups representing the object's major functional units — NOT dozens of individual meshes added straight to the root. For a vehicle this typically means: \`body\`, \`cabin\`, one group per wheel (or a single \`wheels\` group containing all four), \`lights\`, and any roof accessory. Build each like this:
+    const bodyGroup = new THREE.Group();
+    bodyGroup.name = "body";
+    bodyGroup.add(bodyMesh, chassisMesh, skirtMesh);
+    mainGroup.add(bodyGroup);
+    Small trim details (bolts, badges, handles, mirrors) can stay inside whichever functional group they visually belong to — they don't each need their own top-level group. This costs nothing extra to build but makes the model inspectable and explodable part-by-part later, and it's also just good code organization.
 11. STRICT VARIABLE DECLARATIONS: Always declare every group, material, or mesh variable with \`const\` BEFORE adding children to it or referencing it (e.g., \`const paperMenuGroup = new THREE.Group();\`). Never use undeclared variables. When mirroring a symmetric part via .clone(), always clone the completed THREE.Mesh variable, never the raw geometry variable it was built from.
 12. NO MARKDOWN, NO CONVERSATION: Output ONLY raw executable JS starting with \`function buildModel(THREE)\`. Absolutely NO intro/outro text.
 `;
