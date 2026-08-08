@@ -4,10 +4,17 @@ import { useCallback, useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { Stats } from "../types";
 
+export interface ExecuteResult {
+  success: boolean;
+  error: string | null;
+  errorLine: number | null;
+}
+
 export function useThreeEngine(
   containerRef: React.RefObject<HTMLDivElement | null>,
   onError: (err: string | null) => void,
   onStatsUpdate: (stats: Stats) => void,
+  onErrorLine: (line: number | null) => void = () => {},
 ) {
   const engineRef = useRef<any>(null);
 
@@ -81,10 +88,41 @@ export function useThreeEngine(
     });
   }, []);
 
+  // 🌟 从抛出的 Error.stack 里把行号还原回用户自己那份代码的行号。
+  // new Function() 执行的是 HELPER_FUNCTIONS + "\n" + codeStr 拼接后的整段源码,
+  // 浏览器报出来的行号是相对拼接后整段代码的,所以要减去 HELPER_FUNCTIONS 占的行数
+  // 才能对回用户在编辑器里实际看到的那一行。
+  //
+  // ⚠️ 这是"尽力而为"，不是100%保证：Chrome/Edge 这类 V8 内核浏览器格式稳定,
+  // 基本能对上；Firefox/Safari 的 stack 格式不太一样,解析不出来就直接返回 null,
+  // 不会瞎指一行给你添乱。
+  function extractUserCodeLine(
+    stack: string | undefined,
+    helperLineOffset: number,
+    userCodeLineCount: number,
+  ): number | null {
+    if (!stack) return null;
+    const match = stack.match(/(?:<anonymous>|eval code):(\d+):(\d+)/);
+    if (!match) return null;
+    const reportedLine = parseInt(match[1], 10);
+    const userLine = reportedLine - helperLineOffset;
+    if (userLine < 1 || userLine > userCodeLineCount) return null;
+    return userLine;
+  }
+
+  // 🌟 executeCode 现在返回结构化结果 { success, error, errorLine },不只是 boolean。
+  // 这样调用方(比如 ModelGenerator 里的自动重试逻辑)能在同一个函数调用里立刻拿到
+  // 具体报错文本,不需要依赖 setState 之后才能读到的、可能还没更新的 React 状态。
   const executeCode = useCallback(
-    (codeStr: string, isWireframe: boolean): boolean => {
+    (codeStr: string, isWireframe: boolean): ExecuteResult => {
       const engine = engineRef.current;
-      if (!engine) return false;
+      if (!engine) {
+        return { success: false, error: "Engine not ready", errorLine: null };
+      }
+
+      // 声明在 try 外面,这样 catch 块里也能拿到,不需要靠 hack 绕过块级作用域
+      let helperLineOffset = 0;
+      let userCodeLineCount = codeStr.split("\n").length;
 
       try {
         clearModel();
@@ -239,6 +277,9 @@ export function useThreeEngine(
           }
         `;
 
+        // 🌟 helper 函数块占多少行,用来把报错行号换算回用户代码的行号
+        helperLineOffset = HELPER_FUNCTIONS.split("\n").length;
+
         // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
         const fn = new Function(
           "THREE",
@@ -314,14 +355,22 @@ export function useThreeEngine(
         });
         onStatsUpdate({ triangles: Math.round(tris), vertices: verts });
         onError(null);
-        return true;
+        onErrorLine(null);
+        return { success: true, error: null, errorLine: null };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
+        const stack = err instanceof Error ? err.stack : undefined;
+        const line = extractUserCodeLine(
+          stack,
+          helperLineOffset,
+          userCodeLineCount,
+        );
         onError(msg);
-        return false;
+        onErrorLine(line);
+        return { success: false, error: msg, errorLine: line };
       }
     },
-    [clearModel, applyWireframe, onError, onStatsUpdate],
+    [clearModel, applyWireframe, onError, onStatsUpdate, onErrorLine],
   );
 
   // 🌟 核心修复：无变形、完美长宽比、高对比度离屏多视角截图
