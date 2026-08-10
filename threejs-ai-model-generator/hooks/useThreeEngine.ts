@@ -10,6 +10,57 @@ export interface ExecuteResult {
   errorLine: number | null;
 }
 
+// 🌟 与 setCanvasTheme 共用的纯函数版本：只处理场景背景色 + 网格颜色的替换逻辑,
+// 不依赖 React state。setCanvasTheme(工具栏那个日夜切换按钮)和下面新增的
+// captureDebugGrid(多角度日夜对照截图)内部都要临时切主题,抽出来避免两份重复代码
+// 以后配色改一处就够了。
+function applyThemeColors(engine: any, mode: "dark" | "day") {
+  if (mode === "day") {
+    engine.scene.background = new THREE.Color(0xf1f5f9);
+    engine.scene.remove(engine.grid);
+    engine.grid.geometry.dispose();
+    engine.grid.material.dispose();
+    engine.grid = new THREE.GridHelper(4, 16, 0x94a3b8, 0xcbd5e1);
+    engine.scene.add(engine.grid);
+  } else {
+    engine.scene.background = new THREE.Color(0x0b0f16);
+    engine.scene.remove(engine.grid);
+    engine.grid.geometry.dispose();
+    engine.grid.material.dispose();
+    engine.grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
+    engine.scene.add(engine.grid);
+  }
+}
+
+// 🌟 Debug 多角度截图的固定机位表。6 个角度：正面 / 正面 3/4 / 右侧 / 背面 / 左侧 /
+// 俯视。俯视角度对"两个部件在水平面上重叠"这类穿模问题特别有诊断价值,是现有
+// captureImage(送 Gemini Vision 打分用,只有 2 个 3/4 视角)完全没覆盖到的盲区。
+// 想加机位(比如仰视看底部连接件)直接往这个数组里加一项就行,composite 画布会自动跟着变宽。
+const DEBUG_ANGLES: { label: string; rotY: number; elevation: number }[] = [
+  { label: "Front", rotY: 0, elevation: 0.35 },
+  { label: "Front 3/4", rotY: Math.PI / 4, elevation: 0.45 },
+  { label: "Right", rotY: Math.PI / 2, elevation: 0.35 },
+  { label: "Back", rotY: Math.PI, elevation: 0.35 },
+  { label: "Left", rotY: -Math.PI / 2, elevation: 0.35 },
+  { label: "Top-Down", rotY: Math.PI / 6, elevation: 1.3 },
+];
+
+const DEBUG_THEMES: { label: string; mode: "dark" | "day" }[] = [
+  { label: "Night", mode: "dark" },
+  { label: "Day", mode: "day" },
+];
+
+export interface DebugCaptureTile {
+  label: string;
+  theme: "dark" | "day";
+  dataUrl: string;
+}
+
+export interface DebugCaptureResult {
+  compositeDataUrl: string;
+  tiles: DebugCaptureTile[];
+}
+
 export function useThreeEngine(
   containerRef: React.RefObject<HTMLDivElement | null>,
   onError: (err: string | null) => void,
@@ -22,22 +73,7 @@ export function useThreeEngine(
   const setCanvasTheme = useCallback((mode: "dark" | "day") => {
     const engine = engineRef.current;
     if (!engine) return;
-
-    if (mode === "day") {
-      engine.scene.background = new THREE.Color(0xf1f5f9);
-      engine.scene.remove(engine.grid);
-      engine.grid.geometry.dispose();
-      engine.grid.material.dispose();
-      engine.grid = new THREE.GridHelper(4, 16, 0x94a3b8, 0xcbd5e1);
-      engine.scene.add(engine.grid);
-    } else {
-      engine.scene.background = new THREE.Color(0x0b0f16);
-      engine.scene.remove(engine.grid);
-      engine.grid.geometry.dispose();
-      engine.grid.material.dispose();
-      engine.grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
-      engine.scene.add(engine.grid);
-    }
+    applyThemeColors(engine, mode);
   }, []);
 
   const clearModel = useCallback(() => {
@@ -253,6 +289,7 @@ export function useThreeEngine(
             const end = new THREE.Vector3(p2[0], p2[1], p2[2] ?? 0);
             const dir = new THREE.Vector3().subVectors(end, start);
             const length = dir.length();
+            if (length < 0.0001) return new THREE.Group();
             const geo = new THREE.CylinderGeometry(thickness, thickness, length, 6);
             geo.translate(0, length / 2, 0); // 原点对齐到起点 p1,方便直接用 position.copy(start)
             const mesh = new THREE.Mesh(geo);
@@ -373,7 +410,7 @@ export function useThreeEngine(
     [clearModel, applyWireframe, onError, onStatsUpdate, onErrorLine],
   );
 
-  // 🌟 核心修复：无变形、完美长宽比、高对比度离屏多视角截图
+  // 🌟 核心修复：无变形、完美长宽比、高对比度离屏多视角截图(送 Gemini Vision 打分用)
   const captureImage = useCallback(() => {
     const engine = engineRef.current;
     if (!engine) return null;
@@ -445,6 +482,119 @@ export function useThreeEngine(
 
     return combinedCanvas.toDataURL("image/png");
   }, []);
+
+  // 🌟 Debug 专用：6 机位 × 日/夜 2 主题 = 12 格拼图,用来跟 AI 一起排查穿模/
+  // 结构对不齐的问题。跟上面的 captureImage(送 Gemini Vision 打分用,固定 2 视角、
+  // 不切主题、512x512 拼 1024x512)是两件完全独立的事,互不复用状态,互不影响。
+  //
+  // 参数 restoreTheme:截图结束后要把画布恢复成用户截图前正在看的那个主题
+  // (由调用方传入当前 canvasTheme state,因为这个 hook 内部不持有该 state,
+  // 只有 setCanvasTheme 被调用时才会知道"当前"是哪个主题)。
+  const captureDebugGrid = useCallback(
+    (restoreTheme: "dark" | "day"): DebugCaptureResult | null => {
+      const engine = engineRef.current;
+      const container = containerRef.current;
+      if (!engine || !container || !engine.modelGroup.children.length) {
+        return null;
+      }
+
+      const TILE = 420;
+      const cols = DEBUG_ANGLES.length;
+      const rows = DEBUG_THEMES.length;
+
+      const composite = document.createElement("canvas");
+      composite.width = TILE * cols;
+      composite.height = TILE * rows;
+      const ctx = composite.getContext("2d");
+      if (!ctx) return null;
+
+      // 保存完整原始状态,截图结束后一次性还原,不能让这次截图影响用户当前正在看的画面
+      const origWidth = container.clientWidth || 800;
+      const origHeight = container.clientHeight || 600;
+      const origAspect = engine.camera.aspect;
+      const origRotY = engine.rotY;
+      const origElevation = engine.elevation;
+
+      engine.renderer.setSize(TILE, TILE, false);
+      engine.camera.aspect = 1.0;
+      engine.camera.updateProjectionMatrix();
+
+      const tiles: DebugCaptureTile[] = [];
+
+      DEBUG_THEMES.forEach((themeCfg, rowIndex) => {
+        applyThemeColors(engine, themeCfg.mode);
+
+        DEBUG_ANGLES.forEach((angleCfg, colIndex) => {
+          engine.rotY = angleCfg.rotY;
+          engine.elevation = angleCfg.elevation;
+
+          const h = engine.camDistance * Math.cos(engine.elevation);
+          const y = engine.camDistance * Math.sin(engine.elevation);
+          engine.camera.position.set(
+            engine.lookTarget.x,
+            engine.lookTarget.y + y,
+            engine.lookTarget.z + h,
+          );
+          engine.camera.lookAt(engine.lookTarget);
+          engine.modelGroup.rotation.y = engine.rotY;
+
+          engine.renderer.render(engine.scene, engine.camera);
+
+          const x = colIndex * TILE;
+          const yOff = rowIndex * TILE;
+          ctx.drawImage(engine.renderer.domElement, x, yOff, TILE, TILE);
+
+          // 每格左下角贴一个半透明标签条,标注"主题 · 角度",方便肉眼和 AI 对号入座
+          const label = `${themeCfg.label} · ${angleCfg.label}`;
+          ctx.font = "600 15px ui-monospace, monospace";
+          const textWidth = ctx.measureText(label).width;
+          ctx.fillStyle = "rgba(0,0,0,0.65)";
+          ctx.fillRect(x + 8, yOff + TILE - 30, textWidth + 16, 22);
+          ctx.fillStyle = "#e7f6ff";
+          ctx.fillText(label, x + 16, yOff + TILE - 14);
+
+          // 格子分割线,拼图上区分每个机位
+          ctx.strokeStyle = "rgba(255,255,255,0.08)";
+          ctx.strokeRect(x, yOff, TILE, TILE);
+
+          // 每一格单独也存一份,方便 UI 里做缩略图画廊 / 单张点击放大
+          const tileCanvas = document.createElement("canvas");
+          tileCanvas.width = TILE;
+          tileCanvas.height = TILE;
+          const tileCtx = tileCanvas.getContext("2d");
+          if (tileCtx)
+            tileCtx.drawImage(engine.renderer.domElement, 0, 0, TILE, TILE);
+          tiles.push({
+            label,
+            theme: themeCfg.mode,
+            dataUrl: tileCanvas.toDataURL("image/png"),
+          });
+        });
+      });
+
+      // 还原渲染器尺寸、相机、旋转视角、主题
+      engine.renderer.setSize(origWidth, origHeight, false);
+      engine.camera.aspect = origAspect;
+      engine.camera.updateProjectionMatrix();
+      engine.rotY = origRotY;
+      engine.elevation = origElevation;
+      engine.modelGroup.rotation.y = engine.rotY;
+      applyThemeColors(engine, restoreTheme);
+
+      const h = engine.camDistance * Math.cos(engine.elevation);
+      const y = engine.camDistance * Math.sin(engine.elevation);
+      engine.camera.position.set(
+        engine.lookTarget.x,
+        engine.lookTarget.y + y,
+        engine.lookTarget.z + h,
+      );
+      engine.camera.lookAt(engine.lookTarget);
+      engine.renderer.render(engine.scene, engine.camera);
+
+      return { compositeDataUrl: composite.toDataURL("image/png"), tiles };
+    },
+    [],
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -622,6 +772,7 @@ export function useThreeEngine(
     executeCode,
     clearModel,
     captureImage,
+    captureDebugGrid,
     applyWireframe,
     setCanvasTheme,
     setExplodeFactor,

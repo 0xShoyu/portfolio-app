@@ -89,6 +89,7 @@ src/
 threejs-ai-model-generator/
   components/
     ControlCoPilotPanel.tsx
+    DebugCaptureModal.tsx
     ModelGenerator.tsx
     ModelGeneratorClient.tsx
     PreviewPanel.tsx
@@ -110,6 +111,136 @@ postcss.config.mjs
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="threejs-ai-model-generator/components/DebugCaptureModal.tsx">
+"use client";
+
+import { useState } from "react";
+import { X, Download, ImageIcon } from "lucide-react";
+import type { DebugCaptureResult } from "../hooks/useThreeEngine";
+
+function downloadDataUrl(filename: string, dataUrl: string) {
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// 🌟 Debug 用的多角度日夜对照弹窗。核心产出是顶部那张 composite 图——6 机位 x
+// 日/夜 2 主题拼成一张 contact sheet,专门为了"整张丢进跟 AI 的对话里排查穿模
+// 问题"这个场景设计的,所以默认操作就是下载这一张整图。下面的缩略图画廊是给你
+// 自己肉眼先扫一遍用的,点开能单张放大看细节。
+export function DebugCaptureModal({
+  result,
+  slug,
+  onClose,
+}: {
+  result: DebugCaptureResult;
+  slug: string;
+  onClose: () => void;
+}) {
+  const [activeTile, setActiveTile] = useState<number | null>(null);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="flex max-h-[90vh] w-full max-w-5xl flex-col rounded-2xl border border-border bg-background shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <ImageIcon size={16} className="text-primary shrink-0" />
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">
+                Debug Contact Sheet
+              </h3>
+              <p className="text-xs text-muted">
+                6 angles × day/night — download the sheet and hand it to your
+                AI to spot clipping issues.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1.5 text-muted hover:bg-white/5 hover:text-foreground shrink-0"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-5">
+          <div className="overflow-hidden rounded-xl border border-border/60">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={result.compositeDataUrl}
+              alt="Multi-angle day/night debug contact sheet"
+              className="w-full"
+            />
+          </div>
+
+          <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+            {result.tiles.map((tile, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveTile(i)}
+                className="group relative overflow-hidden rounded-lg border border-border/60 hover:border-primary/60 transition-colors"
+                title={tile.label}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={tile.dataUrl}
+                  alt={tile.label}
+                  className="aspect-square w-full object-cover"
+                />
+                <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1.5 py-0.5 text-[10px] text-slate-200">
+                  {tile.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/60 px-5 py-3.5">
+          <button
+            onClick={onClose}
+            className="rounded-md border border-border px-3.5 py-2 text-xs font-medium text-muted hover:text-foreground"
+          >
+            Close
+          </button>
+          <button
+            onClick={() =>
+              downloadDataUrl(
+                `${slug}.debug-sheet.png`,
+                result.compositeDataUrl,
+              )
+            }
+            className="flex items-center gap-1.5 rounded-md border border-primary/60 bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20"
+          >
+            <Download size={13} /> Download Contact Sheet
+          </button>
+        </div>
+      </div>
+
+      {/* 单张放大查看 */}
+      {activeTile != null && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-6"
+          onClick={() => setActiveTile(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={result.tiles[activeTile].dataUrl}
+            alt={result.tiles[activeTile].label}
+            className="max-h-full max-w-full rounded-lg border border-border"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
 
 <file path="content/portfolio/0xshoyu-dev-architecture.mdx">
 ---
@@ -973,449 +1104,6 @@ export function cn(...inputs: ClassValue[]) {
 }
 </file>
 
-<file path="threejs-ai-model-generator/components/ControlCoPilotPanel.tsx">
-"use client";
-
-import { useEffect, useRef } from "react";
-import { useState } from "react";
-import CodeMirror from "@uiw/react-codemirror";
-import { javascript } from "@codemirror/lang-javascript";
-import { search, searchKeymap } from "@codemirror/search";
-import { keymap, EditorView, Decoration } from "@codemirror/view";
-import { indentWithTab } from "@codemirror/commands";
-import { StateEffect, StateField } from "@codemirror/state";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { tags } from "@lezer/highlight";
-import {
-  Sparkles,
-  Loader2,
-  Wand2,
-  Search,
-  CheckCircle2,
-  AlertCircle,
-  RotateCcw,
-  Code2,
-  Terminal as TerminalIcon,
-  Bug,
-} from "lucide-react";
-import { GEMINI_MODELS } from "../constants";
-import { TerminalView } from "./TerminalView";
-
-// 🌟 这几个必须定义在组件外面、只创建一次——StateEffect.define()/StateField.define()
-// 每调用一次都会生成一个"新身份"，如果放进组件体内每次渲染都会重新定义，
-// 导致上一次 dispatch 出去的 effect 跟这一轮的 field 对不上号，高亮直接失效。
-const setErrorLineEffect = StateEffect.define<number | null>();
-
-const errorLineField = StateField.define({
-  create() {
-    return Decoration.none;
-  },
-  update(deco, tr) {
-    deco = deco.map(tr.changes);
-    for (const effect of tr.effects) {
-      if (effect.is(setErrorLineEffect)) {
-        if (effect.value == null) {
-          deco = Decoration.none;
-        } else {
-          const lineNum = Math.min(
-            Math.max(1, effect.value),
-            tr.state.doc.lines,
-          );
-          const line = tr.state.doc.line(lineNum);
-          deco = Decoration.set([
-            Decoration.line({ attributes: { class: "cm-error-line" } }).range(
-              line.from,
-            ),
-          ]);
-        }
-      }
-    }
-    return deco;
-  },
-  provide: (f) => EditorView.decorations.from(f),
-});
-
-// 🌟 语法高亮的具体配色——CodeMirror 的 javascript() 语言包本身不带颜色,
-// 颜色是靠单独的 HighlightStyle 提供的,这里手写一套,不依赖额外的主题包。
-const codeHighlightStyle = HighlightStyle.define([
-  { tag: [tags.keyword, tags.controlKeyword], color: "#c792ea" },
-  { tag: [tags.string, tags.special(tags.string)], color: "#a3e6a3" },
-  { tag: [tags.number, tags.bool, tags.null], color: "#f78c6c" },
-  {
-    tag: [tags.function(tags.variableName), tags.function(tags.propertyName)],
-    color: "#82aaff",
-  },
-  { tag: tags.propertyName, color: "#7fd4e0" },
-  { tag: tags.variableName, color: "var(--foreground)" },
-  { tag: tags.comment, color: "var(--muted)", fontStyle: "italic" },
-  { tag: tags.operator, color: "#89ddff" },
-  { tag: [tags.punctuation, tags.bracket], color: "var(--muted)" },
-  { tag: [tags.className, tags.typeName], color: "#ffcb6b" },
-]);
-
-// 🌟 编辑器整体外观(背景/边框/光标/选区),全部读 app 已有的 CSS 变量,
-// 而不是 CodeMirror 自带的某个固定配色包——这样才能跟你 app 其它地方视觉统一,
-// 以后 app 主题色调了,编辑器会跟着一起变,不用单独再维护一份颜色。
-const appEditorTheme = EditorView.theme(
-  {
-    "&": {
-      backgroundColor: "var(--background)",
-      color: "var(--foreground)",
-    },
-    ".cm-content": {
-      caretColor: "var(--foreground)",
-      fontSize: "12.5px",
-    },
-    ".cm-gutters": {
-      backgroundColor: "var(--background)",
-      color: "var(--muted)",
-      borderRight: "1px solid var(--border)",
-    },
-    ".cm-activeLine": {
-      backgroundColor: "color-mix(in srgb, var(--foreground) 6%, transparent)",
-    },
-    ".cm-activeLineGutter": {
-      backgroundColor: "color-mix(in srgb, var(--foreground) 8%, transparent)",
-    },
-    "&.cm-focused .cm-cursor": { borderLeftColor: "var(--primary)" },
-    "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {
-      backgroundColor:
-        "color-mix(in srgb, var(--primary) 25%, transparent) !important",
-    },
-    ".cm-error-line": {
-      backgroundColor: "rgba(239, 68, 68, 0.15)",
-      borderLeft: "3px solid rgb(248, 113, 113)",
-    },
-    ".cm-panels": {
-      backgroundColor: "var(--background)",
-      color: "var(--foreground)",
-    },
-  },
-  { dark: true },
-);
-
-export function ControlCoPilotPanel({
-  t,
-  code,
-  setCode,
-  apiKey,
-  setApiKey,
-  model,
-  setModel,
-  description,
-  setDescription,
-  generating,
-  reviewing,
-  autoReview,
-  setAutoReview,
-  verdict,
-  feedbackInput,
-  setFeedbackInput,
-  lastScreenshot,
-  logs,
-  clearLogs,
-  onGenerate,
-  onReview,
-  onRefine,
-  onRun,
-  error,
-  errorLine,
-  onFixWithAI,
-}: any) {
-  const [activeTab, setActiveTab] = useState<"code" | "terminal">("code");
-  const viewRef = useRef<EditorView | null>(null);
-
-  // 🌟 报错行号一变,就把编辑器滚动到那一行、高亮那一行。errorLine 是 null 时清除高亮。
-  useEffect(() => {
-    const view = viewRef.current;
-    if (!view) return;
-    view.dispatch({ effects: setErrorLineEffect.of(errorLine ?? null) });
-    if (errorLine != null) {
-      const lineNum = Math.min(Math.max(1, errorLine), view.state.doc.lines);
-      const line = view.state.doc.line(lineNum);
-      view.dispatch({
-        selection: { anchor: line.from },
-        effects: EditorView.scrollIntoView(line.from, { y: "center" }),
-      });
-    }
-  }, [errorLine]);
-
-  const editorExtensions = [
-    javascript(),
-    syntaxHighlighting(codeHighlightStyle),
-    appEditorTheme,
-    search({ top: true }),
-    keymap.of([
-      ...searchKeymap,
-      {
-        key: "Mod-Enter",
-        run: () => {
-          onRun();
-          return true;
-        },
-      },
-      indentWithTab,
-    ]),
-    errorLineField,
-  ];
-
-  return (
-    <div className="flex flex-col border-b border-border/60 lg:w-[46%] lg:border-b-0 lg:border-r bg-background/20">
-      {/* 🔑 API Key & Model Config */}
-      <div className="flex flex-col gap-2.5 border-b border-border/60 bg-background/40 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xs">🔑</span>
-          <input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder={t.keyPlaceholder}
-            autoComplete="off"
-            className="flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 font-mono text-xs text-foreground placeholder:text-muted focus:border-primary focus:outline-none"
-          />
-          <select
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground"
-          >
-            {GEMINI_MODELS.map((m: any) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* 🚀 提示词输入区 */}
-      <div className="p-4 border-b border-border/60 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-            <Sparkles size={13} className="text-primary" /> Prompt Description
-          </label>
-          <label className="flex items-center gap-1.5 text-[11px] text-muted cursor-pointer hover:text-foreground">
-            <input
-              type="checkbox"
-              checked={autoReview}
-              onChange={(e) => setAutoReview(e.target.checked)}
-              className="rounded border-border text-primary focus:ring-0"
-            />
-            Auto Vision-Review
-          </label>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && onGenerate()}
-            placeholder={t.descPlaceholder}
-            className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted focus:border-primary focus:outline-none"
-          />
-          <button
-            onClick={onGenerate}
-            disabled={generating || reviewing}
-            className="flex items-center gap-1.5 whitespace-nowrap rounded-md border border-primary bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-50"
-          >
-            {generating ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : (
-              <Wand2 size={13} />
-            )}
-            {t.generate}
-          </button>
-        </div>
-      </div>
-
-      {/* 🌟 报错 + 一键 AI 修复:挪到这个常驻区域,不管你现在停在 Code 还是
-          Terminal 标签页都能看见,不用切过去 Code 标签才发现有个按钮等着你点。
-          只有自动重试(见 ModelGenerator 里的 generateAndSelfHeal)用完额度、
-          真的需要你决定要不要再试一次的时候才会出现。 */}
-      {error && (
-        <div className="flex items-start gap-2 border-b border-red-900/50 bg-red-950/30 px-4 py-3">
-          <Bug size={14} className="mt-0.5 shrink-0 text-red-400" />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-red-300 break-words">{error}</p>
-            {errorLine != null && (
-              <p className="mt-0.5 text-[10px] text-red-400/70">
-                Jumped to line {errorLine} in the editor below.
-              </p>
-            )}
-          </div>
-          <button
-            onClick={onFixWithAI}
-            disabled={generating || reviewing}
-            title="Send this error back to the AI and let it regenerate the code"
-            className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-red-700/60 bg-red-900/30 px-2.5 py-1.5 text-[11px] font-semibold text-red-200 hover:bg-red-900/50 disabled:opacity-40 transition-colors"
-          >
-            {generating ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <Sparkles size={12} />
-            )}
-            Ask AI to Fix
-          </button>
-        </div>
-      )}
-
-      {/* 🌟 视觉评审与修改反馈 Hub (只要有代码/模型就常驻显示) */}
-      {code && (
-        <div className="p-4 border-b border-border/60 bg-primary/5 flex flex-col gap-2.5 transition-all duration-300">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <Search size={13} className="text-primary" /> Review & Refine
-              </span>
-
-              {/* 🖼️ 点击在新标签页查看给 Vision AI 发送的双视角截图 */}
-              {lastScreenshot && (
-                <button
-                  onClick={() => {
-                    const win = window.open();
-                    if (win) {
-                      win.document.write(
-                        `<body style="margin:0;background:#0b0f16;display:flex;align-items:center;justify-content:center;height:100vh;"><img src="${lastScreenshot}" style="max-width:90%;border:2px solid #38bdf8;border-radius:12px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);"/></body>`,
-                      );
-                    }
-                  }}
-                  className="text-[11px] text-primary hover:underline flex items-center gap-1 transition-colors"
-                  title="Open the exact 2-in-1 image sent to Gemini Vision"
-                >
-                  🖼️ View Snapshot
-                </button>
-              )}
-
-              {verdict && (
-                <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium border ${
-                    verdict.decision === "continue"
-                      ? "border-emerald-800 bg-emerald-950/50 text-emerald-400"
-                      : "border-amber-800 bg-amber-950/50 text-amber-400"
-                  }`}
-                >
-                  {verdict.decision === "continue" ? (
-                    <CheckCircle2 size={10} />
-                  ) : (
-                    <AlertCircle size={10} />
-                  )}
-                  {verdict.decision === "continue" ? "Pass" : "Needs Work"} (
-                  {Math.round(verdict.score * 100)}%)
-                </span>
-              )}
-            </div>
-
-            {/* 常驻的手动 Review 触发按钮 */}
-            <button
-              onClick={onReview}
-              disabled={reviewing || generating}
-              className="text-[11px] font-medium text-muted hover:text-primary underline underline-offset-2 flex items-center gap-1"
-            >
-              {reviewing ? (
-                <Loader2 size={11} className="animate-spin" />
-              ) : (
-                <Search size={11} />
-              )}
-              {verdict ? "Re-Analyze" : "Analyze Render"}
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <textarea
-              value={feedbackInput}
-              onChange={(e) => setFeedbackInput(e.target.value)}
-              placeholder={
-                verdict
-                  ? "Critique & User Modifications..."
-                  : "Enter manual tweaks here, or click Analyze to get AI feedback..."
-              }
-              rows={2}
-              className="w-full rounded-md border border-border/80 bg-background/80 px-2.5 py-2 text-xs font-mono text-foreground placeholder:text-muted focus:border-primary focus:outline-none resize-none leading-relaxed"
-            />
-            <button
-              onClick={() => onRefine()}
-              disabled={generating || reviewing || !feedbackInput.trim()}
-              className="flex items-center justify-center gap-1.5 w-full rounded-md border border-primary/60 bg-primary/10 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-40 transition-colors"
-            >
-              {generating ? (
-                <Loader2 size={13} className="animate-spin" />
-              ) : (
-                <RotateCcw size={13} />
-              )}
-              Refine & Apply Changes
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 💻 代码与 Terminal 选项卡组 */}
-      <div className="flex-1 flex flex-col">
-        <div className="px-4 py-2 border-b border-border/40 text-[11px] flex items-center justify-between bg-background/30">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setActiveTab("code")}
-              className={`flex items-center gap-1.5 font-medium transition-colors ${
-                activeTab === "code"
-                  ? "text-primary"
-                  : "text-muted hover:text-foreground"
-              }`}
-            >
-              <Code2 size={13} /> JavaScript
-            </button>
-            <button
-              onClick={() => setActiveTab("terminal")}
-              className={`flex items-center gap-1.5 font-medium transition-colors ${
-                activeTab === "terminal"
-                  ? "text-primary"
-                  : "text-muted hover:text-foreground"
-              }`}
-            >
-              <TerminalIcon size={13} /> Logs Terminal
-              {logs.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-primary/20 text-primary text-[9px]">
-                  {logs.length}
-                </span>
-              )}
-            </button>
-          </div>
-          {activeTab === "code" && (
-            <span className="text-[10px] opacity-60">
-              ⌘/Ctrl+Enter run · ⌘/Ctrl+F search
-            </span>
-          )}
-        </div>
-
-        {activeTab === "code" ? (
-          // 🌟 高度修复：外层给一个固定 max-height + overflow-y-auto,CodeMirror
-          // 自己不设 height,只按内容自然排布。之前用 CodeMirror 的 height="100%"
-          // 依赖父级 flex 容器有"确定的高度"才能生效,链路里差一个 min-height:0,
-          // 内容一长就直接撑爆,现在这个写法不依赖那条链路,长代码稳定在固定高度内滚动。
-          <div className="max-h-[280px] overflow-y-auto lg:max-h-[380px]">
-            <CodeMirror
-              value={code}
-              theme="none"
-              basicSetup={{
-                lineNumbers: true,
-                foldGutter: true,
-                highlightActiveLine: true,
-                highlightActiveLineGutter: true,
-              }}
-              extensions={editorExtensions}
-              onChange={(value) => setCode(value)}
-              onCreateEditor={(view) => {
-                viewRef.current = view;
-              }}
-            />
-          </div>
-        ) : (
-          <TerminalView logs={logs} onClearLogs={clearLogs} />
-        )}
-      </div>
-    </div>
-  );
-}
-</file>
-
 <file path="threejs-ai-model-generator/components/ModelGeneratorClient.tsx">
 "use client";
 
@@ -2188,360 +1876,446 @@ export function getSortedPosts(posts: Post[]) {
 }
 </file>
 
-<file path="threejs-ai-model-generator/components/ModelGenerator.tsx">
+<file path="threejs-ai-model-generator/components/ControlCoPilotPanel.tsx">
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useState, useMemo } from "react";
+import CodeMirror from "@uiw/react-codemirror";
+import { javascript } from "@codemirror/lang-javascript";
+import { search, searchKeymap } from "@codemirror/search";
+import { keymap, EditorView, Decoration } from "@codemirror/view";
+import { indentWithTab } from "@codemirror/commands";
+import { StateEffect, StateField } from "@codemirror/state";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 import {
-  DEFAULT_CODE,
-  GEMINI_MODELS,
-  TRANSLATIONS,
-  isDefaultCode,
-  type Lang,
-} from "../constants";
-import type { Verdict, Stats, LogEntry } from "../types";
-import { useThreeEngine } from "../hooks/useThreeEngine";
-import { Toolbar } from "./Toolbar";
-import { ControlCoPilotPanel } from "./ControlCoPilotPanel";
-import { PreviewPanel } from "./PreviewPanel";
+  Sparkles,
+  Loader2,
+  Wand2,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  RotateCcw,
+  Code2,
+  Terminal as TerminalIcon,
+  Bug,
+} from "lucide-react";
+import { GEMINI_MODELS } from "../constants";
+import { TerminalView } from "./TerminalView";
 
-// 🌟 结构性报错(比如几何锚点检查失败)自动重试的上限。这不会比你之前手动点
-// "Ask AI to Fix" 花更多 API 调用——之前你本来就是手动点 2、3 次才能过,现在只是
-// 把这几次点击自动化掉,调用次数没有变多,只是不需要你人工干预了。
-const MAX_AUTO_FIX_ATTEMPTS = 2;
+// 🌟 这几个必须定义在组件外面、只创建一次——StateEffect.define()/StateField.define()
+// 每调用一次都会生成一个"新身份"，如果放进组件体内每次渲染都会重新定义，
+// 导致上一次 dispatch 出去的 effect 跟这一轮的 field 对不上号，高亮直接失效。
+const setErrorLineEffect = StateEffect.define<number | null>();
 
-export function ModelGenerator() {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // State Management
-  const [lang, setLang] = useState<Lang>("en");
-  const [code, setCode] = useState("");
-  const [description, setDescription] = useState("");
-  const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState<string>(GEMINI_MODELS[0].value);
-  const [wireframe, setWireframe] = useState(false);
-  const [canvasTheme, setCanvasTheme] = useState<"dark" | "day">("dark");
-  const [stats, setStats] = useState<Stats>({ triangles: 0, vertices: 0 });
-  const [error, setError] = useState<string | null>(null);
-  // 🌟 报错对应的具体行号(1-indexed),对不上就是 null——编辑器据此高亮/跳转
-  const [errorLine, setErrorLine] = useState<number | null>(null);
-  // 🌟 分解图：0 = 正常装配, 1 = 完全分解。纯前端状态,不需要重新生成代码。
-  const [explodeFactor, setExplodeFactorState] = useState(0);
-
-  // Agent State
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [autoReview, setAutoReview] = useState(true);
-  const [verdict, setVerdict] = useState<Verdict | null>(null);
-  const [feedbackInput, setFeedbackInput] = useState("");
-  const [lastScreenshot, setLastScreenshot] = useState<string | null>(null); // 🌟 保存发送给 AI 的截图
-  const [generating, setGenerating] = useState(false);
-  const [reviewing, setReviewing] = useState(false);
-
-  const t = TRANSLATIONS[lang];
-  const engine = useThreeEngine(containerRef, setError, setStats, setErrorLine);
-
-  // 终端日志记录函数
-  const addLog = useCallback((tag: LogEntry["tag"], text: string) => {
-    const time = new Date().toLocaleTimeString("en-US", { hour12: false });
-    setLogs((prev) => [
-      ...prev,
-      { id: Math.random().toString(), time, tag, text },
-    ]);
-  }, []);
-
-  useEffect(() => {
-    addLog("SYSTEM", "WebGL Engine initialized. PCFSoftShadowMap enabled.");
-  }, [addLog]);
-
-  // 切换背景主题处理函数
-  const handleThemeToggle = () => {
-    const nextTheme = canvasTheme === "dark" ? "day" : "dark";
-    setCanvasTheme(nextTheme);
-    engine.setCanvasTheme(nextTheme);
-    addLog(
-      "SYSTEM",
-      `Canvas background switched to ${nextTheme.toUpperCase()} mode.`,
-    );
-  };
-
-  // 🌟 分解图滑块处理函数
-  const handleExplodeChange = (value: number) => {
-    setExplodeFactorState(value);
-    engine.setExplodeFactor(value);
-  };
-
-  // 触发视觉评审 (Vision Review)
-  const triggerReview = async (customDesc?: string) => {
-    const descToUse = customDesc || description.trim();
-    if (!descToUse) return null;
-
-    addLog("VISION", "Capturing WebGL Canvas multi-angle screenshot...");
-    const screenshot = engine.captureImage();
-    if (!screenshot) return null;
-
-    setLastScreenshot(screenshot); // 🌟 存入状态，供用户在界面上点击查看
-
-    setReviewing(true);
-    addLog(
-      "VISION",
-      `Sending render to Gemini Vision (${model}) for critique...`,
-    );
-    try {
-      const res = await fetch("/api/review-model", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: descToUse,
-          screenshot,
-          apiKey: apiKey.trim() || undefined,
-          model,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      setVerdict(data);
-      const scorePct = Math.round((data.score || 0) * 100);
-      addLog(
-        "REVIEW",
-        `Verdict: ${data.decision.toUpperCase()} (${scorePct}% score)`,
-      );
-
-      if (data.critique) {
-        setFeedbackInput(data.critique);
-        addLog("REVIEW", `Critique: "${data.critique}"`);
+const errorLineField = StateField.define({
+  create() {
+    return Decoration.none;
+  },
+  update(deco, tr) {
+    deco = deco.map(tr.changes);
+    for (const effect of tr.effects) {
+      if (effect.is(setErrorLineEffect)) {
+        if (effect.value == null) {
+          deco = Decoration.none;
+        } else {
+          const lineNum = Math.min(
+            Math.max(1, effect.value),
+            tr.state.doc.lines,
+          );
+          const line = tr.state.doc.line(lineNum);
+          deco = Decoration.set([
+            Decoration.line({ attributes: { class: "cm-error-line" } }).range(
+              line.from,
+            ),
+          ]);
+        }
       }
-      return data;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError("Review failed: " + msg);
-      addLog("ERROR", `Review Failed: ${msg}`);
-      return null;
-    } finally {
-      setReviewing(false);
     }
-  };
+    return deco;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
 
-  // 🌟 生成 + 结构性报错自动重试的核心函数。initial 生成和 Refine 都走这里,
-  // 逻辑统一：调用 /api/generate-model → 执行 → 失败就自动把报错当反馈重新生成,
-  // 最多 MAX_AUTO_FIX_ATTEMPTS 次,还是失败就停下来,把手动 "Ask AI to Fix" 交还给你。
-  // 只有真正跑成功了才会往下走(触发 review),不会拿一个跑不起来的模型去截图评审,
-  // 白白浪费一次 vision 调用。
-  const generateAndSelfHeal = useCallback(
-    async (
-      desc: string,
-      opts: { previousCode?: string; feedback?: string } = {},
-      attempt = 0,
-    ): Promise<{ ok: boolean; finalCode: string | null }> => {
-      const res = await fetch("/api/generate-model", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: desc,
-          previousCode: opts.previousCode,
-          feedback: opts.feedback,
-          apiKey: apiKey.trim() || undefined,
-          model,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+// 🌟 语法高亮的具体配色——CodeMirror 的 javascript() 语言包本身不带颜色,
+// 颜色是靠单独的 HighlightStyle 提供的,这里手写一套,不依赖额外的主题包。
+const codeHighlightStyle = HighlightStyle.define([
+  { tag: [tags.keyword, tags.controlKeyword], color: "#c792ea" },
+  { tag: [tags.string, tags.special(tags.string)], color: "#a3e6a3" },
+  { tag: [tags.number, tags.bool, tags.null], color: "#f78c6c" },
+  {
+    tag: [tags.function(tags.variableName), tags.function(tags.propertyName)],
+    color: "#82aaff",
+  },
+  { tag: tags.propertyName, color: "#7fd4e0" },
+  { tag: tags.variableName, color: "var(--foreground)" },
+  { tag: tags.comment, color: "var(--muted)", fontStyle: "italic" },
+  { tag: tags.operator, color: "#89ddff" },
+  { tag: [tags.punctuation, tags.bracket], color: "var(--muted)" },
+  { tag: [tags.className, tags.typeName], color: "#ffcb6b" },
+]);
 
-      setCode(data.code);
-      addLog(
-        "WEBGL",
-        attempt === 0
-          ? "Compilation successful. Executing buildModel(THREE)..."
-          : `Auto-fix attempt ${attempt}/${MAX_AUTO_FIX_ATTEMPTS}: executing regenerated code...`,
-      );
-
-      const result = engine.executeCode(data.code, wireframe);
-
-      if (result.success) {
-        addLog("WEBGL", "Model loaded into scene with auto-fit perspective.");
-        return { ok: true, finalCode: data.code };
-      }
-
-      // 失败了。还有重试次数就自动拿报错当反馈重新生成,不需要你手动点。
-      if (attempt < MAX_AUTO_FIX_ATTEMPTS) {
-        addLog(
-          "ERROR",
-          `Runtime error: ${result.error} — auto-retrying (${attempt + 1}/${MAX_AUTO_FIX_ATTEMPTS})...`,
-        );
-        return generateAndSelfHeal(
-          desc,
-          { previousCode: data.code, feedback: result.error ?? "" },
-          attempt + 1,
-        );
-      }
-
-      // 重试次数用完了,停下来,让 "Ask AI to Fix" 按钮接手
-      addLog(
-        "ERROR",
-        `Auto-fix exhausted after ${MAX_AUTO_FIX_ATTEMPTS} attempts. Manual "Ask AI to Fix" still available.`,
-      );
-      return { ok: false, finalCode: data.code };
+// 🌟 编辑器整体外观(背景/边框/光标/选区),全部读 app 已有的 CSS 变量,
+// 而不是 CodeMirror 自带的某个固定配色包——这样才能跟你 app 其它地方视觉统一,
+// 以后 app 主题色调了,编辑器会跟着一起变,不用单独再维护一份颜色。
+const appEditorTheme = EditorView.theme(
+  {
+    "&": {
+      backgroundColor: "var(--background)",
+      color: "var(--foreground)",
     },
-    [apiKey, model, wireframe, engine, addLog],
-  );
+    ".cm-content": {
+      caretColor: "var(--foreground)",
+      fontSize: "12.5px",
+    },
+    ".cm-gutters": {
+      backgroundColor: "var(--background)",
+      color: "var(--muted)",
+      borderRight: "1px solid var(--border)",
+    },
+    ".cm-activeLine": {
+      backgroundColor: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+    },
+    ".cm-activeLineGutter": {
+      backgroundColor: "color-mix(in srgb, var(--foreground) 8%, transparent)",
+    },
+    "&.cm-focused .cm-cursor": { borderLeftColor: "var(--primary)" },
+    "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {
+      backgroundColor:
+        "color-mix(in srgb, var(--primary) 25%, transparent) !important",
+    },
+    ".cm-error-line": {
+      backgroundColor: "rgba(239, 68, 68, 0.15)",
+      borderLeft: "3px solid rgb(248, 113, 113)",
+    },
+    ".cm-panels": {
+      backgroundColor: "var(--background)",
+      color: "var(--foreground)",
+    },
+  },
+  { dark: true },
+);
 
-  // 初次代码生成
-  const handleGenerate = async () => {
-    const desc = description.trim();
-    if (!desc) return setError("Enter a description first.");
+export function ControlCoPilotPanel({
+  t,
+  code,
+  setCode,
+  apiKey,
+  setApiKey,
+  model,
+  setModel,
+  description,
+  setDescription,
+  generating,
+  reviewing,
+  autoReview,
+  setAutoReview,
+  verdict,
+  feedbackInput,
+  setFeedbackInput,
+  lastScreenshot,
+  logs,
+  clearLogs,
+  onGenerate,
+  onReview,
+  onRefine,
+  onRun,
+  error,
+  errorLine,
+  onFixWithAI,
+}: any) {
+  const [activeTab, setActiveTab] = useState<"code" | "terminal">("code");
+  const viewRef = useRef<EditorView | null>(null);
 
-    setGenerating(true);
-    setError(null);
-    setErrorLine(null);
-    setVerdict(null);
-    setFeedbackInput("");
-    setExplodeFactorState(0); // 🌟 新模型进来,分解状态复位
-
-    addLog("PROMPT", `User prompt received: "${desc}"`);
-    addLog("AGENT", `Invoking ${model} for Three.js code synthesis...`);
-
-    try {
-      const { ok } = await generateAndSelfHeal(desc);
-      if (ok && autoReview) {
-        setTimeout(() => triggerReview(desc), 300);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError("Generate failed: " + msg);
-      addLog("ERROR", `Generation Failed: ${msg}`);
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  // 带反馈的迭代修构 (Refine)
-  // 🌟 支持传入 overrideFeedback:用于"一键用 AI 修复报错"场景——这时反馈内容是
-  // 报错文本本身,而不是用户手打在输入框里、可能还没来得及被 React 状态更新反映出来的内容。
-  // 不传就还是老样子,读 feedbackInput 这个 state。
-  const handleRefine = async (overrideFeedback?: string) => {
-    const desc = description.trim();
-    if (!desc) return setError("Enter a description first.");
-    const feedbackToUse = (overrideFeedback ?? feedbackInput).trim();
-    if (!feedbackToUse) return setError("Feedback is empty.");
-
-    setGenerating(true);
-    setError(null);
-    setErrorLine(null);
-    setExplodeFactorState(0); // 🌟 重新构建后,分解状态复位
-
-    addLog("PROMPT", `Applying refinement feedback: "${feedbackToUse}"`);
-    addLog(
-      "AGENT",
-      "Re-synthesizing code with previous context & delta feedback...",
-    );
-
-    try {
-      const { ok } = await generateAndSelfHeal(desc, {
-        previousCode: code,
-        feedback: feedbackToUse,
+  // 🌟 报错行号一变,就把编辑器滚动到那一行、高亮那一行。errorLine 是 null 时清除高亮。
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({ effects: setErrorLineEffect.of(errorLine ?? null) });
+    if (errorLine != null) {
+      const lineNum = Math.min(Math.max(1, errorLine), view.state.doc.lines);
+      const line = view.state.doc.line(lineNum);
+      view.dispatch({
+        selection: { anchor: line.from },
+        effects: EditorView.scrollIntoView(line.from, { y: "center" }),
       });
-      if (ok && autoReview) {
-        setTimeout(() => triggerReview(desc), 300);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError("Refine failed: " + msg);
-      addLog("ERROR", `Refinement Failed: ${msg}`);
-    } finally {
-      setGenerating(false);
     }
-  };
+  }, [errorLine]);
 
-  // 🌟 "Ask AI to Fix" —— 把当前报错文本直接当作反馈,一键触发 Refine(同样会走
-  // 上面的自动重试循环)。不是静默帮你改数字让检查通过,是把报错原文喂给 AI 重新生成,
-  // 决策权还是在 AI 那一步,你能在 feedbackInput 里看到实际发给 AI 的内容。
-  const handleFixWithAI = () => {
-    if (!error) return;
-    setFeedbackInput(error);
-    handleRefine(error);
-  };
-
-  const handleLangChange = (newLang: Lang) => {
-    if (isDefaultCode(code)) setCode(DEFAULT_CODE[newLang]);
-    setLang(newLang);
-  };
-
-  const handleClear = () => {
-    setCode("");
-    engine.clearModel();
-    setStats({ triangles: 0, vertices: 0 });
-    setError(null);
-    setErrorLine(null);
-    setVerdict(null);
-    setFeedbackInput("");
-    setLastScreenshot(null);
-    setExplodeFactorState(0); // 🌟 清空场景时分解状态一并复位
-    addLog("SYSTEM", "Scene & Editor cleared.");
-  };
-
-  const handleManualRun = () => {
-    const result = engine.executeCode(code, wireframe);
-    if (result.success) {
-      setExplodeFactorState(0); // 🌟 手动重跑代码后,分解状态复位
-      addLog("WEBGL", "Manual execution successful.");
-    } else {
-      addLog("ERROR", "Manual execution failed.");
-    }
-  };
+  const editorExtensions = useMemo(
+    () => [
+      javascript(),
+      syntaxHighlighting(codeHighlightStyle),
+      appEditorTheme,
+      search({ top: true }),
+      keymap.of([
+        ...searchKeymap,
+        {
+          key: "Mod-Enter",
+          run: () => {
+            onRun();
+            return true;
+          },
+        },
+        indentWithTab,
+      ]),
+      errorLineField,
+    ],
+    [onRun],
+  ); // 依赖项
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
-      <Toolbar
-        t={t}
-        lang={lang}
-        setLang={handleLangChange}
-        wireframe={wireframe}
-        setWireframe={(checked: boolean) => {
-          setWireframe(checked);
-          engine.applyWireframe(checked);
-        }}
-        canvasTheme={canvasTheme}
-        onThemeToggle={handleThemeToggle}
-        onClear={handleClear}
-        onRun={handleManualRun}
-        explodeFactor={explodeFactor}
-        onExplodeChange={handleExplodeChange}
-      />
-      <div className="flex flex-col lg:flex-row">
-        <ControlCoPilotPanel
-          t={t}
-          code={code}
-          setCode={setCode}
-          apiKey={apiKey}
-          setApiKey={setApiKey}
-          model={model}
-          setModel={setModel}
-          description={description}
-          setDescription={setDescription}
-          generating={generating}
-          reviewing={reviewing}
-          autoReview={autoReview}
-          setAutoReview={setAutoReview}
-          verdict={verdict}
-          feedbackInput={feedbackInput}
-          setFeedbackInput={setFeedbackInput}
-          lastScreenshot={lastScreenshot}
-          logs={logs}
-          clearLogs={() => setLogs([])}
-          onGenerate={handleGenerate}
-          onReview={() => triggerReview()}
-          onRefine={handleRefine}
-          onRun={handleManualRun}
-          error={error}
-          errorLine={errorLine}
-          onFixWithAI={handleFixWithAI}
-        />
-        <PreviewPanel
-          containerRef={containerRef}
-          stats={stats}
-          error={error}
-          t={t}
-        />
+    <div className="flex flex-col border-b border-border/60 lg:w-[46%] lg:border-b-0 lg:border-r bg-background/20">
+      {/* 🔑 API Key & Model Config */}
+      <div className="flex flex-col gap-2.5 border-b border-border/60 bg-background/40 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs">🔑</span>
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder={t.keyPlaceholder}
+            autoComplete="off"
+            className="flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 font-mono text-xs text-foreground placeholder:text-muted focus:border-primary focus:outline-none"
+          />
+          <select
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            className="rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+          >
+            {GEMINI_MODELS.map((m: any) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* 🚀 提示词输入区 */}
+      <div className="p-4 border-b border-border/60 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <Sparkles size={13} className="text-primary" /> Prompt Description
+          </label>
+          <label className="flex items-center gap-1.5 text-[11px] text-muted cursor-pointer hover:text-foreground">
+            <input
+              type="checkbox"
+              checked={autoReview}
+              onChange={(e) => setAutoReview(e.target.checked)}
+              className="rounded border-border text-primary focus:ring-0"
+            />
+            Auto Vision-Review
+          </label>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && onGenerate()}
+            placeholder={t.descPlaceholder}
+            className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted focus:border-primary focus:outline-none"
+          />
+          <button
+            onClick={onGenerate}
+            disabled={generating || reviewing}
+            className="flex items-center gap-1.5 whitespace-nowrap rounded-md border border-primary bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-50"
+          >
+            {generating ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <Wand2 size={13} />
+            )}
+            {t.generate}
+          </button>
+        </div>
+      </div>
+
+      {/* 🌟 报错 + 一键 AI 修复:挪到这个常驻区域,不管你现在停在 Code 还是
+          Terminal 标签页都能看见,不用切过去 Code 标签才发现有个按钮等着你点。
+          只有自动重试(见 ModelGenerator 里的 generateAndSelfHeal)用完额度、
+          真的需要你决定要不要再试一次的时候才会出现。 */}
+      {error && (
+        <div className="flex items-start gap-2 border-b border-red-900/50 bg-red-950/30 px-4 py-3">
+          <Bug size={14} className="mt-0.5 shrink-0 text-red-400" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-red-300 break-words">{error}</p>
+            {errorLine != null && (
+              <p className="mt-0.5 text-[10px] text-red-400/70">
+                Jumped to line {errorLine} in the editor below.
+              </p>
+            )}
+          </div>
+          <button
+            onClick={onFixWithAI}
+            disabled={generating || reviewing}
+            title="Send this error back to the AI and let it regenerate the code"
+            className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-red-700/60 bg-red-900/30 px-2.5 py-1.5 text-[11px] font-semibold text-red-200 hover:bg-red-900/50 disabled:opacity-40 transition-colors"
+          >
+            {generating ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : (
+              <Sparkles size={12} />
+            )}
+            Ask AI to Fix
+          </button>
+        </div>
+      )}
+
+      {/* 🌟 视觉评审与修改反馈 Hub (只要有代码/模型就常驻显示) */}
+      {code && (
+        <div className="p-4 border-b border-border/60 bg-primary/5 flex flex-col gap-2.5 transition-all duration-300">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1">
+                <Search size={13} className="text-primary" /> Review & Refine
+              </span>
+
+              {/* 🖼️ 点击在新标签页查看给 Vision AI 发送的双视角截图 */}
+              {lastScreenshot && (
+                <button
+                  onClick={() => {
+                    const win = window.open();
+                    if (win) {
+                      win.document.write(
+                        `<body style="margin:0;background:#0b0f16;display:flex;align-items:center;justify-content:center;height:100vh;"><img src="${lastScreenshot}" style="max-width:90%;border:2px solid #38bdf8;border-radius:12px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);"/></body>`,
+                      );
+                    }
+                  }}
+                  className="text-[11px] text-primary hover:underline flex items-center gap-1 transition-colors"
+                  title="Open the exact 2-in-1 image sent to Gemini Vision"
+                >
+                  🖼️ View Snapshot
+                </button>
+              )}
+
+              {verdict && (
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium border ${
+                    verdict.decision === "continue"
+                      ? "border-emerald-800 bg-emerald-950/50 text-emerald-400"
+                      : "border-amber-800 bg-amber-950/50 text-amber-400"
+                  }`}
+                >
+                  {verdict.decision === "continue" ? (
+                    <CheckCircle2 size={10} />
+                  ) : (
+                    <AlertCircle size={10} />
+                  )}
+                  {verdict.decision === "continue" ? "Pass" : "Needs Work"} (
+                  {Math.round(verdict.score * 100)}%)
+                </span>
+              )}
+            </div>
+
+            {/* 常驻的手动 Review 触发按钮 */}
+            <button
+              onClick={onReview}
+              disabled={reviewing || generating}
+              className="text-[11px] font-medium text-muted hover:text-primary underline underline-offset-2 flex items-center gap-1"
+            >
+              {reviewing ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Search size={11} />
+              )}
+              {verdict ? "Re-Analyze" : "Analyze Render"}
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <textarea
+              value={feedbackInput}
+              onChange={(e) => setFeedbackInput(e.target.value)}
+              placeholder={
+                verdict
+                  ? "Critique & User Modifications..."
+                  : "Enter manual tweaks here, or click Analyze to get AI feedback..."
+              }
+              rows={2}
+              className="w-full rounded-md border border-border/80 bg-background/80 px-2.5 py-2 text-xs font-mono text-foreground placeholder:text-muted focus:border-primary focus:outline-none resize-none leading-relaxed"
+            />
+            <button
+              onClick={() => onRefine()}
+              disabled={generating || reviewing || !feedbackInput.trim()}
+              className="flex items-center justify-center gap-1.5 w-full rounded-md border border-primary/60 bg-primary/10 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 disabled:opacity-40 transition-colors"
+            >
+              {generating ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <RotateCcw size={13} />
+              )}
+              Refine & Apply Changes
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 💻 代码与 Terminal 选项卡组 */}
+      <div className="flex-1 flex flex-col">
+        <div className="px-4 py-2 border-b border-border/40 text-[11px] flex items-center justify-between bg-background/30">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setActiveTab("code")}
+              className={`flex items-center gap-1.5 font-medium transition-colors ${
+                activeTab === "code"
+                  ? "text-primary"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              <Code2 size={13} /> JavaScript
+            </button>
+            <button
+              onClick={() => setActiveTab("terminal")}
+              className={`flex items-center gap-1.5 font-medium transition-colors ${
+                activeTab === "terminal"
+                  ? "text-primary"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              <TerminalIcon size={13} /> Logs Terminal
+              {logs.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-primary/20 text-primary text-[9px]">
+                  {logs.length}
+                </span>
+              )}
+            </button>
+          </div>
+          {activeTab === "code" && (
+            <span className="text-[10px] opacity-60">
+              ⌘/Ctrl+Enter run · ⌘/Ctrl+F search
+            </span>
+          )}
+        </div>
+
+        {activeTab === "code" ? (
+          // 🌟 高度修复：外层给一个固定 max-height + overflow-y-auto,CodeMirror
+          // 自己不设 height,只按内容自然排布。之前用 CodeMirror 的 height="100%"
+          // 依赖父级 flex 容器有"确定的高度"才能生效,链路里差一个 min-height:0,
+          // 内容一长就直接撑爆,现在这个写法不依赖那条链路,长代码稳定在固定高度内滚动。
+          <div className="max-h-[280px] overflow-y-auto lg:max-h-[380px]">
+            <CodeMirror
+              value={code}
+              theme="none"
+              basicSetup={{
+                lineNumbers: true,
+                foldGutter: true,
+                highlightActiveLine: true,
+                highlightActiveLineGutter: true,
+              }}
+              extensions={editorExtensions}
+              onChange={(value) => setCode(value)}
+              onCreateEditor={(view) => {
+                viewRef.current = view;
+              }}
+            />
+          </div>
+        ) : (
+          <TerminalView logs={logs} onClearLogs={clearLogs} />
+        )}
       </div>
     </div>
   );
@@ -2551,7 +2325,17 @@ export function ModelGenerator() {
 <file path="threejs-ai-model-generator/components/Toolbar.tsx">
 "use client";
 
-import { Play, Trash2, Box, Sun, Moon, Boxes } from "lucide-react";
+import {
+  Play,
+  Trash2,
+  Box,
+  Sun,
+  Moon,
+  Boxes,
+  Download,
+  Camera,
+  Loader2,
+} from "lucide-react";
 import type { Lang } from "../constants";
 
 export function Toolbar({
@@ -2566,6 +2350,10 @@ export function Toolbar({
   onRun,
   explodeFactor,
   onExplodeChange,
+  code,
+  onDownloadCode,
+  onDebugCapture,
+  debugCapturing,
 }: any) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
@@ -2632,6 +2420,34 @@ export function Toolbar({
           </span>
         </label>
 
+        {/* 🌟 下载代码 + Debug 多角度日夜对照截图：都需要已经生成过一次代码才有意义,
+            没有 code 之前不渲染这两个按钮,避免用户点了发现啥也没有。 */}
+        {code && (
+          <>
+            <button
+              onClick={onDownloadCode}
+              title="Download the current buildModel(THREE) code as a .js file"
+              className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted hover:border-foreground/30 hover:text-foreground transition-colors"
+            >
+              <Download size={13} />
+              <span className="hidden sm:inline">Code</span>
+            </button>
+            <button
+              onClick={onDebugCapture}
+              disabled={debugCapturing}
+              title="Capture a 6-angle x day/night debug contact sheet"
+              className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted hover:border-foreground/30 hover:text-foreground transition-colors disabled:opacity-50"
+            >
+              {debugCapturing ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <Camera size={13} />
+              )}
+              <span className="hidden sm:inline">Debug Shots</span>
+            </button>
+          </>
+        )}
+
         <button
           onClick={onClear}
           className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-foreground/30 hover:text-foreground"
@@ -2650,642 +2466,11 @@ export function Toolbar({
 }
 </file>
 
-<file path="threejs-ai-model-generator/hooks/useThreeEngine.ts">
-"use client";
-
-import { useCallback, useEffect, useRef } from "react";
-import * as THREE from "three";
-import type { Stats } from "../types";
-
-export interface ExecuteResult {
-  success: boolean;
-  error: string | null;
-  errorLine: number | null;
-}
-
-export function useThreeEngine(
-  containerRef: React.RefObject<HTMLDivElement | null>,
-  onError: (err: string | null) => void,
-  onStatsUpdate: (stats: Stats) => void,
-  onErrorLine: (line: number | null) => void = () => {},
-) {
-  const engineRef = useRef<any>(null);
-
-  // 1. 切换 WebGL 画布背景与网格主题
-  const setCanvasTheme = useCallback((mode: "dark" | "day") => {
-    const engine = engineRef.current;
-    if (!engine) return;
-
-    if (mode === "day") {
-      engine.scene.background = new THREE.Color(0xf1f5f9);
-      engine.scene.remove(engine.grid);
-      engine.grid.geometry.dispose();
-      engine.grid.material.dispose();
-      engine.grid = new THREE.GridHelper(4, 16, 0x94a3b8, 0xcbd5e1);
-      engine.scene.add(engine.grid);
-    } else {
-      engine.scene.background = new THREE.Color(0x0b0f16);
-      engine.scene.remove(engine.grid);
-      engine.grid.geometry.dispose();
-      engine.grid.material.dispose();
-      engine.grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
-      engine.scene.add(engine.grid);
-    }
-  }, []);
-
-  const clearModel = useCallback(() => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    while (engine.modelGroup.children.length) {
-      const obj = engine.modelGroup.children.pop()!;
-      obj.traverse((o: any) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) {
-          const mats = Array.isArray(o.material) ? o.material : [o.material];
-          mats.forEach((m: any) => {
-            m.dispose();
-            if (m.map) m.map.dispose();
-          });
-        }
-      });
-    }
-  }, []);
-
-  const applyWireframe = useCallback((wf: boolean) => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.modelGroup.traverse((o: any) => {
-      if (o.isMesh && o.material) {
-        const mats = Array.isArray(o.material) ? o.material : [o.material];
-        mats.forEach((m: any) => (m.wireframe = wf));
-      }
-    });
-  }, []);
-
-  // 🌟 分解图控制：factor 从 0(正常装配状态)到 1(完全分解)。executeCode 每次成功
-  // 构建之后,会给模型的每个顶层部件记录好"原始位置"和"从模型中心指向它的方向",
-  // 这里只是沿着那个方向做纯几何插值——不需要重新生成或重新执行代码,可以直接
-  // 绑一个 slider 拖着实时看。
-  const setExplodeFactor = useCallback((factor: number) => {
-    const engine = engineRef.current;
-    if (!engine || !engine.modelGroup.children.length) return;
-    const result = engine.modelGroup.children[0];
-    if (!result || !result.userData?.__explodeReady) return;
-    const clamped = Math.max(0, Math.min(1, factor));
-    const baseDistance = engine.explodeBaseDistance ?? 1;
-    result.children.forEach((child: any) => {
-      const origin = child.userData.__originPos;
-      const dir = child.userData.__explodeDir;
-      if (!origin || !dir) return;
-      child.position.copy(origin).addScaledVector(dir, clamped * baseDistance);
-    });
-  }, []);
-
-  // 🌟 从抛出的 Error.stack 里把行号还原回用户自己那份代码的行号。
-  // new Function() 执行的是 HELPER_FUNCTIONS + "\n" + codeStr 拼接后的整段源码,
-  // 浏览器报出来的行号是相对拼接后整段代码的,所以要减去 HELPER_FUNCTIONS 占的行数
-  // 才能对回用户在编辑器里实际看到的那一行。
-  //
-  // ⚠️ 这是"尽力而为"，不是100%保证：Chrome/Edge 这类 V8 内核浏览器格式稳定,
-  // 基本能对上；Firefox/Safari 的 stack 格式不太一样,解析不出来就直接返回 null,
-  // 不会瞎指一行给你添乱。
-  function extractUserCodeLine(
-    stack: string | undefined,
-    helperLineOffset: number,
-    userCodeLineCount: number,
-  ): number | null {
-    if (!stack) return null;
-    const match = stack.match(/(?:<anonymous>|eval code):(\d+):(\d+)/);
-    if (!match) return null;
-    const reportedLine = parseInt(match[1], 10);
-    const userLine = reportedLine - helperLineOffset;
-    if (userLine < 1 || userLine > userCodeLineCount) return null;
-    return userLine;
-  }
-
-  // 🌟 executeCode 现在返回结构化结果 { success, error, errorLine },不只是 boolean。
-  // 这样调用方(比如 ModelGenerator 里的自动重试逻辑)能在同一个函数调用里立刻拿到
-  // 具体报错文本,不需要依赖 setState 之后才能读到的、可能还没更新的 React 状态。
-  const executeCode = useCallback(
-    (codeStr: string, isWireframe: boolean): ExecuteResult => {
-      const engine = engineRef.current;
-      if (!engine) {
-        return { success: false, error: "Engine not ready", errorLine: null };
-      }
-
-      // 声明在 try 外面,这样 catch 块里也能拿到,不需要靠 hack 绕过块级作用域
-      let helperLineOffset = 0;
-      let userCodeLineCount = codeStr.split("\n").length;
-
-      try {
-        clearModel();
-
-        const HELPER_FUNCTIONS = `
-          function buildExtrudeShape(points, holes) {
-            const shape = new THREE.Shape();
-            if (points.length > 0) {
-              shape.moveTo(points[0][0], points[0][1]);
-              for (let i = 1; i < points.length; i++) shape.lineTo(points[i][0], points[i][1]);
-            }
-            for (const loop of holes ?? []) {
-              if (loop.length < 3) continue;
-              const path = new THREE.Path();
-              path.moveTo(loop[0][0], loop[0][1]);
-              for (let i = 1; i < loop.length; i++) path.lineTo(loop[i][0], loop[i][1]);
-              path.closePath();
-              shape.holes.push(path);
-            }
-            return shape;
-          }
-
-          function ovalLoop(cx, cy, rx, ry, seg = 24) {
-            const loop = [];
-            for (let i = 0; i < seg; i++) {
-              const a = (i / seg) * Math.PI * 2;
-              loop.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
-            }
-            return loop;
-          }
-
-          function buildExtrudeGeometry(profile) {
-            const holes = [...(profile.holes ?? []), ...((profile.ovalHoles ?? []).map(o => ovalLoop(o.cx, o.cy, o.rx, o.ry)))];
-            const shape = buildExtrudeShape(profile.points, holes);
-            return new THREE.ExtrudeGeometry(shape, { depth: profile.depth, bevelEnabled: false, steps: 1 });
-          }
-
-          function buildCurveSweepGeometry(sweep) {
-            const shape = new THREE.Shape();
-            const cs = sweep.crossSection.points;
-            if (cs.length > 0) {
-              shape.moveTo(cs[0][0], cs[0][1]);
-              for (let i = 1; i < cs.length; i++) shape.lineTo(cs[i][0], cs[i][1]);
-              shape.closePath();
-            }
-            const spine = sweep.spine.map(p => new THREE.Vector3(p[0], p[1], p[2]));
-            const path = new THREE.CatmullRomCurve3(spine, sweep.closed ?? false);
-            return new THREE.ExtrudeGeometry(shape, { extrudePath: path, steps: Math.max(24, spine.length * 8), bevelEnabled: false });
-          }
-
-          function buildLatheGeometry(profile) {
-            const points = profile.points.map(p => new THREE.Vector2(Math.max(0.0001, p[0]), p[1]));
-            return new THREE.LatheGeometry(points, profile.segments ?? 24);
-          }
-
-          function buildTubeGeometry(path) {
-            const vectors = path.points.map(p => new THREE.Vector3(p[0], p[1], p[2]));
-            const curve = new THREE.CatmullRomCurve3(vectors, path.closed ?? false);
-            const tubularSegments = Math.max(8, path.points.length * 6);
-            return new THREE.TubeGeometry(curve, tubularSegments, path.radius ?? 0.05, path.radialSegments ?? 8, path.closed ?? false);
-          }
-
-          // 🌟 包含式检查：整个 mesh 是否落在某个锚点部件的范围内(带一点容差)。
-          // 适用于"这个部件整体贴在另一个部件里面"的场景,比如 A 柱贴着同一块玻璃舱。
-          function assertWithinBounds(mesh, anchorMesh, opts) {
-            const tolerance = (opts && opts.tolerance) ?? 0.2;
-            const childBox = new THREE.Box3().setFromObject(mesh);
-            const anchorBox = new THREE.Box3().setFromObject(anchorMesh);
-            if (childBox.isEmpty() || anchorBox.isEmpty()) return mesh;
-            const anchorSize = new THREE.Vector3();
-            anchorBox.getSize(anchorSize);
-            const maxExtent = Math.max(anchorSize.x, anchorSize.y, anchorSize.z) || 0.01;
-            const expandedAnchorBox = anchorBox.clone().expandByScalar(maxExtent * tolerance);
-            if (!expandedAnchorBox.containsBox(childBox)) {
-              const childName = mesh.name || "(unnamed part)";
-              const anchorName = anchorMesh.name || "(unnamed anchor)";
-              throw new Error(
-                'Attachment check failed: "' + childName + '" falls outside the expected bounds of its anchor "' +
-                anchorName + '" (tolerance: ' + (tolerance * 100).toFixed(0) + '% of anchor size). ' +
-                'This usually means a coordinate was computed against the wrong reference point — ' +
-                'check the endpoints/position passed for "' + childName + '".'
-              );
-            }
-            return mesh;
-          }
-
-          // 🌟 单点邻近检查：只校验一个 3D 端点是否落在某个锚点部件附近,不要求整根
-          // 梁都塞进锚点的包围盒。适用于"这一端连着这个部件"的跨接场景,比如两根柱子
-          // 之间的横梁的其中一端,或者从座位连到地面的凳腿的"座位那一端"。
-          function assertPointNear(point, anchorMesh, opts) {
-            const tolerance = (opts && opts.tolerance) ?? 0.3;
-            const anchorBox = new THREE.Box3().setFromObject(anchorMesh);
-            if (anchorBox.isEmpty()) return point;
-            const anchorSize = new THREE.Vector3();
-            anchorBox.getSize(anchorSize);
-            const maxExtent = Math.max(anchorSize.x, anchorSize.y, anchorSize.z) || 0.01;
-            const expandedBox = anchorBox.clone().expandByScalar(maxExtent * tolerance);
-            if (!expandedBox.containsPoint(point)) {
-              const anchorName = anchorMesh.name || "(unnamed anchor)";
-              throw new Error(
-                'Attachment check failed: a beam endpoint at (' + point.x.toFixed(3) + ', ' + point.y.toFixed(3) + ', ' + point.z.toFixed(3) +
-                ') falls outside the expected bounds of its anchor "' + anchorName + '" (tolerance: ' + (tolerance * 100).toFixed(0) + '% of anchor size). ' +
-                'Double-check the coordinate you passed for this endpoint against where "' + anchorName + '" actually is.'
-              );
-            }
-            return point;
-          }
-
-          // 🌟 两点之间搭一根杆（A柱、结构梁、肢体连杆等）,用四元数对齐,调用方永远
-          // 不需要手动猜 rotation.x/y/z 该转哪个轴、转多少度。第 4 个参数可选,有两种
-          // 传法,分别对应两种完全不同的依附关系：
-          //
-          //   1) 传一个 mesh —— "包含式"：整根梁都应该贴在这一个部件里面
-          //      （比如 A 柱贴着同一块挡风玻璃舱）。用 assertWithinBounds 整根检查。
-          //      例：buildBeamBetween(p1, p2, t, cabinMesh)
-          //
-          //   2) 传 { start, end } —— "跨接式"：这根梁两端分别连着两个不同的部件
-          //      （比如连接两根不同柱子的横梁,或者从座位连到地面的凳腿）。
-          //      start / end 都是可选的,只校验你实际传了的那一端——凳腿连地面的那一端
-          //      往往没有对应的 mesh,直接不传那一侧就行。
-          //      例：buildBeamBetween(p1, p2, t, { start: pillarA, end: pillarB })
-          //      例：buildBeamBetween(p1, p2, t, { start: seatMesh })  // 另一端接地面,不传
-          //
-          // 两种情况下,端点算错、杆子捅到错误的地方时都会当场报错(附带具体端点坐标),
-          // 而不是悄悄渲染出一根穿模或者飘在半空的杆子。
-          function buildBeamBetween(p1, p2, thickness, anchors) {
-            const start = new THREE.Vector3(p1[0], p1[1], p1[2] ?? 0);
-            const end = new THREE.Vector3(p2[0], p2[1], p2[2] ?? 0);
-            const dir = new THREE.Vector3().subVectors(end, start);
-            const length = dir.length();
-            const geo = new THREE.CylinderGeometry(thickness, thickness, length, 6);
-            geo.translate(0, length / 2, 0); // 原点对齐到起点 p1,方便直接用 position.copy(start)
-            const mesh = new THREE.Mesh(geo);
-            mesh.position.copy(start);
-            mesh.quaternion.setFromUnitVectors(
-              new THREE.Vector3(0, 1, 0),
-              dir.clone().normalize(),
-            );
-
-            if (anchors) {
-              if (anchors.isObject3D) {
-                // 单一 mesh：包含式检查
-                assertWithinBounds(mesh, anchors, { tolerance: 0.15 });
-              } else {
-                // { start, end } 对象：跨接式检查,每端各自独立校验
-                if (anchors.start) assertPointNear(start, anchors.start, { tolerance: 0.3 });
-                if (anchors.end) assertPointNear(end, anchors.end, { tolerance: 0.3 });
-              }
-            }
-
-            return mesh;
-          }
-        `;
-
-        // 🌟 helper 函数块占多少行,用来把报错行号换算回用户代码的行号
-        helperLineOffset = HELPER_FUNCTIONS.split("\n").length;
-
-        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
-        const fn = new Function(
-          "THREE",
-          HELPER_FUNCTIONS + "\n" + codeStr + "\n;return buildModel(THREE);",
-        );
-        const result = fn(THREE);
-
-        if (!result || !(result instanceof THREE.Object3D)) {
-          throw new Error("buildModel(THREE) must return a THREE.Object3D");
-        }
-
-        result.traverse((o: any) => {
-          if (o instanceof THREE.Mesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
-          }
-        });
-
-        engine.modelGroup.add(result);
-        applyWireframe(isWireframe);
-
-        const box = new THREE.Box3().setFromObject(result);
-        if (!box.isEmpty()) {
-          const size = new THREE.Vector3();
-          box.getSize(size);
-          const center = new THREE.Vector3();
-          box.getCenter(center);
-          const maxDim = Math.max(size.x, size.y, size.z) || 1;
-          const fitDist =
-            (maxDim / (2 * Math.tan((engine.camera.fov * Math.PI) / 180 / 2))) *
-            1.8;
-          engine.camDistance = fitDist;
-          engine.minDist = fitDist * 0.15;
-          engine.maxDist = fitDist * 8;
-          engine.lookTarget.copy(center);
-
-          // 🌟 分解图支持：记录每个顶层命名部件当前的位置,以及"从模型中心指向
-          // 该部件"的方向。之后 setExplodeFactor(0~1) 可以随时无损地沿这个方向
-          // 把部件推开或收回,不依赖重新生成代码,纯几何计算。
-          let maxChildDistance = 0;
-          result.children.forEach((child: any) => {
-            const childBox = new THREE.Box3().setFromObject(child);
-            if (childBox.isEmpty()) return;
-            const childCenter = new THREE.Vector3();
-            childBox.getCenter(childCenter);
-            const dir = childCenter.clone().sub(center);
-            const dist = dir.length();
-            if (dist > maxChildDistance) maxChildDistance = dist;
-            child.userData.__originPos = child.position.clone();
-            child.userData.__explodeDir =
-              dist > 0.0001 ? dir.normalize() : new THREE.Vector3(0, 1, 0);
-          });
-          result.userData.__explodeReady = true;
-          engine.explodeBaseDistance = Math.max(
-            maxDim * 0.6,
-            maxChildDistance * 1.2,
-            0.5,
-          );
-        }
-
-        let tris = 0,
-          verts = 0;
-        result.traverse((o: any) => {
-          if (o.isMesh && o.geometry) {
-            const posCount = o.geometry.attributes.position
-              ? o.geometry.attributes.position.count
-              : 0;
-            verts += posCount;
-            tris += o.geometry.index
-              ? o.geometry.index.count / 3
-              : posCount / 3;
-          }
-        });
-        onStatsUpdate({ triangles: Math.round(tris), vertices: verts });
-        onError(null);
-        onErrorLine(null);
-        return { success: true, error: null, errorLine: null };
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        const stack = err instanceof Error ? err.stack : undefined;
-        const line = extractUserCodeLine(
-          stack,
-          helperLineOffset,
-          userCodeLineCount,
-        );
-        onError(msg);
-        onErrorLine(line);
-        return { success: false, error: msg, errorLine: line };
-      }
-    },
-    [clearModel, applyWireframe, onError, onStatsUpdate, onErrorLine],
-  );
-
-  // 🌟 核心修复：无变形、完美长宽比、高对比度离屏多视角截图
-  const captureImage = useCallback(() => {
-    const engine = engineRef.current;
-    if (!engine) return null;
-
-    const container = containerRef.current;
-    const origWidth = container?.clientWidth || 800;
-    const origHeight = container?.clientHeight || 600;
-    const origAspect = engine.camera.aspect;
-    const origRotY = engine.rotY;
-    const origElevation = engine.elevation;
-
-    // 1. 创建 1024x512 拼接画布
-    const combinedCanvas = document.createElement("canvas");
-    combinedCanvas.width = 1024;
-    combinedCanvas.height = 512;
-    const ctx = combinedCanvas.getContext("2d");
-    if (!ctx) return null;
-
-    // 2. 🌟 强制将渲染器临时切为 512x512 正方形，比例为 1.0 (无变形!)
-    engine.renderer.setSize(512, 512, false);
-    engine.camera.aspect = 1.0;
-    engine.camera.updateProjectionMatrix();
-
-    const renderAngleToCanvas = (
-      rotY: number,
-      elevation: number,
-      offsetX: number,
-    ) => {
-      engine.rotY = rotY;
-      engine.elevation = elevation;
-
-      const h = engine.camDistance * Math.cos(engine.elevation);
-      const y = engine.camDistance * Math.sin(engine.elevation);
-      engine.camera.position.set(
-        engine.lookTarget.x,
-        engine.lookTarget.y + y,
-        engine.lookTarget.z + h,
-      );
-      engine.camera.lookAt(engine.lookTarget);
-      engine.modelGroup.rotation.y = engine.rotY;
-
-      engine.renderer.render(engine.scene, engine.camera);
-      ctx.drawImage(engine.renderer.domElement, offsetX, 0, 512, 512);
-    };
-
-    // 📸 视角 A：视角 45°，俯角 0.48 (约 28° 俯视，看清顶部和底座)
-    renderAngleToCanvas(Math.PI / 4, 0.48, 0);
-
-    // 📸 视角 B：视角 -60°，俯角 0.52 (约 30° 俯视)
-    renderAngleToCanvas(-Math.PI / 3, 0.52, 512);
-
-    // 3. 还原渲染器尺寸、相机比例与旋转视角
-    engine.renderer.setSize(origWidth, origHeight, false);
-    engine.camera.aspect = origAspect;
-    engine.camera.updateProjectionMatrix();
-
-    engine.rotY = origRotY;
-    engine.elevation = origElevation;
-    engine.modelGroup.rotation.y = engine.rotY;
-    const h = engine.camDistance * Math.cos(engine.elevation);
-    const y = engine.camDistance * Math.sin(engine.elevation);
-    engine.camera.position.set(
-      engine.lookTarget.x,
-      engine.lookTarget.y + y,
-      engine.lookTarget.z + h,
-    );
-    engine.camera.lookAt(engine.lookTarget);
-    engine.renderer.render(engine.scene, engine.camera);
-
-    return combinedCanvas.toDataURL("image/png");
-  }, []);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0b0f16);
-
-    const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      preserveDrawingBuffer: true,
-    });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    container.appendChild(renderer.domElement);
-
-    scene.add(new THREE.HemisphereLight(0x8fa3bf, 0x0e131b, 0.6));
-
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    keyLight.position.set(5, 8, 5);
-    keyLight.castShadow = true;
-    keyLight.shadow.mapSize.width = 1024;
-    keyLight.shadow.mapSize.height = 1024;
-    keyLight.shadow.bias = -0.001;
-    scene.add(keyLight);
-
-    // 🌟 增强补光灯 (intensity 从 0.3 -> 0.55, 位置调低)，照亮底部和阴影细节！
-    const fillLight = new THREE.DirectionalLight(0x66aacc, 0.55);
-    fillLight.position.set(-4, -1, -3);
-    scene.add(fillLight);
-
-    const grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
-    scene.add(grid);
-
-    const shadowPlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(20, 20),
-      new THREE.ShadowMaterial({ opacity: 0.5 }),
-    );
-    shadowPlane.rotation.x = -Math.PI / 2;
-    shadowPlane.position.y = -0.01;
-    shadowPlane.receiveShadow = true;
-    scene.add(shadowPlane);
-
-    const modelGroup = new THREE.Group();
-    scene.add(modelGroup);
-
-    const engineState = {
-      scene,
-      camera,
-      renderer,
-      modelGroup,
-      grid,
-      rotY: 0,
-      elevation: 0.35,
-      camDistance: 3,
-      minDist: 0.5,
-      maxDist: 20,
-      lookTarget: new THREE.Vector3(0, 0.4, 0),
-      dragging: false,
-      lastX: 0,
-      lastY: 0,
-      activePointers: new Map(),
-      frameId: 0,
-    };
-    engineRef.current = engineState;
-
-    function clamp(v: number, a: number, b: number) {
-      return Math.max(a, Math.min(b, v));
-    }
-
-    function onPointerDown(e: PointerEvent) {
-      container!.setPointerCapture(e.pointerId);
-      engineState.activePointers.set(e.pointerId, {
-        x: e.clientX,
-        y: e.clientY,
-      });
-      if (engineState.activePointers.size === 1) {
-        engineState.dragging = true;
-        engineState.lastX = e.clientX;
-        engineState.lastY = e.clientY;
-      }
-    }
-
-    function onPointerMove(e: PointerEvent) {
-      if (!engineState.activePointers.has(e.pointerId)) return;
-      engineState.activePointers.set(e.pointerId, {
-        x: e.clientX,
-        y: e.clientY,
-      });
-      if (engineState.dragging && engineState.activePointers.size === 1) {
-        const dx = e.clientX - engineState.lastX;
-        const dy = e.clientY - engineState.lastY;
-        engineState.lastX = e.clientX;
-        engineState.lastY = e.clientY;
-        engineState.rotY += dx * 0.008;
-        engineState.elevation = clamp(
-          engineState.elevation + dy * 0.008,
-          -1.4,
-          1.4,
-        );
-      }
-    }
-
-    function onPointerUp(e: PointerEvent) {
-      engineState.activePointers.delete(e.pointerId);
-      engineState.dragging = engineState.activePointers.size > 0;
-    }
-
-    function onWheel(e: WheelEvent) {
-      e.preventDefault();
-      engineState.camDistance = clamp(
-        engineState.camDistance + e.deltaY * 0.0015 * engineState.camDistance,
-        engineState.minDist,
-        engineState.maxDist,
-      );
-    }
-
-    container.addEventListener("pointerdown", onPointerDown);
-    container.addEventListener("pointermove", onPointerMove);
-    container.addEventListener("pointerup", onPointerUp);
-    container.addEventListener("wheel", onWheel, { passive: false });
-
-    function onResize() {
-      const w = container!.clientWidth,
-        h = container!.clientHeight;
-      if (w === 0 || h === 0) return;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    }
-    const resizeObserver = new ResizeObserver(onResize);
-    resizeObserver.observe(container);
-    onResize();
-
-    function animate() {
-      engineState.frameId = requestAnimationFrame(animate);
-      const h = engineState.camDistance * Math.cos(engineState.elevation);
-      const y = engineState.camDistance * Math.sin(engineState.elevation);
-      camera.position.set(
-        engineState.lookTarget.x,
-        engineState.lookTarget.y + y,
-        engineState.lookTarget.z + h,
-      );
-      camera.lookAt(engineState.lookTarget);
-
-      if (!engineState.dragging) {
-        engineState.rotY += 0.002;
-      }
-      modelGroup.rotation.y = engineState.rotY;
-
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    return () => {
-      cancelAnimationFrame(engineState.frameId);
-      resizeObserver.disconnect();
-      container.removeEventListener("pointerdown", onPointerDown);
-      container.removeEventListener("pointermove", onPointerMove);
-      container.removeEventListener("pointerup", onPointerUp);
-      container.removeEventListener("pointercancel", onPointerUp);
-      container.removeEventListener("wheel", onWheel);
-      renderer.dispose();
-      if (renderer.domElement.parentElement === container) {
-        container.removeChild(renderer.domElement);
-      }
-      engineRef.current = null;
-    };
-  }, []);
-
-  return {
-    executeCode,
-    clearModel,
-    captureImage,
-    applyWireframe,
-    setCanvasTheme,
-    setExplodeFactor,
-  };
-}
-</file>
-
 <file path="threejs-ai-model-generator/lib/generate-model-handler.ts">
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 
+// 🌟 修改点 1：把 Rule 12 改成强制 JSON 输出的要求
 const SYSTEM_PROMPT = `You are a code generator, not a conversational assistant. You NEVER chat, explain, ask questions, or give advice — you ONLY output code.
 
 The user's input is a description of a physical object to model in 3D. You must build it in a premium "Cozy Low-Poly" art style (similar to classic faceted low-poly game assets).
@@ -3380,7 +2565,7 @@ Strict Rules for the Cozy Low-Poly style:
     mainGroup.add(bodyGroup);
     Small trim details (bolts, badges, handles, mirrors) can stay inside whichever functional group they visually belong to — they don't each need their own top-level group. This costs nothing extra to build but makes the model inspectable and explodable part-by-part later, and it's also just good code organization.
 11. STRICT VARIABLE DECLARATIONS: Always declare every group, material, or mesh variable with \`const\` BEFORE adding children to it or referencing it (e.g., \`const paperMenuGroup = new THREE.Group();\`). Never use undeclared variables. When mirroring a symmetric part via .clone(), always clone the completed THREE.Mesh variable, never the raw geometry variable it was built from.
-12. NO MARKDOWN, NO CONVERSATION: Output ONLY raw executable JS starting with \`function buildModel(THREE)\`. Absolutely NO intro/outro text.
+12. You must respond ONLY with a valid JSON object containing a single key "code" which holds the raw executable JavaScript string. Absolutely NO intro/outro text outside the JSON.
 `;
 
 export async function generateModelHandler(req: NextRequest) {
@@ -3394,6 +2579,7 @@ export async function generateModelHandler(req: NextRequest) {
       );
     }
 
+    // 引入 Type 从 SDK 用于结构化定义
     const ai = new GoogleGenAI({
       apiKey: apiKey || process.env.GEMINI_API_KEY,
     });
@@ -3407,28 +2593,38 @@ export async function generateModelHandler(req: NextRequest) {
     const response = await ai.models.generateContent({
       model: selectedModel,
       contents: userPrompt,
-      config: { systemInstruction: SYSTEM_PROMPT, temperature: 0.8 },
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+        temperature: 0.8,
+        // 🌟 修改点 2：开启强制 JSON 响应，并注入 Schema 约束
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            code: {
+              type: Type.STRING,
+              description:
+                "The raw executable JavaScript code starting with function buildModel(THREE)",
+            },
+          },
+          required: ["code"],
+        },
+      },
     });
 
-    const responseText = response.text ?? "";
+    const responseText = response.text ?? "{}";
 
-    // 🌟 第一重清洗：如果包含 ```javascript ... ``` 标签，强行提炼内部代码
-    const markdownMatch = responseText.match(
-      /```(?:javascript|js)?\s*([\s\S]*?)\s*```/i,
-    );
-    let code = markdownMatch ? markdownMatch[1].trim() : responseText.trim();
-
-    // 🌟 第二重清洗：强行从 function buildModel(THREE) 截取到最后一个结束花括号 }
-    const fnMatch = code.match(/function\s+buildModel\s*\([\s\S]*/);
-    if (fnMatch) {
-      code = fnMatch[0].trim();
-      const lastBraceIndex = code.lastIndexOf("}");
-      if (lastBraceIndex !== -1) {
-        code = code.slice(0, lastBraceIndex + 1).trim();
-      }
+    // 🌟 修改点 3：告别繁琐易碎的正则清洗，直接 Parse JSON
+    let code = "";
+    try {
+      const parsed = JSON.parse(responseText);
+      code = parsed.code || "";
+    } catch (parseError) {
+      throw new Error("Failed to parse JSON response from Gemini.");
     }
 
-    if (!/function\s+buildModel\s*\(/.test(code)) {
+    // 仅做一个基础的校验，防止大模型发神经没按要求输出函数头
+    if (!code || !/function\s+buildModel\s*\(/.test(code)) {
       return NextResponse.json(
         {
           error:
@@ -3785,6 +2981,1221 @@ export async function MarketTicker() {
       </div>
     </div>
   );
+}
+</file>
+
+<file path="threejs-ai-model-generator/components/ModelGenerator.tsx">
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  DEFAULT_CODE,
+  GEMINI_MODELS,
+  TRANSLATIONS,
+  isDefaultCode,
+  type Lang,
+} from "../constants";
+import type { Verdict, Stats, LogEntry } from "../types";
+import { useThreeEngine, type DebugCaptureResult } from "../hooks/useThreeEngine";
+import { Toolbar } from "./Toolbar";
+import { ControlCoPilotPanel } from "./ControlCoPilotPanel";
+import { PreviewPanel } from "./PreviewPanel";
+import { DebugCaptureModal } from "./DebugCaptureModal";
+
+// 🌟 结构性报错(比如几何锚点检查失败)自动重试的上限。这不会比你之前手动点
+// "Ask AI to Fix" 花更多 API 调用——之前你本来就是手动点 2、3 次才能过,现在只是
+// 把这几次点击自动化掉,调用次数没有变多,只是不需要你人工干预了。
+const MAX_AUTO_FIX_ATTEMPTS = 2;
+
+// 🌟 把 prompt 描述转成安全的文件名片段。下载代码 / debug 截图的文件名都用这个,
+// 方便你在下载文件夹里一眼认出"这是哪个模型"。
+function slugify(text: string): string {
+  const s = text
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-+|-+$)/g, "")
+    .slice(0, 50);
+  return s || "model";
+}
+
+function downloadTextFile(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/javascript" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export function ModelGenerator() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // State Management
+  const [lang, setLang] = useState<Lang>("en");
+  const [code, setCode] = useState("");
+  const [description, setDescription] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [model, setModel] = useState<string>(GEMINI_MODELS[0].value);
+  const [wireframe, setWireframe] = useState(false);
+  const [canvasTheme, setCanvasTheme] = useState<"dark" | "day">("dark");
+  const [stats, setStats] = useState<Stats>({ triangles: 0, vertices: 0 });
+  const [error, setError] = useState<string | null>(null);
+  // 🌟 报错对应的具体行号(1-indexed),对不上就是 null——编辑器据此高亮/跳转
+  const [errorLine, setErrorLine] = useState<number | null>(null);
+  // 🌟 分解图：0 = 正常装配, 1 = 完全分解。纯前端状态,不需要重新生成代码。
+  const [explodeFactor, setExplodeFactorState] = useState(0);
+
+  // Agent State
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [autoReview, setAutoReview] = useState(true);
+  const [verdict, setVerdict] = useState<Verdict | null>(null);
+  const [feedbackInput, setFeedbackInput] = useState("");
+  const [lastScreenshot, setLastScreenshot] = useState<string | null>(null); // 🌟 保存发送给 AI 的截图
+  const [generating, setGenerating] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+
+  // 🌟 Debug 多角度日夜对照截图状态。debugResult 非空时弹窗自动显示,
+  // 关闭弹窗就把它置空,不需要额外的 showModal 布尔值。
+  const [debugCapturing, setDebugCapturing] = useState(false);
+  const [debugResult, setDebugResult] = useState<DebugCaptureResult | null>(
+    null,
+  );
+
+  const t = TRANSLATIONS[lang];
+  const engine = useThreeEngine(containerRef, setError, setStats, setErrorLine);
+
+  // 终端日志记录函数
+  const addLog = useCallback((tag: LogEntry["tag"], text: string) => {
+    const time = new Date().toLocaleTimeString("en-US", { hour12: false });
+    setLogs((prev) => [
+      ...prev,
+      { id: Math.random().toString(), time, tag, text },
+    ]);
+  }, []);
+
+  useEffect(() => {
+    addLog("SYSTEM", "WebGL Engine initialized. PCFSoftShadowMap enabled.");
+  }, [addLog]);
+
+  // 切换背景主题处理函数
+  const handleThemeToggle = () => {
+    const nextTheme = canvasTheme === "dark" ? "day" : "dark";
+    setCanvasTheme(nextTheme);
+    engine.setCanvasTheme(nextTheme);
+    addLog(
+      "SYSTEM",
+      `Canvas background switched to ${nextTheme.toUpperCase()} mode.`,
+    );
+  };
+
+  // 🌟 分解图滑块处理函数
+  const handleExplodeChange = (value: number) => {
+    setExplodeFactorState(value);
+    engine.setExplodeFactor(value);
+  };
+
+  // 触发视觉评审 (Vision Review)
+  const triggerReview = async (customDesc?: string) => {
+    const descToUse = customDesc || description.trim();
+    if (!descToUse) return null;
+
+    addLog("VISION", "Capturing WebGL Canvas multi-angle screenshot...");
+    const screenshot = engine.captureImage();
+    if (!screenshot) return null;
+
+    setLastScreenshot(screenshot); // 🌟 存入状态，供用户在界面上点击查看
+
+    setReviewing(true);
+    addLog(
+      "VISION",
+      `Sending render to Gemini Vision (${model}) for critique...`,
+    );
+    try {
+      const res = await fetch("/api/review-model", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: descToUse,
+          screenshot,
+          apiKey: apiKey.trim() || undefined,
+          model,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setVerdict(data);
+      const scorePct = Math.round((data.score || 0) * 100);
+      addLog(
+        "REVIEW",
+        `Verdict: ${data.decision.toUpperCase()} (${scorePct}% score)`,
+      );
+
+      if (data.critique) {
+        setFeedbackInput(data.critique);
+        addLog("REVIEW", `Critique: "${data.critique}"`);
+      }
+      return data;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError("Review failed: " + msg);
+      addLog("ERROR", `Review Failed: ${msg}`);
+      return null;
+    } finally {
+      setReviewing(false);
+    }
+  };
+
+  // 🌟 生成 + 结构性报错自动重试的核心函数。initial 生成和 Refine 都走这里,
+  // 逻辑统一：调用 /api/generate-model → 执行 → 失败就自动把报错当反馈重新生成,
+  // 最多 MAX_AUTO_FIX_ATTEMPTS 次,还是失败就停下来,把手动 "Ask AI to Fix" 交还给你。
+  // 只有真正跑成功了才会往下走(触发 review),不会拿一个跑不起来的模型去截图评审,
+  // 白白浪费一次 vision 调用。
+  const generateAndSelfHeal = useCallback(
+    async (
+      desc: string,
+      opts: { previousCode?: string; feedback?: string } = {},
+      attempt = 0,
+    ): Promise<{ ok: boolean; finalCode: string | null }> => {
+      const res = await fetch("/api/generate-model", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: desc,
+          previousCode: opts.previousCode,
+          feedback: opts.feedback,
+          apiKey: apiKey.trim() || undefined,
+          model,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setCode(data.code);
+      addLog(
+        "WEBGL",
+        attempt === 0
+          ? "Compilation successful. Executing buildModel(THREE)..."
+          : `Auto-fix attempt ${attempt}/${MAX_AUTO_FIX_ATTEMPTS}: executing regenerated code...`,
+      );
+
+      const result = engine.executeCode(data.code, wireframe);
+
+      if (result.success) {
+        addLog("WEBGL", "Model loaded into scene with auto-fit perspective.");
+        return { ok: true, finalCode: data.code };
+      }
+
+      // 失败了。还有重试次数就自动拿报错当反馈重新生成,不需要你手动点。
+      if (attempt < MAX_AUTO_FIX_ATTEMPTS) {
+        addLog(
+          "ERROR",
+          `Runtime error: ${result.error} — auto-retrying (${attempt + 1}/${MAX_AUTO_FIX_ATTEMPTS})...`,
+        );
+        return generateAndSelfHeal(
+          desc,
+          { previousCode: data.code, feedback: result.error ?? "" },
+          attempt + 1,
+        );
+      }
+
+      // 重试次数用完了,停下来,让 "Ask AI to Fix" 按钮接手
+      addLog(
+        "ERROR",
+        `Auto-fix exhausted after ${MAX_AUTO_FIX_ATTEMPTS} attempts. Manual "Ask AI to Fix" still available.`,
+      );
+      return { ok: false, finalCode: data.code };
+    },
+    [apiKey, model, wireframe, engine, addLog],
+  );
+
+  // 初次代码生成
+  const handleGenerate = async () => {
+    const desc = description.trim();
+    if (!desc) return setError("Enter a description first.");
+
+    setGenerating(true);
+    setError(null);
+    setErrorLine(null);
+    setVerdict(null);
+    setFeedbackInput("");
+    setExplodeFactorState(0); // 🌟 新模型进来,分解状态复位
+
+    addLog("PROMPT", `User prompt received: "${desc}"`);
+    addLog("AGENT", `Invoking ${model} for Three.js code synthesis...`);
+
+    try {
+      const { ok } = await generateAndSelfHeal(desc);
+      if (ok && autoReview) {
+        setTimeout(() => triggerReview(desc), 300);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError("Generate failed: " + msg);
+      addLog("ERROR", `Generation Failed: ${msg}`);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // 带反馈的迭代修构 (Refine)
+  // 🌟 支持传入 overrideFeedback:用于"一键用 AI 修复报错"场景——这时反馈内容是
+  // 报错文本本身,而不是用户手打在输入框里、可能还没来得及被 React 状态更新反映出来的内容。
+  // 不传就还是老样子,读 feedbackInput 这个 state。
+  const handleRefine = async (overrideFeedback?: string) => {
+    const desc = description.trim();
+    if (!desc) return setError("Enter a description first.");
+    const feedbackToUse = (overrideFeedback ?? feedbackInput).trim();
+    if (!feedbackToUse) return setError("Feedback is empty.");
+
+    setGenerating(true);
+    setError(null);
+    setErrorLine(null);
+    setExplodeFactorState(0); // 🌟 重新构建后,分解状态复位
+
+    addLog("PROMPT", `Applying refinement feedback: "${feedbackToUse}"`);
+    addLog(
+      "AGENT",
+      "Re-synthesizing code with previous context & delta feedback...",
+    );
+
+    try {
+      const { ok } = await generateAndSelfHeal(desc, {
+        previousCode: code,
+        feedback: feedbackToUse,
+      });
+      if (ok && autoReview) {
+        setTimeout(() => triggerReview(desc), 300);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError("Refine failed: " + msg);
+      addLog("ERROR", `Refinement Failed: ${msg}`);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // 🌟 "Ask AI to Fix" —— 把当前报错文本直接当作反馈,一键触发 Refine(同样会走
+  // 上面的自动重试循环)。不是静默帮你改数字让检查通过,是把报错原文喂给 AI 重新生成,
+  // 决策权还是在 AI 那一步,你能在 feedbackInput 里看到实际发给 AI 的内容。
+  const handleFixWithAI = () => {
+    if (!error) return;
+    setFeedbackInput(error);
+    handleRefine(error);
+  };
+
+  // 🌟 下载当前代码为 .js 文件,文件名按 prompt 描述自动生成 slug。
+  const handleDownloadCode = () => {
+    if (!code) return;
+    const slug = slugify(description || "model");
+    downloadTextFile(`${slug}.buildModel.js`, code);
+    addLog("SYSTEM", `Downloaded code as ${slug}.buildModel.js`);
+  };
+
+  // 🌟 Debug 多角度日夜对照截图。跟 Vision Review 的截图完全独立——这个是为了
+  // 让你自己或者另一个 AI 对话肉眼排查穿模/结构对不齐问题,不会消耗任何 API 额度,
+  // 纯本地 canvas 渲染。用 requestAnimationFrame 包一层,让 "capturing" 状态先有
+  // 机会渲染出来,再执行下面这段同步的多次渲染(12 张,会短暂阻塞主线程一瞬间)。
+  const handleDebugCapture = () => {
+    if (!code) return;
+    setDebugCapturing(true);
+    addLog("VISION", "Capturing 6-angle × day/night debug contact sheet...");
+    requestAnimationFrame(() => {
+      const result = engine.captureDebugGrid(canvasTheme);
+      setDebugCapturing(false);
+      if (result) {
+        setDebugResult(result);
+        addLog("VISION", "Debug contact sheet ready — 12 shots captured.");
+      } else {
+        addLog("ERROR", "Debug capture failed — build a model first.");
+      }
+    });
+  };
+
+  const handleLangChange = (newLang: Lang) => {
+    if (isDefaultCode(code)) setCode(DEFAULT_CODE[newLang]);
+    setLang(newLang);
+  };
+
+  const handleClear = () => {
+    setCode("");
+    engine.clearModel();
+    setStats({ triangles: 0, vertices: 0 });
+    setError(null);
+    setErrorLine(null);
+    setVerdict(null);
+    setFeedbackInput("");
+    setLastScreenshot(null);
+    setExplodeFactorState(0); // 🌟 清空场景时分解状态一并复位
+    addLog("SYSTEM", "Scene & Editor cleared.");
+  };
+
+  const handleManualRun = () => {
+    const result = engine.executeCode(code, wireframe);
+    if (result.success) {
+      setExplodeFactorState(0); // 🌟 手动重跑代码后,分解状态复位
+      addLog("WEBGL", "Manual execution successful.");
+    } else {
+      addLog("ERROR", "Manual execution failed.");
+    }
+  };
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <Toolbar
+        t={t}
+        lang={lang}
+        setLang={handleLangChange}
+        wireframe={wireframe}
+        setWireframe={(checked: boolean) => {
+          setWireframe(checked);
+          engine.applyWireframe(checked);
+        }}
+        canvasTheme={canvasTheme}
+        onThemeToggle={handleThemeToggle}
+        onClear={handleClear}
+        onRun={handleManualRun}
+        explodeFactor={explodeFactor}
+        onExplodeChange={handleExplodeChange}
+        code={code}
+        onDownloadCode={handleDownloadCode}
+        onDebugCapture={handleDebugCapture}
+        debugCapturing={debugCapturing}
+      />
+      <div className="flex flex-col lg:flex-row">
+        <ControlCoPilotPanel
+          t={t}
+          code={code}
+          setCode={setCode}
+          apiKey={apiKey}
+          setApiKey={setApiKey}
+          model={model}
+          setModel={setModel}
+          description={description}
+          setDescription={setDescription}
+          generating={generating}
+          reviewing={reviewing}
+          autoReview={autoReview}
+          setAutoReview={setAutoReview}
+          verdict={verdict}
+          feedbackInput={feedbackInput}
+          setFeedbackInput={setFeedbackInput}
+          lastScreenshot={lastScreenshot}
+          logs={logs}
+          clearLogs={() => setLogs([])}
+          onGenerate={handleGenerate}
+          onReview={() => triggerReview()}
+          onRefine={handleRefine}
+          onRun={handleManualRun}
+          error={error}
+          errorLine={errorLine}
+          onFixWithAI={handleFixWithAI}
+        />
+        <PreviewPanel
+          containerRef={containerRef}
+          stats={stats}
+          error={error}
+          t={t}
+        />
+      </div>
+
+      {debugResult && (
+        <DebugCaptureModal
+          result={debugResult}
+          slug={slugify(description || "model")}
+          onClose={() => setDebugResult(null)}
+        />
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="threejs-ai-model-generator/hooks/useThreeEngine.ts">
+"use client";
+
+import { useCallback, useEffect, useRef } from "react";
+import * as THREE from "three";
+import type { Stats } from "../types";
+
+export interface ExecuteResult {
+  success: boolean;
+  error: string | null;
+  errorLine: number | null;
+}
+
+// 🌟 与 setCanvasTheme 共用的纯函数版本：只处理场景背景色 + 网格颜色的替换逻辑,
+// 不依赖 React state。setCanvasTheme(工具栏那个日夜切换按钮)和下面新增的
+// captureDebugGrid(多角度日夜对照截图)内部都要临时切主题,抽出来避免两份重复代码
+// 以后配色改一处就够了。
+function applyThemeColors(engine: any, mode: "dark" | "day") {
+  if (mode === "day") {
+    engine.scene.background = new THREE.Color(0xf1f5f9);
+    engine.scene.remove(engine.grid);
+    engine.grid.geometry.dispose();
+    engine.grid.material.dispose();
+    engine.grid = new THREE.GridHelper(4, 16, 0x94a3b8, 0xcbd5e1);
+    engine.scene.add(engine.grid);
+  } else {
+    engine.scene.background = new THREE.Color(0x0b0f16);
+    engine.scene.remove(engine.grid);
+    engine.grid.geometry.dispose();
+    engine.grid.material.dispose();
+    engine.grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
+    engine.scene.add(engine.grid);
+  }
+}
+
+// 🌟 Debug 多角度截图的固定机位表。6 个角度：正面 / 正面 3/4 / 右侧 / 背面 / 左侧 /
+// 俯视。俯视角度对"两个部件在水平面上重叠"这类穿模问题特别有诊断价值,是现有
+// captureImage(送 Gemini Vision 打分用,只有 2 个 3/4 视角)完全没覆盖到的盲区。
+// 想加机位(比如仰视看底部连接件)直接往这个数组里加一项就行,composite 画布会自动跟着变宽。
+const DEBUG_ANGLES: { label: string; rotY: number; elevation: number }[] = [
+  { label: "Front", rotY: 0, elevation: 0.35 },
+  { label: "Front 3/4", rotY: Math.PI / 4, elevation: 0.45 },
+  { label: "Right", rotY: Math.PI / 2, elevation: 0.35 },
+  { label: "Back", rotY: Math.PI, elevation: 0.35 },
+  { label: "Left", rotY: -Math.PI / 2, elevation: 0.35 },
+  { label: "Top-Down", rotY: Math.PI / 6, elevation: 1.3 },
+];
+
+const DEBUG_THEMES: { label: string; mode: "dark" | "day" }[] = [
+  { label: "Night", mode: "dark" },
+  { label: "Day", mode: "day" },
+];
+
+export interface DebugCaptureTile {
+  label: string;
+  theme: "dark" | "day";
+  dataUrl: string;
+}
+
+export interface DebugCaptureResult {
+  compositeDataUrl: string;
+  tiles: DebugCaptureTile[];
+}
+
+export function useThreeEngine(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  onError: (err: string | null) => void,
+  onStatsUpdate: (stats: Stats) => void,
+  onErrorLine: (line: number | null) => void = () => {},
+) {
+  const engineRef = useRef<any>(null);
+
+  // 1. 切换 WebGL 画布背景与网格主题
+  const setCanvasTheme = useCallback((mode: "dark" | "day") => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    applyThemeColors(engine, mode);
+  }, []);
+
+  const clearModel = useCallback(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    while (engine.modelGroup.children.length) {
+      const obj = engine.modelGroup.children.pop()!;
+      obj.traverse((o: any) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) {
+          const mats = Array.isArray(o.material) ? o.material : [o.material];
+          mats.forEach((m: any) => {
+            m.dispose();
+            if (m.map) m.map.dispose();
+          });
+        }
+      });
+    }
+  }, []);
+
+  const applyWireframe = useCallback((wf: boolean) => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.modelGroup.traverse((o: any) => {
+      if (o.isMesh && o.material) {
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach((m: any) => (m.wireframe = wf));
+      }
+    });
+  }, []);
+
+  // 🌟 分解图控制：factor 从 0(正常装配状态)到 1(完全分解)。executeCode 每次成功
+  // 构建之后,会给模型的每个顶层部件记录好"原始位置"和"从模型中心指向它的方向",
+  // 这里只是沿着那个方向做纯几何插值——不需要重新生成或重新执行代码,可以直接
+  // 绑一个 slider 拖着实时看。
+  const setExplodeFactor = useCallback((factor: number) => {
+    const engine = engineRef.current;
+    if (!engine || !engine.modelGroup.children.length) return;
+    const result = engine.modelGroup.children[0];
+    if (!result || !result.userData?.__explodeReady) return;
+    const clamped = Math.max(0, Math.min(1, factor));
+    const baseDistance = engine.explodeBaseDistance ?? 1;
+    result.children.forEach((child: any) => {
+      const origin = child.userData.__originPos;
+      const dir = child.userData.__explodeDir;
+      if (!origin || !dir) return;
+      child.position.copy(origin).addScaledVector(dir, clamped * baseDistance);
+    });
+  }, []);
+
+  // 🌟 从抛出的 Error.stack 里把行号还原回用户自己那份代码的行号。
+  // new Function() 执行的是 HELPER_FUNCTIONS + "\n" + codeStr 拼接后的整段源码,
+  // 浏览器报出来的行号是相对拼接后整段代码的,所以要减去 HELPER_FUNCTIONS 占的行数
+  // 才能对回用户在编辑器里实际看到的那一行。
+  //
+  // ⚠️ 这是"尽力而为"，不是100%保证：Chrome/Edge 这类 V8 内核浏览器格式稳定,
+  // 基本能对上；Firefox/Safari 的 stack 格式不太一样,解析不出来就直接返回 null,
+  // 不会瞎指一行给你添乱。
+  function extractUserCodeLine(
+    stack: string | undefined,
+    helperLineOffset: number,
+    userCodeLineCount: number,
+  ): number | null {
+    if (!stack) return null;
+    const match = stack.match(/(?:<anonymous>|eval code):(\d+):(\d+)/);
+    if (!match) return null;
+    const reportedLine = parseInt(match[1], 10);
+    const userLine = reportedLine - helperLineOffset;
+    if (userLine < 1 || userLine > userCodeLineCount) return null;
+    return userLine;
+  }
+
+  // 🌟 executeCode 现在返回结构化结果 { success, error, errorLine },不只是 boolean。
+  // 这样调用方(比如 ModelGenerator 里的自动重试逻辑)能在同一个函数调用里立刻拿到
+  // 具体报错文本,不需要依赖 setState 之后才能读到的、可能还没更新的 React 状态。
+  const executeCode = useCallback(
+    (codeStr: string, isWireframe: boolean): ExecuteResult => {
+      const engine = engineRef.current;
+      if (!engine) {
+        return { success: false, error: "Engine not ready", errorLine: null };
+      }
+
+      // 声明在 try 外面,这样 catch 块里也能拿到,不需要靠 hack 绕过块级作用域
+      let helperLineOffset = 0;
+      let userCodeLineCount = codeStr.split("\n").length;
+
+      try {
+        clearModel();
+
+        const HELPER_FUNCTIONS = `
+          function buildExtrudeShape(points, holes) {
+            const shape = new THREE.Shape();
+            if (points.length > 0) {
+              shape.moveTo(points[0][0], points[0][1]);
+              for (let i = 1; i < points.length; i++) shape.lineTo(points[i][0], points[i][1]);
+            }
+            for (const loop of holes ?? []) {
+              if (loop.length < 3) continue;
+              const path = new THREE.Path();
+              path.moveTo(loop[0][0], loop[0][1]);
+              for (let i = 1; i < loop.length; i++) path.lineTo(loop[i][0], loop[i][1]);
+              path.closePath();
+              shape.holes.push(path);
+            }
+            return shape;
+          }
+
+          function ovalLoop(cx, cy, rx, ry, seg = 24) {
+            const loop = [];
+            for (let i = 0; i < seg; i++) {
+              const a = (i / seg) * Math.PI * 2;
+              loop.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
+            }
+            return loop;
+          }
+
+          function buildExtrudeGeometry(profile) {
+            const holes = [...(profile.holes ?? []), ...((profile.ovalHoles ?? []).map(o => ovalLoop(o.cx, o.cy, o.rx, o.ry)))];
+            const shape = buildExtrudeShape(profile.points, holes);
+            return new THREE.ExtrudeGeometry(shape, { depth: profile.depth, bevelEnabled: false, steps: 1 });
+          }
+
+          function buildCurveSweepGeometry(sweep) {
+            const shape = new THREE.Shape();
+            const cs = sweep.crossSection.points;
+            if (cs.length > 0) {
+              shape.moveTo(cs[0][0], cs[0][1]);
+              for (let i = 1; i < cs.length; i++) shape.lineTo(cs[i][0], cs[i][1]);
+              shape.closePath();
+            }
+            const spine = sweep.spine.map(p => new THREE.Vector3(p[0], p[1], p[2]));
+            const path = new THREE.CatmullRomCurve3(spine, sweep.closed ?? false);
+            return new THREE.ExtrudeGeometry(shape, { extrudePath: path, steps: Math.max(24, spine.length * 8), bevelEnabled: false });
+          }
+
+          function buildLatheGeometry(profile) {
+            const points = profile.points.map(p => new THREE.Vector2(Math.max(0.0001, p[0]), p[1]));
+            return new THREE.LatheGeometry(points, profile.segments ?? 24);
+          }
+
+          function buildTubeGeometry(path) {
+            const vectors = path.points.map(p => new THREE.Vector3(p[0], p[1], p[2]));
+            const curve = new THREE.CatmullRomCurve3(vectors, path.closed ?? false);
+            const tubularSegments = Math.max(8, path.points.length * 6);
+            return new THREE.TubeGeometry(curve, tubularSegments, path.radius ?? 0.05, path.radialSegments ?? 8, path.closed ?? false);
+          }
+
+          // 🌟 包含式检查：整个 mesh 是否落在某个锚点部件的范围内(带一点容差)。
+          // 适用于"这个部件整体贴在另一个部件里面"的场景,比如 A 柱贴着同一块玻璃舱。
+          function assertWithinBounds(mesh, anchorMesh, opts) {
+            const tolerance = (opts && opts.tolerance) ?? 0.2;
+            const childBox = new THREE.Box3().setFromObject(mesh);
+            const anchorBox = new THREE.Box3().setFromObject(anchorMesh);
+            if (childBox.isEmpty() || anchorBox.isEmpty()) return mesh;
+            const anchorSize = new THREE.Vector3();
+            anchorBox.getSize(anchorSize);
+            const maxExtent = Math.max(anchorSize.x, anchorSize.y, anchorSize.z) || 0.01;
+            const expandedAnchorBox = anchorBox.clone().expandByScalar(maxExtent * tolerance);
+            if (!expandedAnchorBox.containsBox(childBox)) {
+              const childName = mesh.name || "(unnamed part)";
+              const anchorName = anchorMesh.name || "(unnamed anchor)";
+              throw new Error(
+                'Attachment check failed: "' + childName + '" falls outside the expected bounds of its anchor "' +
+                anchorName + '" (tolerance: ' + (tolerance * 100).toFixed(0) + '% of anchor size). ' +
+                'This usually means a coordinate was computed against the wrong reference point — ' +
+                'check the endpoints/position passed for "' + childName + '".'
+              );
+            }
+            return mesh;
+          }
+
+          // 🌟 单点邻近检查：只校验一个 3D 端点是否落在某个锚点部件附近,不要求整根
+          // 梁都塞进锚点的包围盒。适用于"这一端连着这个部件"的跨接场景,比如两根柱子
+          // 之间的横梁的其中一端,或者从座位连到地面的凳腿的"座位那一端"。
+          function assertPointNear(point, anchorMesh, opts) {
+            const tolerance = (opts && opts.tolerance) ?? 0.3;
+            const anchorBox = new THREE.Box3().setFromObject(anchorMesh);
+            if (anchorBox.isEmpty()) return point;
+            const anchorSize = new THREE.Vector3();
+            anchorBox.getSize(anchorSize);
+            const maxExtent = Math.max(anchorSize.x, anchorSize.y, anchorSize.z) || 0.01;
+            const expandedBox = anchorBox.clone().expandByScalar(maxExtent * tolerance);
+            if (!expandedBox.containsPoint(point)) {
+              const anchorName = anchorMesh.name || "(unnamed anchor)";
+              throw new Error(
+                'Attachment check failed: a beam endpoint at (' + point.x.toFixed(3) + ', ' + point.y.toFixed(3) + ', ' + point.z.toFixed(3) +
+                ') falls outside the expected bounds of its anchor "' + anchorName + '" (tolerance: ' + (tolerance * 100).toFixed(0) + '% of anchor size). ' +
+                'Double-check the coordinate you passed for this endpoint against where "' + anchorName + '" actually is.'
+              );
+            }
+            return point;
+          }
+
+          // 🌟 两点之间搭一根杆（A柱、结构梁、肢体连杆等）,用四元数对齐,调用方永远
+          // 不需要手动猜 rotation.x/y/z 该转哪个轴、转多少度。第 4 个参数可选,有两种
+          // 传法,分别对应两种完全不同的依附关系：
+          //
+          //   1) 传一个 mesh —— "包含式"：整根梁都应该贴在这一个部件里面
+          //      （比如 A 柱贴着同一块挡风玻璃舱）。用 assertWithinBounds 整根检查。
+          //      例：buildBeamBetween(p1, p2, t, cabinMesh)
+          //
+          //   2) 传 { start, end } —— "跨接式"：这根梁两端分别连着两个不同的部件
+          //      （比如连接两根不同柱子的横梁,或者从座位连到地面的凳腿）。
+          //      start / end 都是可选的,只校验你实际传了的那一端——凳腿连地面的那一端
+          //      往往没有对应的 mesh,直接不传那一侧就行。
+          //      例：buildBeamBetween(p1, p2, t, { start: pillarA, end: pillarB })
+          //      例：buildBeamBetween(p1, p2, t, { start: seatMesh })  // 另一端接地面,不传
+          //
+          // 两种情况下,端点算错、杆子捅到错误的地方时都会当场报错(附带具体端点坐标),
+          // 而不是悄悄渲染出一根穿模或者飘在半空的杆子。
+          function buildBeamBetween(p1, p2, thickness, anchors) {
+            const start = new THREE.Vector3(p1[0], p1[1], p1[2] ?? 0);
+            const end = new THREE.Vector3(p2[0], p2[1], p2[2] ?? 0);
+            const dir = new THREE.Vector3().subVectors(end, start);
+            const length = dir.length();
+            if (length < 0.0001) return new THREE.Group();
+            const geo = new THREE.CylinderGeometry(thickness, thickness, length, 6);
+            geo.translate(0, length / 2, 0); // 原点对齐到起点 p1,方便直接用 position.copy(start)
+            const mesh = new THREE.Mesh(geo);
+            mesh.position.copy(start);
+            mesh.quaternion.setFromUnitVectors(
+              new THREE.Vector3(0, 1, 0),
+              dir.clone().normalize(),
+            );
+
+            if (anchors) {
+              if (anchors.isObject3D) {
+                // 单一 mesh：包含式检查
+                assertWithinBounds(mesh, anchors, { tolerance: 0.15 });
+              } else {
+                // { start, end } 对象：跨接式检查,每端各自独立校验
+                if (anchors.start) assertPointNear(start, anchors.start, { tolerance: 0.3 });
+                if (anchors.end) assertPointNear(end, anchors.end, { tolerance: 0.3 });
+              }
+            }
+
+            return mesh;
+          }
+        `;
+
+        // 🌟 helper 函数块占多少行,用来把报错行号换算回用户代码的行号
+        helperLineOffset = HELPER_FUNCTIONS.split("\n").length;
+
+        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+        const fn = new Function(
+          "THREE",
+          HELPER_FUNCTIONS + "\n" + codeStr + "\n;return buildModel(THREE);",
+        );
+        const result = fn(THREE);
+
+        if (!result || !(result instanceof THREE.Object3D)) {
+          throw new Error("buildModel(THREE) must return a THREE.Object3D");
+        }
+
+        result.traverse((o: any) => {
+          if (o instanceof THREE.Mesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+          }
+        });
+
+        engine.modelGroup.add(result);
+        applyWireframe(isWireframe);
+
+        const box = new THREE.Box3().setFromObject(result);
+        if (!box.isEmpty()) {
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          const center = new THREE.Vector3();
+          box.getCenter(center);
+          const maxDim = Math.max(size.x, size.y, size.z) || 1;
+          const fitDist =
+            (maxDim / (2 * Math.tan((engine.camera.fov * Math.PI) / 180 / 2))) *
+            1.8;
+          engine.camDistance = fitDist;
+          engine.minDist = fitDist * 0.15;
+          engine.maxDist = fitDist * 8;
+          engine.lookTarget.copy(center);
+
+          // 🌟 分解图支持：记录每个顶层命名部件当前的位置,以及"从模型中心指向
+          // 该部件"的方向。之后 setExplodeFactor(0~1) 可以随时无损地沿这个方向
+          // 把部件推开或收回,不依赖重新生成代码,纯几何计算。
+          let maxChildDistance = 0;
+          result.children.forEach((child: any) => {
+            const childBox = new THREE.Box3().setFromObject(child);
+            if (childBox.isEmpty()) return;
+            const childCenter = new THREE.Vector3();
+            childBox.getCenter(childCenter);
+            const dir = childCenter.clone().sub(center);
+            const dist = dir.length();
+            if (dist > maxChildDistance) maxChildDistance = dist;
+            child.userData.__originPos = child.position.clone();
+            child.userData.__explodeDir =
+              dist > 0.0001 ? dir.normalize() : new THREE.Vector3(0, 1, 0);
+          });
+          result.userData.__explodeReady = true;
+          engine.explodeBaseDistance = Math.max(
+            maxDim * 0.6,
+            maxChildDistance * 1.2,
+            0.5,
+          );
+        }
+
+        let tris = 0,
+          verts = 0;
+        result.traverse((o: any) => {
+          if (o.isMesh && o.geometry) {
+            const posCount = o.geometry.attributes.position
+              ? o.geometry.attributes.position.count
+              : 0;
+            verts += posCount;
+            tris += o.geometry.index
+              ? o.geometry.index.count / 3
+              : posCount / 3;
+          }
+        });
+        onStatsUpdate({ triangles: Math.round(tris), vertices: verts });
+        onError(null);
+        onErrorLine(null);
+        return { success: true, error: null, errorLine: null };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const stack = err instanceof Error ? err.stack : undefined;
+        const line = extractUserCodeLine(
+          stack,
+          helperLineOffset,
+          userCodeLineCount,
+        );
+        onError(msg);
+        onErrorLine(line);
+        return { success: false, error: msg, errorLine: line };
+      }
+    },
+    [clearModel, applyWireframe, onError, onStatsUpdate, onErrorLine],
+  );
+
+  // 🌟 核心修复：无变形、完美长宽比、高对比度离屏多视角截图(送 Gemini Vision 打分用)
+  const captureImage = useCallback(() => {
+    const engine = engineRef.current;
+    if (!engine) return null;
+
+    const container = containerRef.current;
+    const origWidth = container?.clientWidth || 800;
+    const origHeight = container?.clientHeight || 600;
+    const origAspect = engine.camera.aspect;
+    const origRotY = engine.rotY;
+    const origElevation = engine.elevation;
+
+    // 1. 创建 1024x512 拼接画布
+    const combinedCanvas = document.createElement("canvas");
+    combinedCanvas.width = 1024;
+    combinedCanvas.height = 512;
+    const ctx = combinedCanvas.getContext("2d");
+    if (!ctx) return null;
+
+    // 2. 🌟 强制将渲染器临时切为 512x512 正方形，比例为 1.0 (无变形!)
+    engine.renderer.setSize(512, 512, false);
+    engine.camera.aspect = 1.0;
+    engine.camera.updateProjectionMatrix();
+
+    const renderAngleToCanvas = (
+      rotY: number,
+      elevation: number,
+      offsetX: number,
+    ) => {
+      engine.rotY = rotY;
+      engine.elevation = elevation;
+
+      const h = engine.camDistance * Math.cos(engine.elevation);
+      const y = engine.camDistance * Math.sin(engine.elevation);
+      engine.camera.position.set(
+        engine.lookTarget.x,
+        engine.lookTarget.y + y,
+        engine.lookTarget.z + h,
+      );
+      engine.camera.lookAt(engine.lookTarget);
+      engine.modelGroup.rotation.y = engine.rotY;
+
+      engine.renderer.render(engine.scene, engine.camera);
+      ctx.drawImage(engine.renderer.domElement, offsetX, 0, 512, 512);
+    };
+
+    // 📸 视角 A：视角 45°，俯角 0.48 (约 28° 俯视，看清顶部和底座)
+    renderAngleToCanvas(Math.PI / 4, 0.48, 0);
+
+    // 📸 视角 B：视角 -60°，俯角 0.52 (约 30° 俯视)
+    renderAngleToCanvas(-Math.PI / 3, 0.52, 512);
+
+    // 3. 还原渲染器尺寸、相机比例与旋转视角
+    engine.renderer.setSize(origWidth, origHeight, false);
+    engine.camera.aspect = origAspect;
+    engine.camera.updateProjectionMatrix();
+
+    engine.rotY = origRotY;
+    engine.elevation = origElevation;
+    engine.modelGroup.rotation.y = engine.rotY;
+    const h = engine.camDistance * Math.cos(engine.elevation);
+    const y = engine.camDistance * Math.sin(engine.elevation);
+    engine.camera.position.set(
+      engine.lookTarget.x,
+      engine.lookTarget.y + y,
+      engine.lookTarget.z + h,
+    );
+    engine.camera.lookAt(engine.lookTarget);
+    engine.renderer.render(engine.scene, engine.camera);
+
+    return combinedCanvas.toDataURL("image/png");
+  }, []);
+
+  // 🌟 Debug 专用：6 机位 × 日/夜 2 主题 = 12 格拼图,用来跟 AI 一起排查穿模/
+  // 结构对不齐的问题。跟上面的 captureImage(送 Gemini Vision 打分用,固定 2 视角、
+  // 不切主题、512x512 拼 1024x512)是两件完全独立的事,互不复用状态,互不影响。
+  //
+  // 参数 restoreTheme:截图结束后要把画布恢复成用户截图前正在看的那个主题
+  // (由调用方传入当前 canvasTheme state,因为这个 hook 内部不持有该 state,
+  // 只有 setCanvasTheme 被调用时才会知道"当前"是哪个主题)。
+  const captureDebugGrid = useCallback(
+    (restoreTheme: "dark" | "day"): DebugCaptureResult | null => {
+      const engine = engineRef.current;
+      const container = containerRef.current;
+      if (!engine || !container || !engine.modelGroup.children.length) {
+        return null;
+      }
+
+      const TILE = 420;
+      const cols = DEBUG_ANGLES.length;
+      const rows = DEBUG_THEMES.length;
+
+      const composite = document.createElement("canvas");
+      composite.width = TILE * cols;
+      composite.height = TILE * rows;
+      const ctx = composite.getContext("2d");
+      if (!ctx) return null;
+
+      // 保存完整原始状态,截图结束后一次性还原,不能让这次截图影响用户当前正在看的画面
+      const origWidth = container.clientWidth || 800;
+      const origHeight = container.clientHeight || 600;
+      const origAspect = engine.camera.aspect;
+      const origRotY = engine.rotY;
+      const origElevation = engine.elevation;
+
+      engine.renderer.setSize(TILE, TILE, false);
+      engine.camera.aspect = 1.0;
+      engine.camera.updateProjectionMatrix();
+
+      const tiles: DebugCaptureTile[] = [];
+
+      DEBUG_THEMES.forEach((themeCfg, rowIndex) => {
+        applyThemeColors(engine, themeCfg.mode);
+
+        DEBUG_ANGLES.forEach((angleCfg, colIndex) => {
+          engine.rotY = angleCfg.rotY;
+          engine.elevation = angleCfg.elevation;
+
+          const h = engine.camDistance * Math.cos(engine.elevation);
+          const y = engine.camDistance * Math.sin(engine.elevation);
+          engine.camera.position.set(
+            engine.lookTarget.x,
+            engine.lookTarget.y + y,
+            engine.lookTarget.z + h,
+          );
+          engine.camera.lookAt(engine.lookTarget);
+          engine.modelGroup.rotation.y = engine.rotY;
+
+          engine.renderer.render(engine.scene, engine.camera);
+
+          const x = colIndex * TILE;
+          const yOff = rowIndex * TILE;
+          ctx.drawImage(engine.renderer.domElement, x, yOff, TILE, TILE);
+
+          // 每格左下角贴一个半透明标签条,标注"主题 · 角度",方便肉眼和 AI 对号入座
+          const label = `${themeCfg.label} · ${angleCfg.label}`;
+          ctx.font = "600 15px ui-monospace, monospace";
+          const textWidth = ctx.measureText(label).width;
+          ctx.fillStyle = "rgba(0,0,0,0.65)";
+          ctx.fillRect(x + 8, yOff + TILE - 30, textWidth + 16, 22);
+          ctx.fillStyle = "#e7f6ff";
+          ctx.fillText(label, x + 16, yOff + TILE - 14);
+
+          // 格子分割线,拼图上区分每个机位
+          ctx.strokeStyle = "rgba(255,255,255,0.08)";
+          ctx.strokeRect(x, yOff, TILE, TILE);
+
+          // 每一格单独也存一份,方便 UI 里做缩略图画廊 / 单张点击放大
+          const tileCanvas = document.createElement("canvas");
+          tileCanvas.width = TILE;
+          tileCanvas.height = TILE;
+          const tileCtx = tileCanvas.getContext("2d");
+          if (tileCtx)
+            tileCtx.drawImage(engine.renderer.domElement, 0, 0, TILE, TILE);
+          tiles.push({
+            label,
+            theme: themeCfg.mode,
+            dataUrl: tileCanvas.toDataURL("image/png"),
+          });
+        });
+      });
+
+      // 还原渲染器尺寸、相机、旋转视角、主题
+      engine.renderer.setSize(origWidth, origHeight, false);
+      engine.camera.aspect = origAspect;
+      engine.camera.updateProjectionMatrix();
+      engine.rotY = origRotY;
+      engine.elevation = origElevation;
+      engine.modelGroup.rotation.y = engine.rotY;
+      applyThemeColors(engine, restoreTheme);
+
+      const h = engine.camDistance * Math.cos(engine.elevation);
+      const y = engine.camDistance * Math.sin(engine.elevation);
+      engine.camera.position.set(
+        engine.lookTarget.x,
+        engine.lookTarget.y + y,
+        engine.lookTarget.z + h,
+      );
+      engine.camera.lookAt(engine.lookTarget);
+      engine.renderer.render(engine.scene, engine.camera);
+
+      return { compositeDataUrl: composite.toDataURL("image/png"), tiles };
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b0f16);
+
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      preserveDrawingBuffer: true,
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    scene.add(new THREE.HemisphereLight(0x8fa3bf, 0x0e131b, 0.6));
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    keyLight.position.set(5, 8, 5);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 1024;
+    keyLight.shadow.mapSize.height = 1024;
+    keyLight.shadow.bias = -0.001;
+    scene.add(keyLight);
+
+    // 🌟 增强补光灯 (intensity 从 0.3 -> 0.55, 位置调低)，照亮底部和阴影细节！
+    const fillLight = new THREE.DirectionalLight(0x66aacc, 0.55);
+    fillLight.position.set(-4, -1, -3);
+    scene.add(fillLight);
+
+    const grid = new THREE.GridHelper(4, 16, 0x2a3446, 0x1a2130);
+    scene.add(grid);
+
+    const shadowPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(20, 20),
+      new THREE.ShadowMaterial({ opacity: 0.5 }),
+    );
+    shadowPlane.rotation.x = -Math.PI / 2;
+    shadowPlane.position.y = -0.01;
+    shadowPlane.receiveShadow = true;
+    scene.add(shadowPlane);
+
+    const modelGroup = new THREE.Group();
+    scene.add(modelGroup);
+
+    const engineState = {
+      scene,
+      camera,
+      renderer,
+      modelGroup,
+      grid,
+      rotY: 0,
+      elevation: 0.35,
+      camDistance: 3,
+      minDist: 0.5,
+      maxDist: 20,
+      lookTarget: new THREE.Vector3(0, 0.4, 0),
+      dragging: false,
+      lastX: 0,
+      lastY: 0,
+      activePointers: new Map(),
+      frameId: 0,
+    };
+    engineRef.current = engineState;
+
+    function clamp(v: number, a: number, b: number) {
+      return Math.max(a, Math.min(b, v));
+    }
+
+    function onPointerDown(e: PointerEvent) {
+      container!.setPointerCapture(e.pointerId);
+      engineState.activePointers.set(e.pointerId, {
+        x: e.clientX,
+        y: e.clientY,
+      });
+      if (engineState.activePointers.size === 1) {
+        engineState.dragging = true;
+        engineState.lastX = e.clientX;
+        engineState.lastY = e.clientY;
+      }
+    }
+
+    function onPointerMove(e: PointerEvent) {
+      if (!engineState.activePointers.has(e.pointerId)) return;
+      engineState.activePointers.set(e.pointerId, {
+        x: e.clientX,
+        y: e.clientY,
+      });
+      if (engineState.dragging && engineState.activePointers.size === 1) {
+        const dx = e.clientX - engineState.lastX;
+        const dy = e.clientY - engineState.lastY;
+        engineState.lastX = e.clientX;
+        engineState.lastY = e.clientY;
+        engineState.rotY += dx * 0.008;
+        engineState.elevation = clamp(
+          engineState.elevation + dy * 0.008,
+          -1.4,
+          1.4,
+        );
+      }
+    }
+
+    function onPointerUp(e: PointerEvent) {
+      engineState.activePointers.delete(e.pointerId);
+      engineState.dragging = engineState.activePointers.size > 0;
+    }
+
+    function onWheel(e: WheelEvent) {
+      e.preventDefault();
+      engineState.camDistance = clamp(
+        engineState.camDistance + e.deltaY * 0.0015 * engineState.camDistance,
+        engineState.minDist,
+        engineState.maxDist,
+      );
+    }
+
+    container.addEventListener("pointerdown", onPointerDown);
+    container.addEventListener("pointermove", onPointerMove);
+    container.addEventListener("pointerup", onPointerUp);
+    container.addEventListener("wheel", onWheel, { passive: false });
+
+    function onResize() {
+      const w = container!.clientWidth,
+        h = container!.clientHeight;
+      if (w === 0 || h === 0) return;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+    const resizeObserver = new ResizeObserver(onResize);
+    resizeObserver.observe(container);
+    onResize();
+
+    function animate() {
+      engineState.frameId = requestAnimationFrame(animate);
+      const h = engineState.camDistance * Math.cos(engineState.elevation);
+      const y = engineState.camDistance * Math.sin(engineState.elevation);
+      camera.position.set(
+        engineState.lookTarget.x,
+        engineState.lookTarget.y + y,
+        engineState.lookTarget.z + h,
+      );
+      camera.lookAt(engineState.lookTarget);
+
+      if (!engineState.dragging) {
+        engineState.rotY += 0.002;
+      }
+      modelGroup.rotation.y = engineState.rotY;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    return () => {
+      cancelAnimationFrame(engineState.frameId);
+      resizeObserver.disconnect();
+      container.removeEventListener("pointerdown", onPointerDown);
+      container.removeEventListener("pointermove", onPointerMove);
+      container.removeEventListener("pointerup", onPointerUp);
+      container.removeEventListener("pointercancel", onPointerUp);
+      container.removeEventListener("wheel", onWheel);
+      renderer.dispose();
+      if (renderer.domElement.parentElement === container) {
+        container.removeChild(renderer.domElement);
+      }
+      engineRef.current = null;
+    };
+  }, []);
+
+  return {
+    executeCode,
+    clearModel,
+    captureImage,
+    captureDebugGrid,
+    applyWireframe,
+    setCanvasTheme,
+    setExplodeFactor,
+  };
 }
 </file>
 

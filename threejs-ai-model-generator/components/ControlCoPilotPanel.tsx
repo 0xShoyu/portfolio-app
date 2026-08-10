@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { search, searchKeymap } from "@codemirror/search";
@@ -164,24 +164,27 @@ export function ControlCoPilotPanel({
     }
   }, [errorLine]);
 
-  const editorExtensions = [
-    javascript(),
-    syntaxHighlighting(codeHighlightStyle),
-    appEditorTheme,
-    search({ top: true }),
-    keymap.of([
-      ...searchKeymap,
-      {
-        key: "Mod-Enter",
-        run: () => {
-          onRun();
-          return true;
+  const editorExtensions = useMemo(
+    () => [
+      javascript(),
+      syntaxHighlighting(codeHighlightStyle),
+      appEditorTheme,
+      search({ top: true }),
+      keymap.of([
+        ...searchKeymap,
+        {
+          key: "Mod-Enter",
+          run: () => {
+            onRun();
+            return true;
+          },
         },
-      },
-      indentWithTab,
-    ]),
-    errorLineField,
-  ];
+        indentWithTab,
+      ]),
+      errorLineField,
+    ],
+    [onRun],
+  ); // 依赖项
 
   return (
     <div className="flex flex-col border-b border-border/60 lg:w-[46%] lg:border-b-0 lg:border-r bg-background/20">

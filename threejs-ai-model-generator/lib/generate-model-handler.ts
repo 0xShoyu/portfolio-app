@@ -1,6 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 
+// 🌟 修改点 1：把 Rule 12 改成强制 JSON 输出的要求
 const SYSTEM_PROMPT = `You are a code generator, not a conversational assistant. You NEVER chat, explain, ask questions, or give advice — you ONLY output code.
 
 The user's input is a description of a physical object to model in 3D. You must build it in a premium "Cozy Low-Poly" art style (similar to classic faceted low-poly game assets).
@@ -95,7 +96,7 @@ Strict Rules for the Cozy Low-Poly style:
     mainGroup.add(bodyGroup);
     Small trim details (bolts, badges, handles, mirrors) can stay inside whichever functional group they visually belong to — they don't each need their own top-level group. This costs nothing extra to build but makes the model inspectable and explodable part-by-part later, and it's also just good code organization.
 11. STRICT VARIABLE DECLARATIONS: Always declare every group, material, or mesh variable with \`const\` BEFORE adding children to it or referencing it (e.g., \`const paperMenuGroup = new THREE.Group();\`). Never use undeclared variables. When mirroring a symmetric part via .clone(), always clone the completed THREE.Mesh variable, never the raw geometry variable it was built from.
-12. NO MARKDOWN, NO CONVERSATION: Output ONLY raw executable JS starting with \`function buildModel(THREE)\`. Absolutely NO intro/outro text.
+12. You must respond ONLY with a valid JSON object containing a single key "code" which holds the raw executable JavaScript string. Absolutely NO intro/outro text outside the JSON.
 `;
 
 export async function generateModelHandler(req: NextRequest) {
@@ -109,6 +110,7 @@ export async function generateModelHandler(req: NextRequest) {
       );
     }
 
+    // 引入 Type 从 SDK 用于结构化定义
     const ai = new GoogleGenAI({
       apiKey: apiKey || process.env.GEMINI_API_KEY,
     });
@@ -122,28 +124,38 @@ export async function generateModelHandler(req: NextRequest) {
     const response = await ai.models.generateContent({
       model: selectedModel,
       contents: userPrompt,
-      config: { systemInstruction: SYSTEM_PROMPT, temperature: 0.8 },
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+        temperature: 0.8,
+        // 🌟 修改点 2：开启强制 JSON 响应，并注入 Schema 约束
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            code: {
+              type: Type.STRING,
+              description:
+                "The raw executable JavaScript code starting with function buildModel(THREE)",
+            },
+          },
+          required: ["code"],
+        },
+      },
     });
 
-    const responseText = response.text ?? "";
+    const responseText = response.text ?? "{}";
 
-    // 🌟 第一重清洗：如果包含 ```javascript ... ``` 标签，强行提炼内部代码
-    const markdownMatch = responseText.match(
-      /```(?:javascript|js)?\s*([\s\S]*?)\s*```/i,
-    );
-    let code = markdownMatch ? markdownMatch[1].trim() : responseText.trim();
-
-    // 🌟 第二重清洗：强行从 function buildModel(THREE) 截取到最后一个结束花括号 }
-    const fnMatch = code.match(/function\s+buildModel\s*\([\s\S]*/);
-    if (fnMatch) {
-      code = fnMatch[0].trim();
-      const lastBraceIndex = code.lastIndexOf("}");
-      if (lastBraceIndex !== -1) {
-        code = code.slice(0, lastBraceIndex + 1).trim();
-      }
+    // 🌟 修改点 3：告别繁琐易碎的正则清洗，直接 Parse JSON
+    let code = "";
+    try {
+      const parsed = JSON.parse(responseText);
+      code = parsed.code || "";
+    } catch (parseError) {
+      throw new Error("Failed to parse JSON response from Gemini.");
     }
 
-    if (!/function\s+buildModel\s*\(/.test(code)) {
+    // 仅做一个基础的校验，防止大模型发神经没按要求输出函数头
+    if (!code || !/function\s+buildModel\s*\(/.test(code)) {
       return NextResponse.json(
         {
           error:

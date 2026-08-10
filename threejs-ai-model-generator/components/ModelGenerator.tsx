@@ -9,15 +9,40 @@ import {
   type Lang,
 } from "../constants";
 import type { Verdict, Stats, LogEntry } from "../types";
-import { useThreeEngine } from "../hooks/useThreeEngine";
+import { useThreeEngine, type DebugCaptureResult } from "../hooks/useThreeEngine";
 import { Toolbar } from "./Toolbar";
 import { ControlCoPilotPanel } from "./ControlCoPilotPanel";
 import { PreviewPanel } from "./PreviewPanel";
+import { DebugCaptureModal } from "./DebugCaptureModal";
 
 // 🌟 结构性报错(比如几何锚点检查失败)自动重试的上限。这不会比你之前手动点
 // "Ask AI to Fix" 花更多 API 调用——之前你本来就是手动点 2、3 次才能过,现在只是
 // 把这几次点击自动化掉,调用次数没有变多,只是不需要你人工干预了。
 const MAX_AUTO_FIX_ATTEMPTS = 2;
+
+// 🌟 把 prompt 描述转成安全的文件名片段。下载代码 / debug 截图的文件名都用这个,
+// 方便你在下载文件夹里一眼认出"这是哪个模型"。
+function slugify(text: string): string {
+  const s = text
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-+|-+$)/g, "")
+    .slice(0, 50);
+  return s || "model";
+}
+
+function downloadTextFile(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/javascript" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 export function ModelGenerator() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,6 +70,13 @@ export function ModelGenerator() {
   const [lastScreenshot, setLastScreenshot] = useState<string | null>(null); // 🌟 保存发送给 AI 的截图
   const [generating, setGenerating] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+
+  // 🌟 Debug 多角度日夜对照截图状态。debugResult 非空时弹窗自动显示,
+  // 关闭弹窗就把它置空,不需要额外的 showModal 布尔值。
+  const [debugCapturing, setDebugCapturing] = useState(false);
+  const [debugResult, setDebugResult] = useState<DebugCaptureResult | null>(
+    null,
+  );
 
   const t = TRANSLATIONS[lang];
   const engine = useThreeEngine(containerRef, setError, setStats, setErrorLine);
@@ -270,6 +302,34 @@ export function ModelGenerator() {
     handleRefine(error);
   };
 
+  // 🌟 下载当前代码为 .js 文件,文件名按 prompt 描述自动生成 slug。
+  const handleDownloadCode = () => {
+    if (!code) return;
+    const slug = slugify(description || "model");
+    downloadTextFile(`${slug}.buildModel.js`, code);
+    addLog("SYSTEM", `Downloaded code as ${slug}.buildModel.js`);
+  };
+
+  // 🌟 Debug 多角度日夜对照截图。跟 Vision Review 的截图完全独立——这个是为了
+  // 让你自己或者另一个 AI 对话肉眼排查穿模/结构对不齐问题,不会消耗任何 API 额度,
+  // 纯本地 canvas 渲染。用 requestAnimationFrame 包一层,让 "capturing" 状态先有
+  // 机会渲染出来,再执行下面这段同步的多次渲染(12 张,会短暂阻塞主线程一瞬间)。
+  const handleDebugCapture = () => {
+    if (!code) return;
+    setDebugCapturing(true);
+    addLog("VISION", "Capturing 6-angle × day/night debug contact sheet...");
+    requestAnimationFrame(() => {
+      const result = engine.captureDebugGrid(canvasTheme);
+      setDebugCapturing(false);
+      if (result) {
+        setDebugResult(result);
+        addLog("VISION", "Debug contact sheet ready — 12 shots captured.");
+      } else {
+        addLog("ERROR", "Debug capture failed — build a model first.");
+      }
+    });
+  };
+
   const handleLangChange = (newLang: Lang) => {
     if (isDefaultCode(code)) setCode(DEFAULT_CODE[newLang]);
     setLang(newLang);
@@ -315,6 +375,10 @@ export function ModelGenerator() {
         onRun={handleManualRun}
         explodeFactor={explodeFactor}
         onExplodeChange={handleExplodeChange}
+        code={code}
+        onDownloadCode={handleDownloadCode}
+        onDebugCapture={handleDebugCapture}
+        debugCapturing={debugCapturing}
       />
       <div className="flex flex-col lg:flex-row">
         <ControlCoPilotPanel
@@ -352,6 +416,14 @@ export function ModelGenerator() {
           t={t}
         />
       </div>
+
+      {debugResult && (
+        <DebugCaptureModal
+          result={debugResult}
+          slug={slugify(description || "model")}
+          onClose={() => setDebugResult(null)}
+        />
+      )}
     </div>
   );
 }

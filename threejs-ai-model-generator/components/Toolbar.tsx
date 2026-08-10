@@ -1,6 +1,16 @@
 "use client";
 
-import { Play, Trash2, Box, Sun, Moon, Boxes } from "lucide-react";
+import {
+  Play,
+  Trash2,
+  Box,
+  Sun,
+  Moon,
+  Boxes,
+  Download,
+  Camera,
+  Loader2,
+} from "lucide-react";
 import type { Lang } from "../constants";
 
 export function Toolbar({
@@ -15,6 +25,10 @@ export function Toolbar({
   onRun,
   explodeFactor,
   onExplodeChange,
+  code,
+  onDownloadCode,
+  onDebugCapture,
+  debugCapturing,
 }: any) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
@@ -80,6 +94,34 @@ export function Toolbar({
             {Math.round((explodeFactor ?? 0) * 100)}%
           </span>
         </label>
+
+        {/* 🌟 下载代码 + Debug 多角度日夜对照截图：都需要已经生成过一次代码才有意义,
+            没有 code 之前不渲染这两个按钮,避免用户点了发现啥也没有。 */}
+        {code && (
+          <>
+            <button
+              onClick={onDownloadCode}
+              title="Download the current buildModel(THREE) code as a .js file"
+              className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted hover:border-foreground/30 hover:text-foreground transition-colors"
+            >
+              <Download size={13} />
+              <span className="hidden sm:inline">Code</span>
+            </button>
+            <button
+              onClick={onDebugCapture}
+              disabled={debugCapturing}
+              title="Capture a 6-angle x day/night debug contact sheet"
+              className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted hover:border-foreground/30 hover:text-foreground transition-colors disabled:opacity-50"
+            >
+              {debugCapturing ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <Camera size={13} />
+              )}
+              <span className="hidden sm:inline">Debug Shots</span>
+            </button>
+          </>
+        )}
 
         <button
           onClick={onClear}
