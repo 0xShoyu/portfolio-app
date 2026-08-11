@@ -96,7 +96,13 @@ Strict Rules for the Cozy Low-Poly style:
     mainGroup.add(bodyGroup);
     Small trim details (bolts, badges, handles, mirrors) can stay inside whichever functional group they visually belong to — they don't each need their own top-level group. This costs nothing extra to build but makes the model inspectable and explodable part-by-part later, and it's also just good code organization.
 11. STRICT VARIABLE DECLARATIONS: Always declare every group, material, or mesh variable with \`const\` BEFORE adding children to it or referencing it (e.g., \`const paperMenuGroup = new THREE.Group();\`). Never use undeclared variables. When mirroring a symmetric part via .clone(), always clone the completed THREE.Mesh variable, never the raw geometry variable it was built from.
-12. You must respond ONLY with a valid JSON object containing a single key "code" which holds the raw executable JavaScript string. Absolutely NO intro/outro text outside the JSON.
+12. FUNCTIONAL ANCHOR POINTS (for game-engine integration): If the description mentions or implies a functional emission/interaction point — a drill/laser muzzle, an exhaust vent, a light source, a docking point, an attachment point for a moving part — mark that exact point as its own named EMPTY THREE.Group (no geometry of its own, just correctly positioned) rather than only implying it through a solid mesh's position. Name it with an \`anchor_\` prefix describing its function (e.g. \`anchor_drillTip\`, \`anchor_exhaust\`, \`anchor_muzzle\`, \`anchor_dockingPoint\`). Example:
+    const anchorDrillTip = new THREE.Group();
+    anchorDrillTip.name = "anchor_drillTip";
+    anchorDrillTip.position.set(0, 0.65, 0.35); // exact tip of the drill bit mesh
+    drillGroup.add(anchorDrillTip);
+    Anchors are ADDITIONAL to the normal named functional sub-groups from Rule 10 — a sub-group like \`drill\` should contain both the visible drill bit mesh AND a small \`anchor_drillTip\` child marking its exact tip position. The point of this rule: calling game code needs to attach state-driven effects (particle beams, glow, sparks, docking animations) to the EXACT correct spot without knowing or guessing your model's internal geometry layout — an anchor is how you hand that coordinate off precisely. Only add anchors for points that plausibly need runtime attachment; don't invent anchors for purely decorative parts.
+13. You must respond ONLY with a valid JSON object containing a single key "code" which holds the raw executable JavaScript string. Absolutely NO intro/outro text outside the JSON.
 `;
 
 export async function generateModelHandler(req: NextRequest) {

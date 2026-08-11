@@ -112,136 +112,6 @@ postcss.config.mjs
 <files>
 This section contains the contents of the repository's files.
 
-<file path="threejs-ai-model-generator/components/DebugCaptureModal.tsx">
-"use client";
-
-import { useState } from "react";
-import { X, Download, ImageIcon } from "lucide-react";
-import type { DebugCaptureResult } from "../hooks/useThreeEngine";
-
-function downloadDataUrl(filename: string, dataUrl: string) {
-  const a = document.createElement("a");
-  a.href = dataUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-// 🌟 Debug 用的多角度日夜对照弹窗。核心产出是顶部那张 composite 图——6 机位 x
-// 日/夜 2 主题拼成一张 contact sheet,专门为了"整张丢进跟 AI 的对话里排查穿模
-// 问题"这个场景设计的,所以默认操作就是下载这一张整图。下面的缩略图画廊是给你
-// 自己肉眼先扫一遍用的,点开能单张放大看细节。
-export function DebugCaptureModal({
-  result,
-  slug,
-  onClose,
-}: {
-  result: DebugCaptureResult;
-  slug: string;
-  onClose: () => void;
-}) {
-  const [activeTile, setActiveTile] = useState<number | null>(null);
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="flex max-h-[90vh] w-full max-w-5xl flex-col rounded-2xl border border-border bg-background shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
-          <div className="flex items-center gap-2">
-            <ImageIcon size={16} className="text-primary shrink-0" />
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">
-                Debug Contact Sheet
-              </h3>
-              <p className="text-xs text-muted">
-                6 angles × day/night — download the sheet and hand it to your
-                AI to spot clipping issues.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1.5 text-muted hover:bg-white/5 hover:text-foreground shrink-0"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5">
-          <div className="overflow-hidden rounded-xl border border-border/60">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={result.compositeDataUrl}
-              alt="Multi-angle day/night debug contact sheet"
-              className="w-full"
-            />
-          </div>
-
-          <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-            {result.tiles.map((tile, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveTile(i)}
-                className="group relative overflow-hidden rounded-lg border border-border/60 hover:border-primary/60 transition-colors"
-                title={tile.label}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={tile.dataUrl}
-                  alt={tile.label}
-                  className="aspect-square w-full object-cover"
-                />
-                <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1.5 py-0.5 text-[10px] text-slate-200">
-                  {tile.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/60 px-5 py-3.5">
-          <button
-            onClick={onClose}
-            className="rounded-md border border-border px-3.5 py-2 text-xs font-medium text-muted hover:text-foreground"
-          >
-            Close
-          </button>
-          <button
-            onClick={() =>
-              downloadDataUrl(
-                `${slug}.debug-sheet.png`,
-                result.compositeDataUrl,
-              )
-            }
-            className="flex items-center gap-1.5 rounded-md border border-primary/60 bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20"
-          >
-            <Download size={13} /> Download Contact Sheet
-          </button>
-        </div>
-      </div>
-
-      {/* 单张放大查看 */}
-      {activeTile != null && (
-        <div
-          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-6"
-          onClick={() => setActiveTile(null)}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={result.tiles[activeTile].dataUrl}
-            alt={result.tiles[activeTile].label}
-            className="max-h-full max-w-full rounded-lg border border-border"
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-</file>
-
 <file path="content/portfolio/0xshoyu-dev-architecture.mdx">
 ---
 title: "High-Fidelity Execution: The Architecture of 0xShoyu.dev"
@@ -1104,6 +974,136 @@ export function cn(...inputs: ClassValue[]) {
 }
 </file>
 
+<file path="threejs-ai-model-generator/components/DebugCaptureModal.tsx">
+"use client";
+
+import { useState } from "react";
+import { X, Download, ImageIcon } from "lucide-react";
+import type { DebugCaptureResult } from "../hooks/useThreeEngine";
+
+function downloadDataUrl(filename: string, dataUrl: string) {
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// 🌟 Debug 用的多角度日夜对照弹窗。核心产出是顶部那张 composite 图——6 机位 x
+// 日/夜 2 主题拼成一张 contact sheet,专门为了"整张丢进跟 AI 的对话里排查穿模
+// 问题"这个场景设计的,所以默认操作就是下载这一张整图。下面的缩略图画廊是给你
+// 自己肉眼先扫一遍用的,点开能单张放大看细节。
+export function DebugCaptureModal({
+  result,
+  slug,
+  onClose,
+}: {
+  result: DebugCaptureResult;
+  slug: string;
+  onClose: () => void;
+}) {
+  const [activeTile, setActiveTile] = useState<number | null>(null);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="flex max-h-[90vh] w-full max-w-5xl flex-col rounded-2xl border border-border bg-background shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <ImageIcon size={16} className="text-primary shrink-0" />
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">
+                Debug Contact Sheet
+              </h3>
+              <p className="text-xs text-muted">
+                6 angles × day/night — download the sheet and hand it to your
+                AI to spot clipping issues.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1.5 text-muted hover:bg-white/5 hover:text-foreground shrink-0"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-5">
+          <div className="overflow-hidden rounded-xl border border-border/60">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={result.compositeDataUrl}
+              alt="Multi-angle day/night debug contact sheet"
+              className="w-full"
+            />
+          </div>
+
+          <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+            {result.tiles.map((tile, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveTile(i)}
+                className="group relative overflow-hidden rounded-lg border border-border/60 hover:border-primary/60 transition-colors"
+                title={tile.label}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={tile.dataUrl}
+                  alt={tile.label}
+                  className="aspect-square w-full object-cover"
+                />
+                <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1.5 py-0.5 text-[10px] text-slate-200">
+                  {tile.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/60 px-5 py-3.5">
+          <button
+            onClick={onClose}
+            className="rounded-md border border-border px-3.5 py-2 text-xs font-medium text-muted hover:text-foreground"
+          >
+            Close
+          </button>
+          <button
+            onClick={() =>
+              downloadDataUrl(
+                `${slug}.debug-sheet.png`,
+                result.compositeDataUrl,
+              )
+            }
+            className="flex items-center gap-1.5 rounded-md border border-primary/60 bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20"
+          >
+            <Download size={13} /> Download Contact Sheet
+          </button>
+        </div>
+      </div>
+
+      {/* 单张放大查看 */}
+      {activeTile != null && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-6"
+          onClick={() => setActiveTile(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={result.tiles[activeTile].dataUrl}
+            alt={result.tiles[activeTile].label}
+            className="max-h-full max-w-full rounded-lg border border-border"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+</file>
+
 <file path="threejs-ai-model-generator/components/ModelGeneratorClient.tsx">
 "use client";
 
@@ -1876,6 +1876,346 @@ export function getSortedPosts(posts: Post[]) {
 }
 </file>
 
+<file path=".gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env
+.env*.local
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+</file>
+
+<file path="migrate-3d-generator.sh">
+#!/usr/bin/env bash
+#
+# fix-imports-round2.sh
+#
+# 基于 `npx tsc --noEmit` 报出来的精确错误清单,逐一修正
+# threejs-ai-model-generator/ 内部因为文件搬家、但相对路径没跟着改的 import。
+#
+# 用法: 在 portfolio-app 仓库根目录运行:
+#   chmod +x fix-imports-round2.sh
+#   ./fix-imports-round2.sh
+#   npx tsc --noEmit   # 再跑一遍确认清零
+#
+set -euo pipefail
+
+if [ ! -f "package.json" ]; then
+  echo "❌ 请在 portfolio-app 仓库根目录运行。"
+  exit 1
+fi
+
+TOOL_DIR="threejs-ai-model-generator"
+
+fix() {
+  local file="$1" old="$2" new="$3"
+  if [ ! -f "$file" ]; then
+    echo "  ⚠️  跳过(文件不存在): $file"
+    return
+  fi
+  if ! grep -qF -- "$old" "$file"; then
+    echo "  ⚠️  跳过(没找到这段字符串,可能已经改过了): $file"
+    return
+  fi
+  sed -i.bak "s|${old}|${new}|g" "$file"
+  rm -f "${file}.bak"
+  echo "  ✅ 已修正: $file"
+}
+
+echo "▶ 逐一修正 import 路径..."
+
+fix "${TOOL_DIR}/components/ControlCoPilotPanel.tsx" \
+    '../modelGenerator.constants' '../constants'
+
+fix "${TOOL_DIR}/components/ModelGenerator.tsx" \
+    './modelGenerator.constants' '../constants'
+
+fix "${TOOL_DIR}/components/ModelGenerator.tsx" \
+    './modelGenerator/types' '../types'
+
+fix "${TOOL_DIR}/components/ModelGenerator.tsx" \
+    './modelGenerator/useThreeEngine' '../hooks/useThreeEngine'
+
+fix "${TOOL_DIR}/components/ModelGenerator.tsx" \
+    './modelGenerator/Toolbar' './Toolbar'
+
+fix "${TOOL_DIR}/components/ModelGenerator.tsx" \
+    './modelGenerator/ControlCoPilotPanel' './ControlCoPilotPanel'
+
+fix "${TOOL_DIR}/components/ModelGenerator.tsx" \
+    './modelGenerator/PreviewPanel' './PreviewPanel'
+
+# 这一条是上一轮脚本自己引入的错误:ModelGeneratorClient.tsx 现在跟
+# ModelGenerator.tsx 同在 components/ 目录下了,不再需要跨 4 层目录的相对路径。
+fix "${TOOL_DIR}/components/ModelGeneratorClient.tsx" \
+    '../../../../threejs-ai-model-generator/components/ModelGenerator' './ModelGenerator'
+
+fix "${TOOL_DIR}/components/TerminalView.tsx" \
+    './types' '../types'
+
+fix "${TOOL_DIR}/components/Toolbar.tsx" \
+    '../modelGenerator.constants' '../constants'
+
+fix "${TOOL_DIR}/hooks/useThreeEngine.ts" \
+    './types' '../types'
+
+echo ""
+echo "✅ 修复完成。现在跑:"
+echo "     npx tsc --noEmit"
+echo "   如果还有报错,大概率是 PreviewPanel.tsx / ControlCoPilotPanel.tsx 里"
+echo "   还有别的没被 tsc 第一轮扫到的相对路径引用(比如它们互相 import 的情况),"
+echo "   把新的报错贴给我,这次直接照着报错改就行,不用再猜了。"
+</file>
+
+<file path="src/components/home/FeatureGrid.tsx">
+"use client";
+
+import { Card } from "@/components/ui/Card";
+import { motion } from "framer-motion";
+import { Code2, Briefcase, Zap, Globe } from "lucide-react";
+import { TechBadge } from "@/components/ui/TechBadge";
+import { CardIcon } from "@/components/ui/CardIcon";
+
+const features = [
+  {
+    title: "Full-Stack Product Engineering",
+    description:
+      "Architecting production-grade applications with Next.js, Node.js, and Puppeteer.",
+    tech: ["Next.js", "TypeScript", "Node.js", "MongoDB", "Puppeteer"],
+    icon: Code2,
+    color: "text-blue-400",
+    className: "md:col-span-2",
+  },
+  {
+    title: "Strategic Mindset",
+    description:
+      "8+ years of leadership as a Ops Executive. I write code with ROI, GTM strategy, and scalability in mind",
+    tech: ["Ops Automation", "GTM Strategy", "ROI-First"],
+    icon: Briefcase,
+    color: "text-yellow-400",
+    className: "md:col-span-1",
+  },
+  {
+    title: "Web3 Veteran",
+    description:
+      "Deep roots since 2017. A SocialFi domain expert who managed technical deployments for L1 giants.",
+    tech: ["Avalanche", "Polygon", "SocialFi", "Tokenomics"],
+    icon: Globe,
+    color: "text-sky-400",
+    className: "md:col-span-1",
+  },
+  {
+    title: "AI-Augmented Delivery",
+    description:
+      "Leveraging AI workflows to transition from Figma prototypes to shipable code at 10x startup speed.",
+    tech: ["Figma to Code", "Vibe Coding", "Rapid Prototyping"],
+    icon: Zap,
+    color: "text-purple-400",
+    className: "md:col-span-2",
+  },
+];
+
+export function FeatureGrid() {
+  return (
+    <section className="pb-32 relative">
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {features.map((feature, index) => (
+          <motion.div
+            key={feature.title}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: index * 0.1 }}
+            className={feature.className}
+          >
+            <Card className="h-full flex flex-col justify-between group hover:border-white/10 transition-colors duration-500">
+              <div>
+                <CardIcon icon={feature.icon} color={feature.color} />
+
+                <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">
+                  {feature.title}
+                </h3>
+                <p className="text-muted leading-relaxed font-light text-sm mb-6">
+                  {feature.description}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2.5 mt-auto">
+                {feature.tech.map((t) => (
+                  <TechBadge key={t} name={t} />
+                ))}
+              </div>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+</file>
+
+<file path="src/components/home/ToolsSection.tsx">
+"use client";
+
+import { Card } from "@/components/ui/Card";
+import { Box, ArrowRight, Sparkles, Cpu, Eye } from "lucide-react";
+import Link from "next/link";
+import { CardIcon } from "@/components/ui/CardIcon";
+import { TechBadge } from "@/components/ui/TechBadge";
+
+export function ToolsSection() {
+  return (
+    <section id="tools" className="pb-32 scroll-mt-24 relative">
+      <div className="flex flex-col gap-4 mb-12">
+        <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+          Tools & Experiments.
+        </h2>
+        <p className="text-muted text-lg max-w-2xl font-light">
+          Interactive developer utilities and AI-augmented generation engines
+          built from first principles.
+        </p>
+      </div>
+
+      <Card className="group relative overflow-hidden p-8 md:p-10 border border-border/50 bg-gradient-to-br from-card/80 via-card/40 to-background transition-all duration-500 hover:border-primary/40">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 z-10 relative">
+          <div className="max-w-2xl">
+            <div className="flex items-center gap-3 mb-6">
+              <CardIcon icon={Box} color="text-primary" className="mb-0" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
+                <Sparkles size={13} /> AI Studio
+              </span>
+            </div>
+
+            <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
+              AI 3D Low-Poly Generator
+            </h3>
+
+            <p className="text-muted font-light text-sm md:text-base leading-relaxed mb-8">
+              A self-healing 3D asset pipeline. Generates production-ready
+              Three.js code via Gemini 3.6 Flash, renders with real-time
+              shadow-mapped WebGL, and uses Gemini Vision for automated visual
+              critique loops.
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              <TechBadge name="Next.js 15" />
+              <TechBadge name="Three.js" />
+              <TechBadge name="TypeScript" />
+              <TechBadge name="Vibe Coding" />
+            </div>
+          </div>
+
+          <Link
+            href="/tools/3d-generator"
+            className="group/btn inline-flex items-center gap-2.5 rounded-xl bg-primary px-6 py-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap shrink-0"
+          >
+            Launch Studio
+            <ArrowRight
+              size={18}
+              className="transition-transform group-hover/btn:translate-x-1"
+            />
+          </Link>
+        </div>
+
+        {/* 背景微弱网格装饰 */}
+        <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none group-hover:bg-primary/10 transition-colors duration-500" />
+      </Card>
+    </section>
+  );
+}
+</file>
+
+<file path="src/components/layout/MarketTicker.tsx">
+// src/components/layout/MarketTicker.tsx
+import { getMarketData } from "@/lib/market";
+import { TrendingDown, TrendingUp } from "lucide-react";
+
+export async function MarketTicker() {
+  const data = await getMarketData();
+
+  if (!data || data.length === 0) return null;
+
+  // 将数据复制一份以实现无缝循环滚动
+  const displayData = [...data, ...data];
+
+  return (
+    <div className="w-full bg-black/80 border-b border-white/5 text-[11px] font-mono overflow-hidden flex items-center h-8 z-50 sticky top-0">
+      <div className="flex animate-marquee whitespace-nowrap">
+        {displayData.map((asset, i) => (
+          <div
+            key={`${asset.symbol}-${i}`}
+            className="flex items-center gap-2 px-6 border-r border-white/10 last:border-none"
+          >
+            <span className="text-muted-foreground font-semibold">
+              {asset.name}
+            </span>
+            <span className="text-foreground">
+              {/* 根据资产类型决定小数位数 */}
+              {asset.price > 1000
+                ? asset.price.toLocaleString("en-US", {
+                    maximumFractionDigits: 0,
+                  })
+                : asset.price.toFixed(2)}
+            </span>
+            <span
+              className={`flex items-center ${
+                asset.isUp ? "text-emerald-400" : "text-rose-400"
+              }`}
+            >
+              {asset.isUp ? (
+                <TrendingUp size={12} className="mr-0.5" />
+              ) : (
+                <TrendingDown size={12} className="mr-0.5" />
+              )}
+              {Math.abs(asset.changePercent).toFixed(2)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+</file>
+
 <file path="threejs-ai-model-generator/components/ControlCoPilotPanel.tsx">
 "use client";
 
@@ -2644,342 +2984,106 @@ export async function generateModelHandler(req: NextRequest) {
 }
 </file>
 
-<file path=".gitignore">
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env
-.env*.local
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-</file>
-
-<file path="migrate-3d-generator.sh">
-#!/usr/bin/env bash
-#
-# fix-imports-round2.sh
-#
-# 基于 `npx tsc --noEmit` 报出来的精确错误清单,逐一修正
-# threejs-ai-model-generator/ 内部因为文件搬家、但相对路径没跟着改的 import。
-#
-# 用法: 在 portfolio-app 仓库根目录运行:
-#   chmod +x fix-imports-round2.sh
-#   ./fix-imports-round2.sh
-#   npx tsc --noEmit   # 再跑一遍确认清零
-#
-set -euo pipefail
-
-if [ ! -f "package.json" ]; then
-  echo "❌ 请在 portfolio-app 仓库根目录运行。"
-  exit 1
-fi
-
-TOOL_DIR="threejs-ai-model-generator"
-
-fix() {
-  local file="$1" old="$2" new="$3"
-  if [ ! -f "$file" ]; then
-    echo "  ⚠️  跳过(文件不存在): $file"
-    return
-  fi
-  if ! grep -qF -- "$old" "$file"; then
-    echo "  ⚠️  跳过(没找到这段字符串,可能已经改过了): $file"
-    return
-  fi
-  sed -i.bak "s|${old}|${new}|g" "$file"
-  rm -f "${file}.bak"
-  echo "  ✅ 已修正: $file"
-}
-
-echo "▶ 逐一修正 import 路径..."
-
-fix "${TOOL_DIR}/components/ControlCoPilotPanel.tsx" \
-    '../modelGenerator.constants' '../constants'
-
-fix "${TOOL_DIR}/components/ModelGenerator.tsx" \
-    './modelGenerator.constants' '../constants'
-
-fix "${TOOL_DIR}/components/ModelGenerator.tsx" \
-    './modelGenerator/types' '../types'
-
-fix "${TOOL_DIR}/components/ModelGenerator.tsx" \
-    './modelGenerator/useThreeEngine' '../hooks/useThreeEngine'
-
-fix "${TOOL_DIR}/components/ModelGenerator.tsx" \
-    './modelGenerator/Toolbar' './Toolbar'
-
-fix "${TOOL_DIR}/components/ModelGenerator.tsx" \
-    './modelGenerator/ControlCoPilotPanel' './ControlCoPilotPanel'
-
-fix "${TOOL_DIR}/components/ModelGenerator.tsx" \
-    './modelGenerator/PreviewPanel' './PreviewPanel'
-
-# 这一条是上一轮脚本自己引入的错误:ModelGeneratorClient.tsx 现在跟
-# ModelGenerator.tsx 同在 components/ 目录下了,不再需要跨 4 层目录的相对路径。
-fix "${TOOL_DIR}/components/ModelGeneratorClient.tsx" \
-    '../../../../threejs-ai-model-generator/components/ModelGenerator' './ModelGenerator'
-
-fix "${TOOL_DIR}/components/TerminalView.tsx" \
-    './types' '../types'
-
-fix "${TOOL_DIR}/components/Toolbar.tsx" \
-    '../modelGenerator.constants' '../constants'
-
-fix "${TOOL_DIR}/hooks/useThreeEngine.ts" \
-    './types' '../types'
-
-echo ""
-echo "✅ 修复完成。现在跑:"
-echo "     npx tsc --noEmit"
-echo "   如果还有报错,大概率是 PreviewPanel.tsx / ControlCoPilotPanel.tsx 里"
-echo "   还有别的没被 tsc 第一轮扫到的相对路径引用(比如它们互相 import 的情况),"
-echo "   把新的报错贴给我,这次直接照着报错改就行,不用再猜了。"
-</file>
-
-<file path="src/components/home/FeatureGrid.tsx">
+<file path="src/components/home/Hero.tsx">
 "use client";
 
-import { Card } from "@/components/ui/Card";
 import { motion } from "framer-motion";
-import { Code2, Briefcase, Zap, Globe } from "lucide-react";
-import { TechBadge } from "@/components/ui/TechBadge";
-import { CardIcon } from "@/components/ui/CardIcon";
-
-const features = [
-  {
-    title: "Full-Stack Product Engineering",
-    description:
-      "Architecting production-grade applications with Next.js, Node.js, and Puppeteer.",
-    tech: ["Next.js", "TypeScript", "Node.js", "MongoDB", "Puppeteer"],
-    icon: Code2,
-    color: "text-blue-400",
-    className: "md:col-span-2",
-  },
-  {
-    title: "Strategic Mindset",
-    description:
-      "8+ years of leadership as a Ops Executive. I write code with ROI, GTM strategy, and scalability in mind",
-    tech: ["Ops Automation", "GTM Strategy", "ROI-First"],
-    icon: Briefcase,
-    color: "text-yellow-400",
-    className: "md:col-span-1",
-  },
-  {
-    title: "Web3 Veteran",
-    description:
-      "Deep roots since 2017. A SocialFi domain expert who managed technical deployments for L1 giants.",
-    tech: ["Avalanche", "Polygon", "SocialFi", "Tokenomics"],
-    icon: Globe,
-    color: "text-sky-400",
-    className: "md:col-span-1",
-  },
-  {
-    title: "AI-Augmented Delivery",
-    description:
-      "Leveraging AI workflows to transition from Figma prototypes to shipable code at 10x startup speed.",
-    tech: ["Figma to Code", "Vibe Coding", "Rapid Prototyping"],
-    icon: Zap,
-    color: "text-purple-400",
-    className: "md:col-span-2",
-  },
-];
-
-export function FeatureGrid() {
-  return (
-    <section className="pb-32 relative">
-      <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
-
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {features.map((feature, index) => (
-          <motion.div
-            key={feature.title}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: index * 0.1 }}
-            className={feature.className}
-          >
-            <Card className="h-full flex flex-col justify-between group hover:border-white/10 transition-colors duration-500">
-              <div>
-                <CardIcon icon={feature.icon} color={feature.color} />
-
-                <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">
-                  {feature.title}
-                </h3>
-                <p className="text-muted leading-relaxed font-light text-sm mb-6">
-                  {feature.description}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2.5 mt-auto">
-                {feature.tech.map((t) => (
-                  <TechBadge key={t} name={t} />
-                ))}
-              </div>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-    </section>
-  );
-}
-</file>
-
-<file path="src/components/home/ToolsSection.tsx">
-"use client";
-
-import { Card } from "@/components/ui/Card";
-import { Box, ArrowRight, Sparkles, Cpu, Eye } from "lucide-react";
+import { ArrowRight, Box, Terminal } from "lucide-react";
 import Link from "next/link";
-import { CardIcon } from "@/components/ui/CardIcon";
-import { TechBadge } from "@/components/ui/TechBadge";
+import { CodeWindow } from "./CodeWindow";
 
-export function ToolsSection() {
+export function Hero() {
   return (
-    <section id="tools" className="pb-32 scroll-mt-24 relative">
-      <div className="flex flex-col gap-4 mb-12">
-        <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-          Tools & Experiments.
-        </h2>
-        <p className="text-muted text-lg max-w-2xl font-light">
-          Interactive developer utilities and AI-augmented generation engines
-          built from first principles.
-        </p>
-      </div>
+    <section className="relative flex flex-col items-center justify-center pt-12 pb-20 md:pt-20 md:pb-32 overflow-visible">
+      <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl pointer-events-none opacity-50" />
+      <div className="absolute top-1/2 right-0 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl pointer-events-none opacity-50" />
 
-      <Card className="group relative overflow-hidden p-8 md:p-10 border border-border/50 bg-gradient-to-br from-card/80 via-card/40 to-background transition-all duration-500 hover:border-primary/40">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 z-10 relative">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-3 mb-6">
-              <CardIcon icon={Box} color="text-primary" className="mb-0" />
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
-                <Sparkles size={13} /> AI Studio
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center w-full">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="relative z-10 flex flex-col gap-y-6 md:gap-y-8"
+        >
+          {/* Badge */}
+          <div>
+            <div className="inline-flex items-center overflow-hidden rounded-full border border-amber-500/30 bg-amber-500/10 py-1.5 px-4 backdrop-blur-sm">
+              <span className="relative flex h-2 w-2 mr-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+              </span>
+              <span className="text-[10px] sm:text-xs font-bold text-amber-300 tracking-[0.15em] uppercase">
+                Available for New Projects
               </span>
             </div>
+          </div>
 
-            <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
-              AI 3D Low-Poly Generator
-            </h3>
+          {/* H1 */}
+          <h1 className="flex flex-col gap-y-2 text-left">
+            <span className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
+              Product Engineer.
+            </span>
+            <span className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent leading-[1.2]">
+              Focused on System Design & Delivery.
+            </span>
+          </h1>
 
-            <p className="text-muted font-light text-sm md:text-base leading-relaxed mb-8">
-              A self-healing 3D asset pipeline. Generates production-ready
-              Three.js code via Gemini 3.6 Flash, renders with real-time
-              shadow-mapped WebGL, and uses Gemini Vision for automated visual
-              critique loops.
+          {/* Intro Paragraph */}
+          <div className="max-w-xl">
+            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-normal">
+              I am{" "}
+              <strong className="text-foreground font-semibold">0xShoyu</strong>
+              .
+              <br className="hidden md:block" />I translate{" "}
+              <span className="text-rose-300 font-medium">
+                abstract concepts
+              </span>{" "}
+              into{" "}
+              <strong className="text-amber-300 font-medium">
+                high-fidelity interfaces
+              </strong>
+              , and finally into{" "}
+              <strong className="text-primary font-semibold">
+                production-ready code
+              </strong>
+              .
             </p>
-
-            <div className="flex flex-wrap gap-2">
-              <TechBadge name="Next.js 15" />
-              <TechBadge name="Three.js" />
-              <TechBadge name="TypeScript" />
-              <TechBadge name="Vibe Coding" />
-            </div>
           </div>
 
-          <Link
-            href="/tools/3d-generator"
-            className="group/btn inline-flex items-center gap-2.5 rounded-xl bg-primary px-6 py-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap shrink-0"
-          >
-            Launch Studio
-            <ArrowRight
-              size={18}
-              className="transition-transform group-hover/btn:translate-x-1"
-            />
-          </Link>
-        </div>
-
-        {/* 背景微弱网格装饰 */}
-        <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none group-hover:bg-primary/10 transition-colors duration-500" />
-      </Card>
-    </section>
-  );
-}
-</file>
-
-<file path="src/components/layout/MarketTicker.tsx">
-// src/components/layout/MarketTicker.tsx
-import { getMarketData } from "@/lib/market";
-import { TrendingDown, TrendingUp } from "lucide-react";
-
-export async function MarketTicker() {
-  const data = await getMarketData();
-
-  if (!data || data.length === 0) return null;
-
-  // 将数据复制一份以实现无缝循环滚动
-  const displayData = [...data, ...data];
-
-  return (
-    <div className="w-full bg-black/80 border-b border-white/5 text-[11px] font-mono overflow-hidden flex items-center h-8 z-50 sticky top-0">
-      <div className="flex animate-marquee whitespace-nowrap">
-        {displayData.map((asset, i) => (
-          <div
-            key={`${asset.symbol}-${i}`}
-            className="flex items-center gap-2 px-6 border-r border-white/10 last:border-none"
-          >
-            <span className="text-muted-foreground font-semibold">
-              {asset.name}
-            </span>
-            <span className="text-foreground">
-              {/* 根据资产类型决定小数位数 */}
-              {asset.price > 1000
-                ? asset.price.toLocaleString("en-US", {
-                    maximumFractionDigits: 0,
-                  })
-                : asset.price.toFixed(2)}
-            </span>
-            <span
-              className={`flex items-center ${
-                asset.isUp ? "text-emerald-400" : "text-rose-400"
-              }`}
+          {/* Buttons */}
+          <div className="flex flex-wrap gap-4 pt-2">
+            <Link
+              href="/#portfolio"
+              className="group relative inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0"
             >
-              {asset.isUp ? (
-                <TrendingUp size={12} className="mr-0.5" />
-              ) : (
-                <TrendingDown size={12} className="mr-0.5" />
-              )}
-              {Math.abs(asset.changePercent).toFixed(2)}%
-            </span>
+              <Terminal size={20} />
+              View Portfolio
+              <ArrowRight
+                size={18}
+                className="transition-transform group-hover:translate-x-1"
+              />
+            </Link>
+
+            <Link
+  href="/#tools"
+  className="group inline-flex items-center gap-2 rounded-xl border border-border bg-background/50 px-6 py-3.5 text-base font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-primary hover:border-primary/50"
+>
+  <Box size={20} />
+  Explore Tools
+</Link>
           </div>
-        ))}
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+          className="relative flex justify-center lg:justify-end w-full pl-0 lg:pl-10"
+        >
+          <CodeWindow />
+        </motion.div>
       </div>
-    </div>
+    </section>
   );
 }
 </file>
@@ -4196,110 +4300,6 @@ export function useThreeEngine(
     setCanvasTheme,
     setExplodeFactor,
   };
-}
-</file>
-
-<file path="src/components/home/Hero.tsx">
-"use client";
-
-import { motion } from "framer-motion";
-import { ArrowRight, Box, Terminal } from "lucide-react";
-import Link from "next/link";
-import { CodeWindow } from "./CodeWindow";
-
-export function Hero() {
-  return (
-    <section className="relative flex flex-col items-center justify-center pt-12 pb-20 md:pt-20 md:pb-32 overflow-visible">
-      <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl pointer-events-none opacity-50" />
-      <div className="absolute top-1/2 right-0 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl pointer-events-none opacity-50" />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center w-full">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="relative z-10 flex flex-col gap-y-6 md:gap-y-8"
-        >
-          {/* Badge */}
-          <div>
-            <div className="inline-flex items-center overflow-hidden rounded-full border border-amber-500/30 bg-amber-500/10 py-1.5 px-4 backdrop-blur-sm">
-              <span className="relative flex h-2 w-2 mr-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
-              </span>
-              <span className="text-[10px] sm:text-xs font-bold text-amber-300 tracking-[0.15em] uppercase">
-                Available for New Projects
-              </span>
-            </div>
-          </div>
-
-          {/* H1 */}
-          <h1 className="flex flex-col gap-y-2 text-left">
-            <span className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
-              Product Engineer.
-            </span>
-            <span className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent leading-[1.2]">
-              Focused on System Design & Delivery.
-            </span>
-          </h1>
-
-          {/* Intro Paragraph */}
-          <div className="max-w-xl">
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-normal">
-              I am{" "}
-              <strong className="text-foreground font-semibold">0xShoyu</strong>
-              .
-              <br className="hidden md:block" />I translate{" "}
-              <span className="text-rose-300 font-medium">
-                abstract concepts
-              </span>{" "}
-              into{" "}
-              <strong className="text-amber-300 font-medium">
-                high-fidelity interfaces
-              </strong>
-              , and finally into{" "}
-              <strong className="text-primary font-semibold">
-                production-ready code
-              </strong>
-              .
-            </p>
-          </div>
-
-          {/* Buttons */}
-          <div className="flex flex-wrap gap-4 pt-2">
-            <Link
-              href="/#portfolio"
-              className="group relative inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0"
-            >
-              <Terminal size={20} />
-              View Portfolio
-              <ArrowRight
-                size={18}
-                className="transition-transform group-hover:translate-x-1"
-              />
-            </Link>
-
-            <Link
-  href="/#tools"
-  className="group inline-flex items-center gap-2 rounded-xl border border-border bg-background/50 px-6 py-3.5 text-base font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-card hover:text-primary hover:border-primary/50"
->
-  <Box size={20} />
-  Explore Tools
-</Link>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-          className="relative flex justify-center lg:justify-end w-full pl-0 lg:pl-10"
-        >
-          <CodeWindow />
-        </motion.div>
-      </div>
-    </section>
-  );
 }
 </file>
 
