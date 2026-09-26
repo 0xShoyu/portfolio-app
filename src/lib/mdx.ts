@@ -1,3 +1,4 @@
+
 // src/lib/mdx.ts
 import fs from "fs";
 import path from "path";
@@ -9,6 +10,7 @@ export type PostMetadata = {
   description: string;
   slug: string;
   tags?: string[];
+  readingTime?: string;
 };
 
 export type Post = {
@@ -29,6 +31,13 @@ function readMDXFile(filePath: string) {
   return matter(rawContent);
 }
 
+// NEW: shared helper, additive only — nothing existing calls this yet.
+function estimateReadingTime(content: string) {
+  const words = content.trim().split(/\s+/).filter(Boolean).length;
+  const minutes = Math.max(1, Math.round(words / 200));
+  return `${minutes} min read`;
+}
+
 export function getMDXData(dir: string): Post[] {
   const mdxFiles = getMDXFiles(dir);
   const fullPath = path.join(contentDirectory, dir);
@@ -43,6 +52,7 @@ export function getMDXData(dir: string): Post[] {
         description: data.description || data.summary,
         tags: data.tags || [],
         slug: file.replace(".mdx", ""),
+        readingTime: estimateReadingTime(content),
       } as PostMetadata,
       content,
     };
@@ -65,6 +75,7 @@ export function getPostBySlug(dir: string, slug: string): Post | null {
       description: data.description || data.summary,
       tags: data.tags || [],
       slug: slug,
+      readingTime: estimateReadingTime(content),
     } as PostMetadata,
     content,
   };

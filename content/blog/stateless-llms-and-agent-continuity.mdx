@@ -1,0 +1,78 @@
+---
+title: "Starting From Samantha: LLMs Don't Remember, So Where Does an Agent's Continuity Come From?"
+date: "2026-04-02"
+description: "Large language models have no memory of their own — every call is independent. What makes an agent feel continuous is context management, tool calls, and control loops built entirely outside the model."
+tags: ["LLM", "Agent", "System Design"]
+---
+
+In the closing scene of *Her* (2013), the AI Samantha confesses to the protagonist that she's simultaneously talking with 8,316 people — and has fallen in love with 641 of them.
+
+The film captures a very human way of imagining AI: an unbroken, ever-running stream of consciousness, a "self" that persists quietly in the background and simply happens to be able to split itself across thousands of conversations at once. It's a beautiful piece of science fiction, and it also happens to be the most common intuition people bring to modern AI: **the assumption that it has a persistent "self," the way a person does.**
+
+That's not how large language models (LLMs) actually work. At inference time, a model's weights are fixed — no single conversation changes them. On every call, the only thing the model can see is whatever context was packed into that request. There is no other source of information.
+
+When it generates a reply for User A, the input contains only A's history. Switch to User B, and the server packages up B's history instead. What looks like "talking to thousands of people at once" is really the server feeding thousands of independent memory packets — stored outside the model — into the same set of weights, one after another or in batches.
+
+> One caveat: inference services typically cache intermediate computation (KV cache, prefix caching) to speed things up, and some APIs offer server-side session management. But these are engineering optimizations or external state — functionally equivalent to "recomputing the full context from scratch." They don't mean the model has some persistent internal "self."
+
+Grasp this and you've grasped the first principle of agent development: **under the dominant deployment model, state doesn't live inside the model — continuity has to be built by systems outside it.**
+
+---
+
+## Core Mental Model: Put State Outside the Model
+
+You can approximate a single model call as:
+
+```text
+Output = f(Context)
+```
+
+Strictly speaking, sampling introduces randomness — the same input isn't guaranteed to produce the same output, so this isn't a pure function in the mathematical sense. But the underlying idea — output depends only on this call's input, with no hidden memory of past conversations — is enough to guide how you build.
+
+It's also worth noting that "statelessness" is a choice made by the dominant deployment model, not some inherent law. In principle, weights could keep updating during inference (online learning), but that brings forgetting, cost, privacy cross-contamination, and security risks — which is why agent development today overwhelmingly keeps memory outside the model.
+
+You don't need to wade through a heavyweight framework to internalize this. Working through the steps below will get you there.
+
+### Step 1: Make a Single, Raw API Call
+
+Skip the framework. Fire off a request directly in code: whatever you pass in is exactly what the output is generated from. Do this once and you'll feel, viscerally, that every call is independent — and the intuition that "it has a self" starts to fade on its own.
+
+### Step 2: Maintain Conversation Memory Yourself
+
+Since the model doesn't store the conversation, you have to maintain a message list in your own system: before every new question, you send the full history along with it. This is the entire mechanism behind why products like ChatGPT "feel" like they remember you — the memory lives in your database, not in the model.
+
+But this is where the real difficulty starts:
+
+- **The context window is finite.** The longer the history, the more likely you are to hit the limit.
+- **Cost scales with every turn.** Every round resends the entire history, so token spend and latency both climb.
+- **You can't just dump everything in.** Irrelevant content actively degrades the model's judgment.
+
+This is why truncation, summarization/compression, retrieval-augmented generation (RAG), and long-term memory stores all exist — they're all answering the same underlying question: **what should go into the context this turn?** Most of the engineering effort in "externalizing state" lives right here.
+
+### Step 3: Add Tools to Connect to the Outside World
+
+If an external system can feed history into the model, it can just as easily feed it live information. Through function calling, the model's only job is to output a structured instruction — "check the weather in this location," say — and your own program is what actually executes it, then feeds the result back into the context for the model to continue reasoning over. At this point the model stops being a pure text generator and becomes an agent that can act on the outside world.
+
+### Step 4: Drive Autonomous Tasks With an External Loop
+
+With memory and tools in place, how do you get it to move beyond one-question-one-answer and push a complex task forward on its own? The answer is an **external control loop.** Take a coding agent as an example:
+
+1. You give it a development goal; the model calls a tool and writes code based on the current context.
+2. The external system runs the code and collects the compiler's or test suite's output.
+3. If something errors, the system adds the traceback to the context and calls the model again.
+4. The model analyzes the error and proposes a fix.
+5. The system applies the change and reruns — and the cycle repeats until the tests pass.
+
+Throughout this whole process, every single model call is still independent. The continuity of "plan → execute → observe → correct" comes entirely from the loop running outside it.
+
+The loop itself needs careful design, though: it needs **termination conditions** (a turn cap, a cost ceiling), a way to **detect infinite loops** (the same mistake repeating over and over), and **controlled execution permissions** (running code automatically requires sandbox isolation). Without these, "autonomy" turns into "runaway" very easily.
+
+---
+
+## Closing Thoughts
+
+Looking back, there's nothing supernatural behind Samantha. Pull a system like that apart and what you find is: a database that stores state, a layer of context management that decides "what should the model see right now," and an engineering loop that keeps loading state, calling the model, and writing results back.
+
+That said, none of this means the model doesn't matter. Whether that "error → fix" loop actually converges depends on whether the model has strong enough reasoning and tool-use ability — swap in a weaker model and the loop just spins in place.
+
+So the more accurate statement is: **the model supplies the capability, external engineering supplies the continuity — you need both.** For developers, the practical takeaway from accepting that the model itself holds no state is knowing exactly where to spend your effort: design the memory, the tools, and the loop well, and let a stateless model carry out work that needs to move forward continuously and coherently.
