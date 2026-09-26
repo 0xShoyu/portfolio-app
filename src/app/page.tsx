@@ -9,17 +9,11 @@ export default function Home() {
     <Container>
       <Hero />
 
-      <FeatureGrid /> 
+      <FeatureGrid />
 
       <PortfolioSection />
 
       <ToolsSection />
-
-      <div className="py-24 border-t border-border/40 mt-12 text-center">
-        <p className="text-muted text-sm">
-          © 2026 0xShoyu. Built with Next.js & Coffee.
-        </p>
-      </div>
     </Container>
   );
 }

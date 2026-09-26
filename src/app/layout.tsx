@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { MarketTicker } from "@/components/layout/MarketTicker";
+import { Footer } from "@/components/layout/Footer";
 
 export const revalidate = 60;
 
@@ -21,6 +22,7 @@ export default function RootLayout({
         <MarketTicker />
         <Navbar />
         <main>{children}</main>
+        <Footer />
       </body>
     </html>
   );
